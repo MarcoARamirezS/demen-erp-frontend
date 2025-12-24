@@ -23,10 +23,12 @@
       <!-- Form -->
       <div class="space-y-4 mt-2">
         <UiInput
-          v-model="form.username"
+          v-model="form.usuario"
           placeholder="Usuario"
           icon="user"
           autocomplete="username"
+          :value="modelValue"
+          @input="emit('update:modelValue', $event.target.value)"
         />
 
         <UiInput
@@ -35,6 +37,8 @@
           placeholder="Contraseña"
           icon="lock"
           autocomplete="current-password"
+          :value="modelValue"
+          @input="emit('update:modelValue', $event.target.value)"
         />
       </div>
 
@@ -55,15 +59,24 @@
 import { useAuthStore } from "~/stores/auth.store"
 
 definePageMeta({ layout: "auth" })
+defineProps({
+  modelValue: {
+    type: [String, Number],
+    default: "",
+  },
+})
 
 const auth = useAuthStore()
 
 const form = reactive({
-  username: "",
+  usuario: "",
   password: "",
 })
 
 const submit = async () => {
   await auth.login(form)
 }
+
+const emit = defineEmits(["update:modelValue"])
 </script>
+

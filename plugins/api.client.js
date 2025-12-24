@@ -6,6 +6,12 @@ export default defineNuxtPlugin(() => {
     baseURL: config.public.apiBaseUrl,
 
     async onRequest({ options }) {
+      console.log("[API REQUEST]", {
+        request,
+        method: options.method || "GET",
+        headers: options.headers,
+        body: options.body || null,
+      })
       ui.showLoading()
 
       const auth = useAuthStore()
@@ -21,14 +27,21 @@ export default defineNuxtPlugin(() => {
       ui.hideLoading()
     },
 
-    async onResponseError({ response }) {
+    async onResponseError({ response, request, options }) {
       ui.hideLoading()
 
       const auth = useAuthStore()
 
-      if (response.status === 401) {
+      if (response.status === 401 && auth.refreshToken) {
         try {
           await auth.refresh()
+
+          options.headers = {
+            ...options.headers,
+            Authorization: `Bearer ${auth.accessToken}`,
+          }
+
+          return await $fetch(request, options)
         } catch {
           auth.logout()
           navigateTo("/login")

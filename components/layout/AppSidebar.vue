@@ -5,7 +5,7 @@
     <!-- Logo -->
     <div class="h-16 flex items-center px-6 border-b border-base-300">
       <img
-        src="/logo-danam.svg"
+        src="/logo-danam-transparent.svg"
         alt="DANAM"
         class="h-9"
       />

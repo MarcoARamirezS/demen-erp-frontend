@@ -1,23 +1,30 @@
 import { defineStore } from "pinia"
 import { useUiStore } from "~/stores/ui.store"
 
-interface LoginCredentials {
-  username: string
+interface LoginPayload {
+  usuario: string
   password: string
 }
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
-    user: null as any,
+    userId: null as string | null,
+    permissions: [] as string[],
     accessToken: null as string | null,
     refreshToken: null as string | null,
     loading: false,
   }),
 
+  getters: {
+    isAuthenticated: (s) => !!s.accessToken,
+    hasPermission: (s) => (perm: string) =>
+      s.permissions.includes(perm),
+  },
+
   actions: {
-    async login(credentials: LoginCredentials) {
-      const api = useApi()
+    async login(payload: LoginPayload) {
       const ui = useUiStore()
+      const api = useApi
 
       this.loading = true
       ui.showLoading()
@@ -25,12 +32,13 @@ export const useAuthStore = defineStore("auth", {
       try {
         const res = await api("/auth/login", {
           method: "POST",
-          body: credentials,
+          body: payload,
         })
 
         this.accessToken = res.accessToken
         this.refreshToken = res.refreshToken
-        this.user = res.user
+
+        await this.fetchMe()
 
         ui.showToast("success", "Bienvenido")
         navigateTo("/")
@@ -43,28 +51,39 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
+    async fetchMe() {
+      const api = useApi
+      const me = await api("/auth/me")
+
+      this.userId = me.id
+      this.permissions = me.permissions || []
+    },
+
     async refresh() {
-      const api = useApi()
+      if (!this.refreshToken) return
+
+      const api = useApi
 
       const res = await api("/auth/refresh", {
         method: "POST",
-        body: {
-          refreshToken: this.refreshToken,
-        },
+        body: { refreshToken: this.refreshToken },
       })
 
       this.accessToken = res.accessToken
+      this.refreshToken = res.refreshToken
     },
 
-    async fetchMe() {
-      const api = useApi()
-      this.user = await api("/auth/me")
-    },
+    async logout() {
+      const api = useApi
 
-    logout() {
-      this.user = null
-      this.accessToken = null
-      this.refreshToken = null
+      if (this.refreshToken) {
+        await api("/auth/logout", {
+          method: "POST",
+          body: { refreshToken: this.refreshToken },
+        })
+      }
+
+      this.$reset()
       navigateTo("/login")
     },
   },
