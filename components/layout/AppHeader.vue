@@ -1,40 +1,29 @@
 <template>
-  <header
-    class="
-      h-14
-      bg-base-100
-      border-b border-base-300
-      flex items-center justify-between
-      px-6
-    "
-  >
-    <!-- Left -->
-    <div class="text-sm font-medium text-base-content">
-      {{ pageTitle }}
-    </div>
+  <header class="h-16 flex items-center justify-between px-6 border-b border-base-300 bg-base-100">
+    <div class="text-sm font-medium text-base-content/70">ERP DEMEN</div>
 
-    <!-- Right -->
     <div class="flex items-center gap-3">
-      <span class="text-sm text-base-content/70">
-        {{ auth.user?.nombre }}
-      </span>
+      <!-- User badge -->
+      <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-base-200 text-sm">
+        <Icon name="user" class="w-4 h-4" />
+        <span>Administrador</span>
+      </div>
 
-      <UiButton
-        size="sm"
-        variant="ghost"
-        icon="logout"
-        @click="auth.logout"
-      />
+      <!-- Logout -->
+      <button class="btn btn-sm btn-ghost text-error hover:bg-error/10" @click="logout">
+        <Icon name="logout" class="w-4 h-4" />
+        Salir
+      </button>
     </div>
   </header>
 </template>
 
 <script setup>
-import { useAuthStore } from "~/stores/auth.store"
-import { useRoute } from "vue-router"
+import { useAuthStore } from '~/stores/auth.store'
+import { useRoute } from 'vue-router'
 
 const auth = useAuthStore()
 const route = useRoute()
 
-const pageTitle = computed(() => route.meta.title || "ERP DEMEN")
+const logout = () => auth.logout()
 </script>

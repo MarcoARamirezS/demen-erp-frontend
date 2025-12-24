@@ -1,12 +1,12 @@
-import { defineStore } from "pinia"
-import { useUiStore } from "~/stores/ui.store"
+import { defineStore } from 'pinia'
+import { useUiStore } from '~/stores/ui.store'
 
 interface LoginPayload {
   usuario: string
   password: string
 }
 
-export const useAuthStore = defineStore("auth", {
+export const useAuthStore = defineStore('auth', {
   state: () => ({
     userId: null as string | null,
     permissions: [] as string[],
@@ -14,11 +14,9 @@ export const useAuthStore = defineStore("auth", {
     refreshToken: null as string | null,
     loading: false,
   }),
-
   getters: {
-    isAuthenticated: (s) => !!s.accessToken,
-    hasPermission: (s) => (perm: string) =>
-      s.permissions.includes(perm),
+    isAuthenticated: s => !!s.accessToken,
+    hasPermission: s => (perm: string) => s.permissions.includes(perm),
   },
 
   actions: {
@@ -30,20 +28,24 @@ export const useAuthStore = defineStore("auth", {
       ui.showLoading()
 
       try {
-        const res = await api("/auth/login", {
-          method: "POST",
+        const res = await api('/auth/login', {
+          method: 'POST',
           body: payload,
         })
 
         this.accessToken = res.accessToken
         this.refreshToken = res.refreshToken
 
+        // ✅ Persistencia
+        localStorage.setItem('accessToken', res.accessToken)
+        localStorage.setItem('refreshToken', res.refreshToken)
+
         await this.fetchMe()
 
-        ui.showToast("success", "Bienvenido")
-        navigateTo("/")
+        ui.showToast('success', 'Bienvenido')
+        navigateTo('/')
       } catch (e) {
-        ui.showToast("error", "Credenciales inválidas")
+        ui.showToast('error', 'Credenciales inválidas')
         throw e
       } finally {
         this.loading = false
@@ -53,7 +55,7 @@ export const useAuthStore = defineStore("auth", {
 
     async fetchMe() {
       const api = useApi
-      const me = await api("/auth/me")
+      const me = await api('/auth/me')
 
       this.userId = me.id
       this.permissions = me.permissions || []
@@ -64,27 +66,35 @@ export const useAuthStore = defineStore("auth", {
 
       const api = useApi
 
-      const res = await api("/auth/refresh", {
-        method: "POST",
+      const res = await api('/auth/refresh', {
+        method: 'POST',
         body: { refreshToken: this.refreshToken },
       })
 
       this.accessToken = res.accessToken
       this.refreshToken = res.refreshToken
+
+      // ✅ Persistencia
+      localStorage.setItem('accessToken', res.accessToken)
+      localStorage.setItem('refreshToken', res.refreshToken)
     },
 
     async logout() {
       const api = useApi
 
       if (this.refreshToken) {
-        await api("/auth/logout", {
-          method: "POST",
+        await api('/auth/logout', {
+          method: 'POST',
           body: { refreshToken: this.refreshToken },
         })
       }
 
+      // ✅ Limpieza total
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+
       this.$reset()
-      navigateTo("/login")
+      navigateTo('/login')
     },
   },
 })
