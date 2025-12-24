@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tipografía base corporativa */
+@layer base {
+  html {
+    font-family: Manrope, system-ui, sans-serif;
+  }
+}
+
+/* Ajustes visuales corporativos */
+@layer components {
+  .btn,
+  .input,
+  .select,
+  .textarea,
+  .card,
+  .modal-box {
+    @apply rounded-danam;
+  }
+}
