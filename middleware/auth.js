@@ -1,5 +1,4 @@
 export default defineNuxtRouteMiddleware(async to => {
-  // ⛔ No validar auth en SSR
   if (process.server) return
 
   const auth = useAuthStore()

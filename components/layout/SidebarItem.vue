@@ -1,20 +1,29 @@
+<script setup lang="ts">
+import { useRoute } from 'vue-router'
+import Icon from '~/components/ui/Icon.vue'
+
+const props = defineProps<{
+  label: string
+  icon?: string
+  to: string
+}>()
+
+const route = useRoute()
+
+const isActive = computed(() => route.path === props.to)
+</script>
+
 <template>
   <NuxtLink
     :to="to"
-    class="group flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-base-content/70 hover:bg-base-200 hover:text-base-content transition"
-    active-class="bg-base-200 text-base-content font-medium"
+    class="group flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all"
+    :class="
+      isActive
+        ? 'bg-primary/15 text-primary font-semibold'
+        : 'text-base-content/70 hover:bg-base-300 hover:text-base-content'
+    "
   >
-    <Icon :name="icon" class="w-4 h-4 text-base-content/40 group-hover:text-base-content" />
+    <Icon v-if="icon" :name="icon" size="md" />
     <span>{{ label }}</span>
   </NuxtLink>
 </template>
-
-<script setup>
-import Icon from '~/components/ui/Icon.vue'
-
-defineProps({
-  icon: String,
-  label: String,
-  to: String,
-})
-</script>

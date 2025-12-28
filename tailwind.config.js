@@ -23,26 +23,28 @@ export default {
     themes: [
       {
         danam: {
-          primary: '#6FBF8E', // Verde DANAM
-          'primary-content': '#0F2A1D',
+          primary: '#5FB989', // un poco más profundo
+          'primary-content': '#0B2418',
 
-          secondary: '#A7D7B5',
-          'secondary-content': '#1F3D2B',
+          secondary: '#9FD0B0',
+          'secondary-content': '#1E3A2A',
 
-          accent: '#4FAE79',
-          'accent-content': '#0F2A1D',
+          accent: '#3FA06F', // más contraste para acciones
+          'accent-content': '#0B2418',
 
-          neutral: '#2E3B33',
-          'neutral-content': '#E6F1EA',
+          neutral: '#2C3A32',
+          'neutral-content': '#E3EFE8',
 
-          'base-100': '#F4F8F3',
-          'base-200': '#E8EFE6',
-          'base-300': '#D4DED1',
-          'base-content': '#24312A',
+          // ⬇️ CLAVE PARA EL SIDEBAR
+          'base-100': '#F6FAF6', // fondo app
+          'base-200': '#EDF4EE', // cards
+          'base-300': '#D9E5DD', // bordes
 
-          info: '#3ABFF8',
-          success: '#4FAE79',
-          warning: '#FACC15',
+          'base-content': '#1F2D26', // texto principal (↑ contraste)
+
+          info: '#38BDF8',
+          success: '#3FA06F',
+          warning: '#FBBF24',
           error: '#EF4444',
         },
       },

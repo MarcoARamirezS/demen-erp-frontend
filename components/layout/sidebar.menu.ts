@@ -1,49 +1,52 @@
-// sidebar.menu.ts
-export interface SidebarMenuItem {
+export interface SidebarBase {
   label: string
   icon?: string
-  to?: string
   permission?: string
-  children?: SidebarMenuItem[]
 }
+
+export interface SidebarLink extends SidebarBase {
+  to: string
+}
+
+export interface SidebarGroup extends SidebarBase {
+  children: SidebarLink[]
+}
+
+export type SidebarMenuItem = SidebarLink | SidebarGroup
 
 export const sidebarMenu: SidebarMenuItem[] = [
   {
-    label: 'Dashboard',
+    label: 'Inicio',
     icon: 'home',
     to: '/',
   },
   {
     label: 'Seguridad',
+    icon: 'shield',
     children: [
       {
         label: 'Usuarios',
-        icon: 'users',
+        icon: 'user',
         to: '/usuarios',
         permission: 'users:read',
       },
       {
         label: 'Roles',
-        icon: 'shield',
+        icon: 'key',
         to: '/roles',
         permission: 'roles:read',
-      },
-      {
-        label: 'Permisos',
-        icon: 'key',
-        to: '/permisos',
-        permission: 'permissions:read',
       },
     ],
   },
   {
     label: 'Auditoría',
+    icon: 'clipboard',
     children: [
       {
         label: 'Bitácora',
-        icon: 'history',
+        icon: 'search',
         to: '/audit',
-        permission: 'audit:list',
+        permission: 'audit:read',
       },
     ],
   },

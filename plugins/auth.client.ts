@@ -1,7 +1,7 @@
 export default defineNuxtPlugin(async () => {
   const auth = useAuthStore()
 
-  // Leer storage SOLO en cliente
+  // 🔐 Leer tokens SOLO en cliente
   const accessToken = localStorage.getItem('accessToken')
   const refreshToken = localStorage.getItem('refreshToken')
 
@@ -11,7 +11,7 @@ export default defineNuxtPlugin(async () => {
 
     try {
       await auth.fetchMe()
-    } catch {
+    } catch (e) {
       auth.logout()
     }
   }

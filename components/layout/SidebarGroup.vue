@@ -1,42 +1,57 @@
-<template>
-  <div>
-    <!-- Group header -->
-    <button
-      class="w-full flex items-center justify-between px-4 py-2 rounded-lg text-xs font-semibold uppercase text-base-content/50 hover:bg-base-200 transition"
-      @click="open = !open"
-    >
-      <span>{{ label }}</span>
-      <Icon name="chevronDown" class="w-4 h-4 transition" :class="{ 'rotate-180': open }" />
-    </button>
-
-    <!-- Children -->
-    <div v-show="open" class="mt-1 space-y-1 pl-2">
-      <SidebarItem
-        v-for="child in visibleChildren"
-        :key="child.to"
-        :icon="child.icon"
-        :label="child.label"
-        :to="child.to"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import SidebarItem from './SidebarItem.vue'
 import Icon from '~/components/ui/Icon.vue'
-import { useAuthStore } from '~/stores/auth.store'
 
 const props = defineProps<{
   label: string
-  children: any[]
+  icon?: string
+  items: {
+    label: string
+    to: string
+    icon?: string
+  }[]
 }>()
 
-const auth = useAuthStore()
-const open = ref(false)
+const isOpen = ref(false)
 
-const visibleChildren = computed(() =>
-  props.children.filter(c => !c.permission || auth.permissions.includes(c.permission))
-)
+const toggle = () => {
+  isOpen.value = !isOpen.value
+}
 </script>
+
+<template>
+  <div>
+    <!-- Header -->
+    <button
+      type="button"
+      @click="toggle"
+      class="flex w-full items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-base-content/70 hover:bg-base-300 transition"
+    >
+      <Icon v-if="icon" :name="icon" />
+      <span class="flex-1 text-left">{{ label }}</span>
+      <Icon :name="isOpen ? 'chevronUp' : 'chevronDown'" size="sm" />
+    </button>
+
+    <!-- Children -->
+    <transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 max-h-0"
+      enter-to-class="opacity-100 max-h-96"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 max-h-96"
+      leave-to-class="opacity-0 max-h-0"
+    >
+      <div v-show="isOpen" class="ml-6 mt-1 space-y-1 overflow-hidden">
+        <NuxtLink
+          v-for="item in items"
+          :key="item.to"
+          :to="item.to"
+          class="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-base-content/60 hover:bg-base-300 hover:text-base-content transition"
+          active-class="bg-primary/10 text-primary font-medium"
+        >
+          <Icon v-if="item.icon" :name="item.icon" size="sm" />
+          <span>{{ item.label }}</span>
+        </NuxtLink>
+      </div>
+    </transition>
+  </div>
+</template>
