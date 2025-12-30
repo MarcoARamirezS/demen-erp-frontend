@@ -2,18 +2,25 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
         <h1 class="text-2xl font-bold">Gestión de Usuarios</h1>
         <p class="text-sm opacity-60">Administración de accesos del sistema</p>
       </div>
 
       <ClientOnly>
-        <UiButton icon="plus" variant="primary" :disabled="!canCreateUser" @click="openCreate">
+        <UiButton
+          icon="plus"
+          variant="primary"
+          class="w-full md:w-auto"
+          :disabled="!canCreateUser"
+          @click="openCreate"
+        >
           Nuevo usuario
         </UiButton>
       </ClientOnly>
     </div>
+
     <p v-if="!hasRoles" class="text-sm text-warning mt-2">
       ⚠️ Debes crear al menos un rol antes de registrar usuarios.
     </p>

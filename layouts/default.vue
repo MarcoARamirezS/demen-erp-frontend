@@ -6,14 +6,19 @@
         linear-gradient(180deg, #f4f7f1 0%, #eef2ea 100%);
     "
   >
+    <!-- Sidebar -->
     <AppSidebar />
+
+    <!-- Main -->
     <div class="flex-1 flex flex-col">
       <AppHeader />
 
-      <main class="flex-1 p-6">
+      <main class="flex-1 p-4 sm:p-6">
         <slot />
       </main>
     </div>
+
+    <!-- Global UI -->
     <UiGlobalLoader />
     <UiToast />
     <UiConfirm />

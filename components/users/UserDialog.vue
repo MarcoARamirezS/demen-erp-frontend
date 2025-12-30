@@ -5,7 +5,8 @@
     :title="mode === 'create' ? 'Crear usuario' : 'Editar usuario'"
   >
     <form class="space-y-8" @submit.prevent="submit">
-      <div class="flex items-start gap-4 rounded-lg bg-base-200/60 p-4">
+      <!-- HEADER -->
+      <div class="flex flex-col gap-4 rounded-lg bg-base-200/60 p-4 sm:flex-row">
         <div class="rounded-full bg-primary/10 p-3">
           <Icon name="user" />
         </div>
@@ -13,82 +14,58 @@
           <h2 class="font-semibold text-lg">
             {{ mode === 'create' ? 'Nuevo usuario' : 'Editar usuario' }}
           </h2>
-          <p class="text-sm text-base-content/60">Administración de accesos y roles del sistema</p>
+          <p class="text-sm opacity-60">Administración de accesos y roles</p>
         </div>
       </div>
+
+      <!-- DATOS PERSONALES -->
       <section class="space-y-3">
         <h3 class="font-semibold flex items-center gap-2">
-          <Icon name="user" size="sm" />
-          Datos personales
+          <Icon name="user" size="sm" /> Datos personales
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <UiInput v-model="form.nombre" label="Nombre *" placeholder="Ej. Juan" />
-
-          <UiInput v-model="form.apaterno" label="Apellido paterno *" placeholder="Ej. Pérez" />
-
-          <UiInput v-model="form.amaterno" label="Apellido materno" placeholder="Ej. Gómez" />
+          <UiInput v-model="form.nombre" label="Nombre *" />
+          <UiInput v-model="form.apaterno" label="Apellido paterno *" />
+          <UiInput v-model="form.amaterno" label="Apellido materno" />
         </div>
       </section>
+
+      <!-- CONTACTO -->
       <section class="space-y-3">
         <h3 class="font-semibold flex items-center gap-2">
-          <Icon name="home" size="sm" />
-          Contacto y ubicación
+          <Icon name="home" size="sm" /> Contacto
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput v-model="form.telefono" label="Teléfono" placeholder="Ej. 477 123 4567" />
-
-          <UiInput
-            v-model="form.direccion"
-            label="Dirección"
-            placeholder="Calle, número, colonia"
-          />
-
-          <UiInput v-model="form.ciudad" label="Ciudad" placeholder="Ej. León" />
-
-          <UiInput v-model="form.estado" label="Estado" placeholder="Ej. Guanajuato" />
+          <UiInput v-model="form.telefono" label="Teléfono" />
+          <UiInput v-model="form.direccion" label="Dirección" />
+          <UiInput v-model="form.ciudad" label="Ciudad" />
+          <UiInput v-model="form.estado" label="Estado" />
         </div>
       </section>
+
+      <!-- ACCESO -->
       <section class="space-y-3">
-        <h3 class="font-semibold flex items-center gap-2">
-          <Icon name="lock" size="sm" />
-          Acceso al sistema
-        </h3>
+        <h3 class="font-semibold flex items-center gap-2"><Icon name="lock" size="sm" /> Acceso</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <UiInput
-            v-model="form.usuario"
-            label="Usuario *"
-            placeholder="Usuario para iniciar sesión"
-          />
-
+          <UiInput v-model="form.usuario" label="Usuario *" />
           <UiInput
             v-if="mode === 'create'"
             v-model="form.password"
             label="Contraseña *"
             type="password"
-            placeholder="Mínimo 10 caracteres"
           />
-
           <UiToggle v-model="form.activo" label="Usuario activo" />
         </div>
-
-        <p class="text-xs text-base-content/60">
-          Si el usuario está inactivo, no podrá iniciar sesión en el sistema.
-        </p>
       </section>
+
+      <!-- ROLES -->
       <section class="space-y-3">
-        <h3 class="font-semibold flex items-center gap-2">
-          <Icon name="key" size="sm" />
-          Roles asignados *
-        </h3>
+        <h3 class="font-semibold flex items-center gap-2"><Icon name="key" size="sm" /> Roles *</h3>
 
-        <p class="text-xs text-base-content/60">
-          Selecciona uno o más roles para definir los accesos del usuario.
-        </p>
-
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-3 max-h-48 overflow-y-auto rounded-lg border p-3">
           <UiCheckbox
             v-for="r in rolesStore.activeRoles"
             :key="r.id"
@@ -98,12 +75,13 @@
           />
         </div>
       </section>
-      <div class="flex justify-end gap-3 pt-6 border-t">
-        <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
 
-        <UiButton variant="primary" type="submit">
-          {{ mode === 'create' ? 'Guardar usuario' : 'Guardar cambios' }}
+      <!-- FOOTER -->
+      <div class="flex flex-col-reverse gap-3 pt-6 border-t sm:flex-row sm:justify-end">
+        <UiButton variant="ghost" class="w-full sm:w-auto" @click="open = false">
+          Cancelar
         </UiButton>
+        <UiButton variant="primary" class="w-full sm:w-auto" type="submit"> Guardar </UiButton>
       </div>
     </form>
   </UiDialog>
@@ -111,28 +89,18 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
-import type { User, CreateUserDto } from '~/types/user'
-import { useUiStore } from '~/stores/ui.store'
 import { useRolesStore } from '~/stores/roles.store'
+import { useUiStore } from '~/stores/ui.store'
+import type { User, CreateUserDto } from '~/types/user'
 import Icon from '~/components/ui/Icon.vue'
-
-// IMPORTS EXPLÍCITOS (clave)
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
 import UiToggle from '~/components/ui/UiToggle.vue'
 import UiCheckbox from '~/components/ui/UiCheckbox.vue'
 import UiButton from '~/components/ui/UiButton.vue'
 
-const props = defineProps<{
-  modelValue: boolean
-  mode: 'create' | 'edit'
-  model?: User | null
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (e: 'submit', payload: Partial<CreateUserDto>): void
-}>()
+const props = defineProps<{ modelValue: boolean; mode: 'create' | 'edit'; model?: User | null }>()
+const emit = defineEmits(['update:modelValue', 'submit'])
 
 const open = computed({
   get: () => props.modelValue,
@@ -140,21 +108,11 @@ const open = computed({
 })
 
 const rolesStore = useRolesStore()
-
-onMounted(() => {
-  if (!rolesStore.items.length) {
-    rolesStore.fetch()
-  }
-})
+onMounted(() => !rolesStore.items.length && rolesStore.fetch())
 
 const form = ref<Partial<CreateUserDto>>({
   nombre: '',
   apaterno: '',
-  amaterno: '',
-  direccion: '',
-  telefono: '',
-  ciudad: '',
-  estado: '',
   usuario: '',
   password: '',
   activo: true,
@@ -164,40 +122,23 @@ const form = ref<Partial<CreateUserDto>>({
 watch(
   () => props.model,
   v => {
-    if (props.mode === 'edit' && v) {
-      form.value = { ...v, password: '' }
-    } else {
-      form.value = {
-        nombre: '',
-        apaterno: '',
-        amaterno: '',
-        direccion: '',
-        telefono: '',
-        ciudad: '',
-        estado: '',
-        usuario: '',
-        password: '',
-        activo: true,
-        roleIds: [],
-      }
-    }
+    form.value = v
+      ? { ...v, password: '' }
+      : { nombre: '', apaterno: '', usuario: '', password: '', activo: true, roleIds: [] }
   },
   { immediate: true }
 )
 
 const submit = () => {
   const ui = useUiStore()
-
   if (!form.value.nombre || !form.value.apaterno || !form.value.usuario) {
-    ui.showToast('warning', 'Completa los campos obligatorios')
+    ui.showToast('warning', 'Campos obligatorios')
     return
   }
-
   if (!form.value.roleIds?.length) {
     ui.showToast('warning', 'Selecciona al menos un rol')
     return
   }
-
   emit('submit', form.value)
 }
 </script>

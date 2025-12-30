@@ -1,29 +1,39 @@
 <template>
-  <header class="h-16 flex items-center justify-between px-6 border-b border-base-300 bg-base-100">
-    <div class="text-sm font-medium text-base-content/70">ERP DEMEN</div>
-
+  <header
+    class="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-base-300 bg-base-100"
+  >
+    <!-- Left -->
     <div class="flex items-center gap-3">
-      <!-- User badge -->
-      <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-base-200 text-sm">
+      <!-- Hamburger (mobile only) -->
+      <button class="btn btn-ghost btn-sm md:hidden" type="button" @click="layout.toggleSidebar()">
+        <Icon name="menu" class="w-5 h-5" />
+      </button>
+
+      <span class="text-sm font-medium text-base-content/70"> ERP DEMEN </span>
+    </div>
+
+    <!-- Right -->
+    <div class="flex items-center gap-3">
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg bg-base-200 text-sm">
         <Icon name="user" class="w-4 h-4" />
         <span>Administrador</span>
       </div>
 
-      <!-- Logout -->
       <button class="btn btn-sm btn-ghost text-error hover:bg-error/10" @click="logout">
         <Icon name="logout" class="w-4 h-4" />
-        Salir
+        <span class="hidden sm:inline">Salir</span>
       </button>
     </div>
   </header>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import Icon from '~/components/ui/Icon.vue'
 import { useAuthStore } from '~/stores/auth.store'
-import { useRoute } from 'vue-router'
+import { useLayoutStore } from '~/stores/layout.store'
 
 const auth = useAuthStore()
-const route = useRoute()
+const layout = useLayoutStore()
 
 const logout = () => auth.logout()
 </script>

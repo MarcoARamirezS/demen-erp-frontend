@@ -3,8 +3,10 @@ import SidebarItem from './SidebarItem.vue'
 import SidebarGroup from './SidebarGroup.vue'
 import { sidebarMenu } from './sidebar.menu'
 import { useAuthStore } from '~/stores/auth.store'
+import { useLayoutStore } from '~/stores/layout.store'
 
 const auth = useAuthStore()
+const layout = useLayoutStore()
 
 const hasPermission = (perm?: string) => {
   if (!perm) return true
@@ -14,24 +16,39 @@ const hasPermission = (perm?: string) => {
 
 <template>
   <ClientOnly>
-    <aside class="w-64 bg-base-200 border-r border-base-300 flex flex-col">
-      <!-- Logo -->
-      <div class="h-16 flex items-center px-6 border-b border-base-300">
+    <!-- Overlay (mobile) -->
+    <div
+      v-if="layout.sidebarOpen"
+      class="fixed inset-0 z-40 bg-black/40 md:hidden"
+      @click="layout.closeSidebar()"
+    />
+
+    <!-- Sidebar -->
+    <aside
+      class="fixed z-50 h-full w-64 bg-base-200 border-r border-base-300 flex flex-col transition-transform duration-200 md:static md:translate-x-0"
+      :class="layout.sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
+      <!-- Header -->
+      <div class="h-16 flex items-center justify-between px-6 border-b border-base-300">
         <img src="/logo-danam-transparent.svg" class="h-9" />
+
+        <!-- Close (mobile) -->
+        <button class="btn btn-ghost btn-sm md:hidden" @click="layout.closeSidebar()">
+          <Icon name="x" />
+        </button>
       </div>
 
       <!-- Menu -->
-      <nav class="flex-1 px-3 py-4 space-y-2">
+      <nav class="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
         <template v-for="item in sidebarMenu" :key="item.label">
-          <!-- Link -->
           <SidebarItem
             v-if="'to' in item && hasPermission(item.permission)"
             :icon="item.icon"
             :label="item.label"
             :to="item.to"
+            @click="layout.closeSidebar()"
           />
 
-          <!-- Group -->
           <SidebarGroup
             v-else-if="'children' in item"
             :label="item.label"

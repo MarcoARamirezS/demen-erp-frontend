@@ -1,11 +1,12 @@
-<!-- ~/components/users/UsersTable.vue -->
 <template>
   <div class="animate-fadeIn rounded-xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <!-- Filtros -->
+    <!-- =======================
+         FILTROS
+    ======================== -->
     <div
       class="mb-4 flex flex-col gap-3 rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4 shadow-sm md:flex-row md:items-center md:justify-between"
     >
-      <div class="flex flex-col gap-3 md:flex-row md:items-center">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
         <!-- Buscar -->
         <div class="relative w-full md:w-72">
           <span class="pointer-events-none absolute left-3 top-2.5 opacity-50">
@@ -35,7 +36,7 @@
       </div>
 
       <!-- Por página -->
-      <div class="flex items-center justify-between gap-2 text-xs opacity-70 md:justify-end">
+      <div class="flex items-center gap-2 text-xs opacity-70 md:justify-end">
         <span class="font-medium">Mostrar:</span>
         <select v-model.number="itemsPerPage" class="select select-xs select-bordered">
           <option :value="10">10</option>
@@ -46,8 +47,10 @@
       </div>
     </div>
 
-    <!-- Tabla -->
-    <div class="overflow-x-auto rounded-xl border border-base-300">
+    <!-- =======================
+         TABLA DESKTOP
+    ======================== -->
+    <div class="hidden md:block overflow-x-auto rounded-xl border border-base-300">
       <table class="table w-full text-sm">
         <thead class="bg-base-200 text-xs uppercase tracking-wide">
           <tr>
@@ -69,10 +72,10 @@
             <td class="px-4 py-3 font-semibold">{{ u.usuario }}</td>
 
             <td class="px-4 py-3">
-              {{ u.nombre }} {{ u.apaterno }} <span class="opacity-60">{{ u.amaterno || '' }}</span>
+              {{ u.nombre }} {{ u.apaterno }}
+              <span class="opacity-60">{{ u.amaterno || '' }}</span>
             </td>
 
-            <!-- Badge Activo / Inactivo (mejor visual) -->
             <td class="px-4 py-3 text-center">
               <span
                 class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
@@ -83,30 +86,23 @@
               </span>
             </td>
 
-            <!-- Acciones centradas -->
             <td class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-2">
-                <!-- Editar -->
-                <div class="tooltip" data-tip="Editar usuario">
-                  <button
-                    type="button"
-                    class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
-                    @click="$emit('edit', u)"
-                  >
-                    <Icon name="edit" size="sm" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
+                  @click="$emit('edit', u)"
+                >
+                  <Icon name="edit" size="sm" />
+                </button>
 
-                <!-- Activar / Desactivar -->
-                <div class="tooltip" data-tip="Eliminar usuario">
-                  <button
-                    type="button"
-                    class="btn btn-circle btn-sm btn-ghost text-error hover:bg-error/10 active:bg-error/20"
-                    @click="$emit('delete', u)"
-                  >
-                    <Icon name="trash" size="sm" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  class="btn btn-circle btn-sm btn-ghost text-error hover:bg-error/10"
+                  @click="$emit('delete', u)"
+                >
+                  <Icon name="trash" size="sm" />
+                </button>
               </div>
             </td>
           </tr>
@@ -122,8 +118,57 @@
       </table>
     </div>
 
-    <!-- Paginación -->
-    <div class="mt-4 flex flex-col items-center justify-center gap-2">
+    <!-- =======================
+         CARDS MOBILE
+    ======================== -->
+    <div class="grid gap-3 md:hidden">
+      <div
+        v-for="u in paginated"
+        :key="u.id"
+        class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="font-semibold">{{ u.usuario }}</p>
+            <p class="text-sm opacity-70">
+              {{ u.nombre }} {{ u.apaterno }}
+              <span class="opacity-60">{{ u.amaterno || '' }}</span>
+            </p>
+          </div>
+
+          <span
+            class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+            :class="u.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
+          >
+            <span class="h-2 w-2 rounded-full" :class="u.activo ? 'bg-success' : 'bg-error'" />
+            {{ u.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+
+        <div class="mt-3 flex justify-end gap-2">
+          <button
+            type="button"
+            class="btn btn-circle btn-sm btn-ghost text-primary"
+            @click="$emit('edit', u)"
+          >
+            <Icon name="edit" size="sm" />
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-circle btn-sm btn-ghost text-error"
+            @click="$emit('delete', u)"
+          >
+            <Icon name="trash" size="sm" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================
+         PAGINACIÓN
+    ======================== -->
+    <div class="mt-4 flex flex-col items-center justify-center gap-3">
       <p class="text-xs opacity-70">
         Mostrando {{ startIndex + 1 }}–{{ endIndex }} de {{ filtered.length }}
       </p>
@@ -160,65 +205,45 @@ import { computed, ref, watch } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
 import type { User } from '~/types/user'
 
-const props = defineProps<{
-  users: User[]
-  loading?: boolean
-}>()
-
-defineEmits<{
-  (e: 'edit', u: User): void
-  (e: 'toggle', u: User): void
-  (e: 'delete', u: User): void
-}>()
+defineProps<{ users: User[]; loading?: boolean }>()
+defineEmits(['edit', 'delete'])
 
 const search = ref('')
 const statusFilter = ref<'all' | 'active' | 'inactive'>('all')
-
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
 const filtered = computed(() => {
-  const term = search.value.trim().toLowerCase()
-
-  return (props.users || []).filter(u => {
-    const matchesSearch =
-      !term ||
-      (u.usuario || '').toLowerCase().includes(term) ||
-      `${u.nombre || ''} ${u.apaterno || ''} ${u.amaterno || ''}`.toLowerCase().includes(term)
-
-    const matchesStatus =
-      statusFilter.value === 'all' ? true : statusFilter.value === 'active' ? !!u.activo : !u.activo
-
-    return matchesSearch && matchesStatus
-  })
+  const term = search.value.toLowerCase()
+  return (Array.isArray((<any>arguments)[0]?.users) ? (<any>arguments)[0].users : []).filter(
+    (u: User) =>
+      (!term ||
+        u.usuario.toLowerCase().includes(term) ||
+        `${u.nombre} ${u.apaterno} ${u.amaterno || ''}`.toLowerCase().includes(term)) &&
+      (statusFilter.value === 'all' ? true : statusFilter.value === 'active' ? u.activo : !u.activo)
+  )
 })
 
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filtered.value.length / itemsPerPage.value))
 )
-
-const paginated = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  return filtered.value.slice(start, start + itemsPerPage.value)
-})
-
-const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
-const endIndex = computed(() =>
-  Math.min(startIndex.value + paginated.value.length, filtered.value.length)
+const paginated = computed(() =>
+  filtered.value.slice(
+    (currentPage.value - 1) * itemsPerPage.value,
+    currentPage.value * itemsPerPage.value
+  )
 )
 
+const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
+const endIndex = computed(() => startIndex.value + paginated.value.length)
+
 const visiblePages = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  const delta = 2
-  const start = Math.max(1, current - delta)
-  const end = Math.min(total, current + delta)
+  const start = Math.max(1, currentPage.value - 2)
+  const end = Math.min(totalPages.value, currentPage.value + 2)
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
-const setPage = (p: number) => {
-  if (p >= 1 && p <= totalPages.value) currentPage.value = p
-}
+const setPage = (p: number) => (currentPage.value = p)
 const nextPage = () => setPage(currentPage.value + 1)
 const prevPage = () => setPage(currentPage.value - 1)
 
@@ -228,7 +253,5 @@ function resetFilters() {
   currentPage.value = 1
 }
 
-watch([search, statusFilter, itemsPerPage], () => {
-  currentPage.value = 1
-})
+watch([search, statusFilter, itemsPerPage], () => (currentPage.value = 1))
 </script>
