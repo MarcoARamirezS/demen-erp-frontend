@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Icon from '~/components/ui/Icon.vue'
 
+defineEmits(['navigate'])
+
 const props = defineProps<{
   label: string
   icon?: string
@@ -12,15 +14,11 @@ const props = defineProps<{
 }>()
 
 const isOpen = ref(false)
-
-const toggle = () => {
-  isOpen.value = !isOpen.value
-}
+const toggle = () => (isOpen.value = !isOpen.value)
 </script>
 
 <template>
   <div>
-    <!-- Header -->
     <button
       type="button"
       @click="toggle"
@@ -31,7 +29,6 @@ const toggle = () => {
       <Icon :name="isOpen ? 'chevronUp' : 'chevronDown'" size="sm" />
     </button>
 
-    <!-- Children -->
     <transition
       enter-active-class="transition-all duration-200 ease-out"
       enter-from-class="opacity-0 max-h-0"
@@ -45,6 +42,7 @@ const toggle = () => {
           v-for="item in items"
           :key="item.to"
           :to="item.to"
+          @click="$emit('navigate')"
           class="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-base-content/60 hover:bg-base-300 hover:text-base-content transition"
           active-class="bg-primary/10 text-primary font-medium"
         >

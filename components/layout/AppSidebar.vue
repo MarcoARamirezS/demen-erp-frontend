@@ -4,6 +4,7 @@ import SidebarGroup from './SidebarGroup.vue'
 import { sidebarMenu } from './sidebar.menu'
 import { useAuthStore } from '~/stores/auth.store'
 import { useLayoutStore } from '~/stores/layout.store'
+import Icon from '~/components/ui/Icon.vue'
 
 const auth = useAuthStore()
 const layout = useLayoutStore()
@@ -16,16 +17,16 @@ const hasPermission = (perm?: string) => {
 
 <template>
   <ClientOnly>
-    <!-- Overlay (mobile) -->
+    <!-- OVERLAY (mobile) -->
     <div
       v-if="layout.sidebarOpen"
       class="fixed inset-0 z-40 bg-black/40 md:hidden"
       @click="layout.closeSidebar()"
     />
 
-    <!-- Sidebar -->
+    <!-- SIDEBAR -->
     <aside
-      class="fixed z-50 h-full w-64 bg-base-200 border-r border-base-300 flex flex-col transition-transform duration-200 md:static md:translate-x-0"
+      class="fixed inset-y-0 left-0 z-50 h-full w-64 bg-base-200 border-r border-base-300 flex flex-col transition-transform duration-200 md:static md:translate-x-0 pointer-events-auto"
       :class="layout.sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <!-- Header -->
@@ -33,14 +34,15 @@ const hasPermission = (perm?: string) => {
         <img src="/logo-danam-transparent.svg" class="h-9" />
 
         <!-- Close (mobile) -->
-        <button class="btn btn-ghost btn-sm md:hidden" @click="layout.closeSidebar()">
-          <Icon name="x" />
+        <button class="btn btn-ghost btn-sm md:hidden" type="button" @click="layout.closeSidebar()">
+          <Icon name="close" />
         </button>
       </div>
 
       <!-- Menu -->
       <nav class="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
         <template v-for="item in sidebarMenu" :key="item.label">
+          <!-- Link -->
           <SidebarItem
             v-if="'to' in item && hasPermission(item.permission)"
             :icon="item.icon"
@@ -49,6 +51,7 @@ const hasPermission = (perm?: string) => {
             @click="layout.closeSidebar()"
           />
 
+          <!-- Group -->
           <SidebarGroup
             v-else-if="'children' in item"
             :label="item.label"

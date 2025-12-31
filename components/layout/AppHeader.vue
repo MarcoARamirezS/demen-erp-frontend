@@ -1,12 +1,17 @@
 <template>
   <header
-    class="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-base-300 bg-base-100"
+    class="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-4 sm:px-6 border-b border-base-300 bg-base-100 md:static"
   >
     <!-- Left -->
     <div class="flex items-center gap-3">
-      <!-- Hamburger (mobile only) -->
-      <button class="btn btn-ghost btn-sm md:hidden" type="button" @click="layout.toggleSidebar()">
-        <Icon name="menu" class="w-5 h-5" />
+      <!-- Hamburger -->
+      <button
+        class="btn btn-ghost btn-sm md:hidden"
+        type="button"
+        @click="layout.toggleSidebar"
+        aria-label="Abrir menú"
+      >
+        <Icon name="menu" class="w-6 h-6" />
       </button>
 
       <span class="text-sm font-medium text-base-content/70"> ERP DEMEN </span>

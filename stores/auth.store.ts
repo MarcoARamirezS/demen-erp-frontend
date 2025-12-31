@@ -7,13 +7,19 @@ interface LoginPayload {
 }
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    userId: null as string | null,
-    permissions: [] as string[],
-    accessToken: null as string | null,
-    refreshToken: null as string | null,
-    loading: false,
-  }),
+  state: () => {
+    const accessToken = useCookie<string | null>('accessToken')
+    const refreshToken = useCookie<string | null>('refreshToken')
+
+    return {
+      userId: null as string | null,
+      permissions: [] as string[],
+      accessToken: accessToken.value,
+      refreshToken: refreshToken.value,
+      loading: false,
+    }
+  },
+
   getters: {
     isAuthenticated: s => !!s.accessToken,
     hasPermission: s => (perm: string) => s.permissions.includes(perm),
@@ -33,12 +39,15 @@ export const useAuthStore = defineStore('auth', {
           body: payload,
         })
 
+        // ✅ Cookies SSR-safe
+        const accessToken = useCookie<string | null>('accessToken')
+        const refreshToken = useCookie<string | null>('refreshToken')
+
+        accessToken.value = res.accessToken
+        refreshToken.value = res.refreshToken
+
         this.accessToken = res.accessToken
         this.refreshToken = res.refreshToken
-
-        // ✅ Persistencia
-        localStorage.setItem('accessToken', res.accessToken)
-        localStorage.setItem('refreshToken', res.refreshToken)
 
         await this.fetchMe()
 
@@ -62,36 +71,41 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async refresh() {
-      if (!this.refreshToken) return
+      const refreshToken = useCookie<string | null>('refreshToken')
+
+      if (!refreshToken.value) return
 
       const api = useApi
 
       const res = await api('/auth/refresh', {
         method: 'POST',
-        body: { refreshToken: this.refreshToken },
+        body: { refreshToken: refreshToken.value },
       })
+
+      const accessToken = useCookie<string | null>('accessToken')
+
+      accessToken.value = res.accessToken
+      refreshToken.value = res.refreshToken
 
       this.accessToken = res.accessToken
       this.refreshToken = res.refreshToken
-
-      // ✅ Persistencia
-      localStorage.setItem('accessToken', res.accessToken)
-      localStorage.setItem('refreshToken', res.refreshToken)
     },
 
     async logout() {
       const api = useApi
+      const refreshToken = useCookie<string | null>('refreshToken')
+      const accessToken = useCookie<string | null>('accessToken')
 
-      if (this.refreshToken) {
+      if (refreshToken.value) {
         await api('/auth/logout', {
           method: 'POST',
-          body: { refreshToken: this.refreshToken },
+          body: { refreshToken: refreshToken.value },
         })
       }
 
       // ✅ Limpieza total
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
+      refreshToken.value = null
+      accessToken.value = null
 
       this.$reset()
       navigateTo('/login')

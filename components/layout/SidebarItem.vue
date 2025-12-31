@@ -2,6 +2,8 @@
 import { useRoute } from 'vue-router'
 import Icon from '~/components/ui/Icon.vue'
 
+defineEmits(['navigate'])
+
 const props = defineProps<{
   label: string
   icon?: string
@@ -9,13 +11,13 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-
 const isActive = computed(() => route.path === props.to)
 </script>
 
 <template>
   <NuxtLink
     :to="to"
+    @click="$emit('navigate')"
     class="group flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all"
     :class="
       isActive

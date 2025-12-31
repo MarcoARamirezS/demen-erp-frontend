@@ -1,17 +1,32 @@
-import { useAuthStore } from '@/stores/auth.store'
-
-export const useApi = <T = any>(url: string, options: any = {}): Promise<T> => {
+export const useApi = async <T = any>(url: string, options: any = {}): Promise<T> => {
   const auth = useAuthStore()
   const config = useRuntimeConfig()
 
-  // Asegúrate que config.public.apiBaseUrl sea: http://localhost:3000/api
   const finalUrl = `${config.public.apiBaseUrl}${url}`
 
-  return $fetch<T>(finalUrl, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
-    },
-  })
+  try {
+    return await $fetch<T>(finalUrl, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+      },
+      credentials: 'include',
+    })
+  } catch (e: any) {
+    if (e?.status === 401 && auth.refreshToken) {
+      await auth.refresh()
+
+      return await $fetch<T>(finalUrl, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+        },
+        credentials: 'include',
+      })
+    }
+
+    throw e
+  }
 }

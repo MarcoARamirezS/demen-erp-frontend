@@ -18,8 +18,16 @@
       @delete="confirmDelete"
     />
 
-    <!-- Dialog -->
-    <RoleDialog v-model="dialogOpen" :mode="dialogMode" :model="selected" @submit="handleSubmit" />
+    <!-- Dialog (IMPORTANTE: v-if) -->
+    <ClientOnly>
+      <RoleDialog
+        v-if="dialogOpen"
+        v-model="dialogOpen"
+        :mode="dialogMode"
+        :model="selected"
+        @submit="handleSubmit"
+      />
+    </ClientOnly>
   </div>
 </template>
 

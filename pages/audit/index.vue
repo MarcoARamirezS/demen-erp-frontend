@@ -1,15 +1,20 @@
-<!-- ~/pages/audit/index.vue -->
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold">Auditoría</h1>
         <p class="text-sm opacity-60">Trazabilidad de acciones del sistema</p>
       </div>
 
       <ClientOnly>
-        <UiButton icon="refresh-cw" variant="ghost" :disabled="store.loading" @click="refresh">
+        <UiButton
+          icon="refresh-cw"
+          variant="ghost"
+          size="sm"
+          :disabled="store.loading"
+          @click="refresh"
+        >
           Recargar
         </UiButton>
       </ClientOnly>

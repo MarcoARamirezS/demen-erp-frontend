@@ -4,33 +4,30 @@
       <!-- =========================
            DATOS BÁSICOS
       ========================== -->
-      <UiInput v-model="form.name" placeholder="Nombre del rol" />
-      <UiInput v-model="form.description" placeholder="Descripción" />
+      <UiInput v-model="form.name" label="Nombre del rol *" />
+      <UiInput v-model="form.description" label="Descripción" />
 
       <!-- =========================
            PERMISOS
       ========================== -->
       <section class="space-y-4">
         <h3 class="font-semibold text-primary">Permisos</h3>
-        <p class="text-sm text-base-content/60">
-          Selecciona únicamente los accesos necesarios para este rol.
-        </p>
 
-        <!-- 🔍 BUSCADOR GLOBAL -->
+        <!-- Buscador -->
         <UiInput
           v-model="search"
-          placeholder="Buscar permiso (ej. ventas, eliminar, usuario)"
           size="sm"
+          placeholder="Buscar permiso (ventas, usuarios, eliminar...)"
         />
 
-        <!-- BOTONES GLOBALES -->
-        <div class="flex flex-wrap items-center gap-3">
+        <!-- Acciones globales -->
+        <div class="flex flex-wrap gap-2">
           <UiButton size="sm" variant="outline" type="button" @click="toggleAllPermissions">
-            Seleccionar todos los permisos
+            Seleccionar todos
           </UiButton>
         </div>
 
-        <!-- TABS / CHIPS -->
+        <!-- Tabs por recurso -->
         <div class="flex flex-wrap gap-2">
           <button
             v-for="resource in filteredResources"
@@ -40,15 +37,12 @@
             :class="
               activeTab === resource
                 ? 'bg-primary/10 text-primary border-primary'
-                : 'bg-base-200 hover:bg-base-300 border-base-300'
+                : 'bg-base-200 border-base-300 hover:bg-base-300'
             "
             @click="activeTab = resource"
           >
             <Icon :name="resourceIcons[resource]" size="sm" />
-
-            <span class="font-medium">
-              {{ resourceLabels[resource] }}
-            </span>
+            {{ resourceLabels[resource] }}
 
             <span class="rounded-full bg-base-100 px-2 py-0.5 text-xs">
               {{ selectedCount(resource) }}/{{ permissionsByResource[resource]?.length ?? 0 }}
@@ -56,14 +50,13 @@
           </button>
         </div>
 
-        <!-- CONTENIDO DEL TAB -->
+        <!-- Permisos del tab activo -->
         <div
           v-if="activePermissions.length"
           class="rounded-xl border border-base-300 bg-base-100 p-4"
         >
-          <div class="mb-4 flex items-center justify-between">
-            <h4 class="flex items-center gap-2 text-primary font-semibold uppercase text-sm">
-              <Icon :name="resourceIcons[activeTab]" />
+          <div class="mb-3 flex justify-between items-center">
+            <h4 class="font-semibold uppercase text-sm text-primary">
               {{ resourceLabels[activeTab] }}
             </h4>
 
@@ -87,7 +80,7 @@
       <!-- =========================
            RESUMEN
       ========================== -->
-      <section v-if="form.permissionCodes?.length" class="space-y-2">
+      <section v-if="form.permissionCodes.length" class="space-y-2">
         <h4 class="text-sm font-semibold text-secondary">Resumen de permisos asignados</h4>
 
         <div class="flex flex-wrap gap-2">
@@ -106,6 +99,7 @@
       ========================== -->
       <div class="flex justify-end gap-3 pt-4 border-t">
         <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+
         <UiButton variant="primary" type="submit"> Guardar </UiButton>
       </div>
     </form>
@@ -114,26 +108,47 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import Icon from '~/components/ui/Icon.vue'
+import UiDialog from '~/components/ui/UiDialog.vue'
+import UiInput from '~/components/ui/UiInput.vue'
+import UiCheckbox from '~/components/ui/UiCheckbox.vue'
+import UiButton from '~/components/ui/UiButton.vue'
+
 import { usePermissionsStore } from '~/stores/permissions.store'
 import { useUiStore } from '~/stores/ui.store'
 import type { Role, CreateRoleDto } from '~/types/role'
 
+/* =========================
+   PROPS / EMITS
+========================= */
 const props = defineProps<{
   modelValue: boolean
   mode: 'create' | 'edit'
   model?: Role | null
 }>()
 
-const emit = defineEmits(['update:modelValue', 'submit'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', v: boolean): void
+  (e: 'submit', payload: Partial<CreateRoleDto>): void
+}>()
 
+/* =========================
+   STORES
+========================= */
 const permissionsStore = usePermissionsStore()
 const ui = useUiStore()
 
+/* =========================
+   DIALOG STATE
+========================= */
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
 
+/* =========================
+   FORM
+========================= */
 const form = ref<Partial<CreateRoleDto>>({
   name: '',
   description: '',
@@ -141,13 +156,16 @@ const form = ref<Partial<CreateRoleDto>>({
   active: true,
 })
 
+/* =========================
+   FILTERS / TABS
+========================= */
 const search = ref('')
 const activeTab = ref('')
 
 /* =========================
-   LABELS / ICONOS
+   LABELS / ICONS
 ========================= */
-const resourceLabels = {
+const resourceLabels: Record<string, string> = {
   ventas: 'Ventas',
   users: 'Usuarios',
   roles: 'Roles',
@@ -162,7 +180,7 @@ const resourceLabels = {
   audit: 'Auditoría',
 }
 
-const resourceIcons = {
+const resourceIcons: Record<string, string> = {
   ventas: 'shopping-cart',
   users: 'users',
   roles: 'key',
@@ -174,10 +192,10 @@ const resourceIcons = {
   cxc: 'credit-card',
   contabilidad: 'calculator',
   compras: 'truck',
-  audit: 'eye',
+  audit: 'clipboard',
 }
 
-const actionLabels = {
+const actionLabels: Record<string, string> = {
   create: 'Crear',
   read: 'Ver',
   list: 'Listar',
@@ -186,7 +204,7 @@ const actionLabels = {
 }
 
 /* =========================
-   PERMISOS AGRUPADOS + FILTRO
+   PERMISSIONS GROUPED
 ========================= */
 const permissionsByResource = computed(() => {
   const map: Record<string, any[]> = {}
@@ -209,27 +227,29 @@ const activePermissions = computed(() => permissionsByResource.value[activeTab.v
 /* =========================
    HELPERS
 ========================= */
-const selectedCount = (resource: string) =>
-  permissionsByResource.value[resource]?.filter(p => form.value.permissionCodes?.includes(p.code))
-    .length ?? 0
+function selectedCount(resource: string) {
+  return (
+    permissionsByResource.value[resource]?.filter(p => form.value.permissionCodes?.includes(p.code))
+      .length ?? 0
+  )
+}
 
-const toggleAllActiveTab = () => {
+function toggleAllActiveTab() {
   const codes = activePermissions.value.map(p => p.code)
   const selected = new Set(form.value.permissionCodes)
-  const all = codes.every(c => selected.has(c))
-  codes.forEach(c => (all ? selected.delete(c) : selected.add(c)))
+  const allSelected = codes.every(c => selected.has(c))
+
+  codes.forEach(c => (allSelected ? selected.delete(c) : selected.add(c)))
   form.value.permissionCodes = Array.from(selected)
 }
 
-const toggleAllPermissions = () => {
+function toggleAllPermissions() {
   const allCodes = permissionsStore.activePermissions.map(p => p.code)
-  const selected = new Set(form.value.permissionCodes)
-  const allSelected = allCodes.every(c => selected.has(c))
-
-  form.value.permissionCodes = allSelected ? [] : [...allCodes]
+  form.value.permissionCodes =
+    form.value.permissionCodes.length === allCodes.length ? [] : [...allCodes]
 }
 
-const formatPermissionChip = (code: string) => {
+function formatPermissionChip(code: string) {
   const [res, act] = code.split(':')
   return `${resourceLabels[res]} · ${actionLabels[act]}`
 }
@@ -238,8 +258,10 @@ const formatPermissionChip = (code: string) => {
    LIFECYCLE
 ========================= */
 onMounted(async () => {
-  if (!permissionsStore.items.length) await permissionsStore.fetch()
-  activeTab.value = filteredResources.value[0]
+  if (!permissionsStore.items.length) {
+    await permissionsStore.fetch()
+  }
+  activeTab.value = filteredResources.value[0] ?? ''
 })
 
 watch(
@@ -252,11 +274,15 @@ watch(
   { immediate: true }
 )
 
-const submit = () => {
+/* =========================
+   SUBMIT
+========================= */
+function submit() {
   if (!form.value.name) {
     ui.showToast('warning', 'El nombre del rol es obligatorio')
     return
   }
+
   emit('submit', form.value)
 }
 </script>
