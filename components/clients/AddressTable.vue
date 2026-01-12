@@ -25,7 +25,7 @@ defineEmits<{
         <tr>
           <th class="px-4 py-3">Dirección</th>
           <th class="px-4 py-3">Ciudad</th>
-          <th class="px-4 py-3 text-center">Flags</th>
+          <th class="px-4 py-3 text-center">Tipo</th>
           <th class="px-4 py-3 text-center">Acciones</th>
         </tr>
       </thead>
@@ -35,7 +35,7 @@ defineEmits<{
       ======================== -->
       <tbody v-if="loading">
         <tr>
-          <td colspan="4" class="p-8 text-center text-base-content/60">Cargando direcciones…</td>
+          <td colspan="4" class="p-8 text-center opacity-70">Cargando direcciones…</td>
         </tr>
       </tbody>
 
@@ -51,8 +51,8 @@ defineEmits<{
             </div>
             <div class="text-xs opacity-60">
               {{ a.calle }}
-              <span v-if="a.colonia">· {{ a.colonia }}</span>
-              <span v-if="a.codigoPostal">· {{ a.codigoPostal }}</span>
+              <span v-if="a.colonia"> · {{ a.colonia }}</span>
+              <span v-if="a.codigoPostal"> · {{ a.codigoPostal }}</span>
             </div>
           </td>
 
@@ -64,18 +64,18 @@ defineEmits<{
             <div class="flex justify-center gap-2">
               <span
                 v-if="a.esPrincipal"
-                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-primary/15 text-primary"
+                class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold bg-primary/15 text-primary"
               >
                 <span class="h-2 w-2 rounded-full bg-primary" />
                 Principal
               </span>
 
               <span
-                v-if="!a.esPrincipal"
-                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-base-200 text-base-content/60"
+                v-else
+                class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold bg-base-200 text-base-content/60"
               >
                 <span class="h-2 w-2 rounded-full bg-base-content/40" />
-                Normal
+                Secundaria
               </span>
             </div>
           </td>
@@ -112,7 +112,7 @@ defineEmits<{
       ======================== -->
       <tbody v-else>
         <tr>
-          <td colspan="4" class="p-10 text-center text-base-content/60">
+          <td colspan="4" class="p-10 text-center opacity-70">
             <div class="flex flex-col items-center gap-3">
               <Icon name="map-pin" size="lg" />
               <p class="text-sm">Este cliente no tiene direcciones registradas</p>

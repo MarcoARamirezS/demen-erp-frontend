@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useClientsStore } from '~/stores/clients.store'
-import { useAuthStore } from '~/stores/auth.store'
 import Icon from '~/components/ui/Icon.vue'
 
 const clientsStore = useClientsStore()
-const auth = useAuthStore()
 
 /* =======================
    STATE
@@ -18,13 +16,14 @@ const itemsPerPage = ref(10)
    FETCH
 ======================= */
 clientsStore.reset()
-clientsStore.fetch(10)
+clientsStore.fetch(itemsPerPage.value)
 
 /* =======================
    FILTERED
 ======================= */
 const filtered = computed(() => {
   const term = search.value.toLowerCase()
+
   return clientsStore.items.filter(
     c =>
       !term ||
@@ -64,7 +63,9 @@ const prevPage = () => setPage(currentPage.value - 1)
 /* =======================
    WATCH
 ======================= */
-watch([search, itemsPerPage], () => (currentPage.value = 1))
+watch([search, itemsPerPage], () => {
+  currentPage.value = 1
+})
 
 /* =======================
    ACTIONS
@@ -126,7 +127,7 @@ function resetFilters() {
     ======================== -->
     <div class="hidden md:block overflow-x-auto rounded-xl border border-base-300">
       <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase tracking-wide">
+        <thead class="bg-base-200 text-xs uppercase tracking-wide text-base-content/70">
           <tr>
             <th class="px-4 py-3">Razón social</th>
             <th class="px-4 py-3">RFC</th>
@@ -138,7 +139,7 @@ function resetFilters() {
 
         <tbody v-if="clientsStore.loading">
           <tr>
-            <td colspan="5" class="p-8 text-center opacity-70">Cargando clientes…</td>
+            <td colspan="5" class="p-8 text-center text-base-content/60">Cargando clientes…</td>
           </tr>
         </tbody>
 
@@ -146,7 +147,7 @@ function resetFilters() {
           <tr v-for="c in paginated" :key="c.id" class="transition hover:bg-base-200/40">
             <td class="px-4 py-3 font-semibold">
               {{ c.razonSocial }}
-              <div v-if="c.nombreComercial" class="opacity-60 text-xs">
+              <div v-if="c.nombreComercial" class="text-xs opacity-60">
                 {{ c.nombreComercial }}
               </div>
             </td>
@@ -165,24 +166,14 @@ function resetFilters() {
             </td>
 
             <td class="px-4 py-3 text-center">
-              <div class="flex items-center justify-center gap-2">
+              <div class="flex items-center justify-center">
                 <button
                   type="button"
                   class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
-                  data-tip="Ver"
+                  data-tip="Ver cliente"
                   @click="goToClient(c.id)"
                 >
                   <Icon name="eye" size="sm" />
-                </button>
-
-                <button
-                  v-if="auth.hasPermission('clients:update')"
-                  type="button"
-                  class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
-                  data-tip="Editar"
-                  @click="goToClient(c.id)"
-                >
-                  <Icon name="edit" size="sm" />
                 </button>
               </div>
             </td>
@@ -191,7 +182,7 @@ function resetFilters() {
 
         <tbody v-else>
           <tr>
-            <td colspan="5" class="p-8 text-center opacity-70">
+            <td colspan="5" class="p-8 text-center text-base-content/60">
               No hay resultados con los filtros actuales.
             </td>
           </tr>
@@ -223,22 +214,13 @@ function resetFilters() {
           </span>
         </div>
 
-        <div class="mt-3 flex justify-end gap-2">
+        <div class="mt-3 flex justify-end">
           <button
             type="button"
             class="btn btn-circle btn-sm btn-ghost text-primary"
             @click="goToClient(c.id)"
           >
             <Icon name="eye" size="sm" />
-          </button>
-
-          <button
-            v-if="auth.hasPermission('clients:update')"
-            type="button"
-            class="btn btn-circle btn-sm btn-ghost text-primary"
-            @click="goToClient(c.id)"
-          >
-            <Icon name="edit" size="sm" />
           </button>
         </div>
       </div>

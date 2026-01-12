@@ -1,56 +1,47 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useClientAddressesStore } from '~/stores/clientAddresses.store'
+import { useClientsStore } from '~/stores/clients.store'
 import { useAuthStore } from '~/stores/auth.store'
-import { useUiStore } from '~/stores/ui.store'
-
 import ClientHeader from '~/components/clients/ClientHeader.vue'
 import AddressTable from '~/components/clients/AddressTable.vue'
 import AddressDialog from '~/components/clients/AddressDialog.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
-const ui = useUiStore()
-const store = useClientAddressesStore()
+const addressesStore = useClientAddressesStore()
+const clientsStore = useClientsStore()
 
 const showDialog = ref(false)
 const selected = ref(null)
 
-const clientId = route.params.id as string
+const clientId = computed(() => route.params.id as string)
+const clientName = computed(() => clientsStore.selected?.razonSocial || 'Cliente')
 
-onMounted(() => {
-  store.fetchByClient(clientId)
+onMounted(async () => {
+  if (!clientsStore.selected) {
+    await clientsStore.getById(clientId.value)
+  }
+
+  await addressesStore.fetchByClient(clientId.value)
 })
 
 async function save(payload: any) {
   if (selected.value) {
-    await store.update(selected.value.id, payload)
+    await addressesStore.update(selected.value.id, payload)
   } else {
-    await store.create(payload)
+    await addressesStore.create(payload)
   }
 
   selected.value = null
-  await store.fetchByClient(clientId)
-}
-
-async function remove(id: string) {
-  const ok = await ui.confirm({
-    title: 'Eliminar dirección',
-    message: 'Esta acción desactivará la dirección. ¿Deseas continuar?',
-    confirmText: 'Eliminar',
-    variant: 'danger',
-  })
-
-  if (!ok) return
-
-  await store.remove(id)
-  await store.fetchByClient(clientId)
+  showDialog.value = false
+  await addressesStore.fetchByClient(clientId.value)
 }
 </script>
 
 <template>
-  <ClientHeader clientName="Direcciones del cliente" />
+  <ClientHeader :client-id="clientId" :client-name="clientName" section="addresses" />
 
   <div class="flex justify-end mb-4">
     <UiButton
@@ -63,8 +54,8 @@ async function remove(id: string) {
   </div>
 
   <AddressTable
-    :items="store.items"
-    :loading="store.loading"
+    :items="addressesStore.items"
+    :loading="addressesStore.loading"
     :can-update="auth.hasPermission('client_addresses:update')"
     :can-delete="auth.hasPermission('client_addresses:delete')"
     @edit="
@@ -73,12 +64,13 @@ async function remove(id: string) {
         showDialog = true
       }
     "
-    @delete="remove"
+    @delete="id => addressesStore.remove(id)"
   />
 
   <AddressDialog
     v-model="showDialog"
-    :cliente-id="clientId"
+    :client-id="clientId"
+    :existing-addresses="addressesStore.items"
     :model="selected"
     :mode="selected ? 'edit' : 'create'"
     @submit="save"

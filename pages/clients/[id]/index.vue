@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useClientsStore } from '~/stores/clients.store'
 import { useAuthStore } from '~/stores/auth.store'
@@ -12,14 +12,17 @@ const auth = useAuthStore()
 
 const showDialog = ref(false)
 
+const clientId = computed(() => route.params.id as string)
+const clientName = computed(() => clientsStore.selected?.razonSocial || 'Cliente')
+
 onMounted(async () => {
-  await clientsStore.getById(route.params.id as string)
+  await clientsStore.getById(clientId.value)
 })
 </script>
 
 <template>
   <div v-if="clientsStore.selected">
-    <ClientHeader :clientName="clientsStore.selected.razonSocial" />
+    <ClientHeader :client-id="clientId" :client-name="clientName" section="info" />
 
     <div class="rounded-xl border bg-base-100 p-6">
       <div class="flex justify-between mb-4">
