@@ -10,20 +10,32 @@ export const useClientsStore = defineStore('clients', {
   }),
 
   actions: {
+    /**
+     * Carga inicial y paginación
+     */
     async fetch(limit = 10) {
       this.loading = true
       const api = useApi
 
-      const res = await api('/clients', {
-        params: {
-          limit,
-          cursor: this.cursor,
-        },
-      })
+      const params: Record<string, any> = { limit }
+      if (this.cursor) {
+        params.cursor = this.cursor
+      }
+
+      const res = await api('/clients', { params })
 
       this.items = res.items
       this.cursor = res.nextCursor ?? null
       this.loading = false
+    },
+
+    /**
+     * Limpia estado al salir/entrar a la vista
+     */
+    reset() {
+      this.items = []
+      this.cursor = null
+      this.selected = null
     },
 
     async getById(id: string) {
@@ -38,6 +50,7 @@ export const useClientsStore = defineStore('clients', {
           method: 'POST',
           body: payload,
         })
+        this.reset()
         await this.fetch()
       } finally {
         this.loading = false

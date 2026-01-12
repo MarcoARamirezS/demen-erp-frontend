@@ -17,16 +17,20 @@ const itemsPerPage = ref(10)
 /* =======================
    FETCH
 ======================= */
-clientsStore.fetch(itemsPerPage.value)
+clientsStore.reset()
+clientsStore.fetch(10)
 
 /* =======================
    FILTERED
 ======================= */
 const filtered = computed(() => {
   const term = search.value.toLowerCase()
-
   return clientsStore.items.filter(
-    c => !term || c.razonSocial.toLowerCase().includes(term) || c.rfc?.toLowerCase().includes(term)
+    c =>
+      !term ||
+      c.razonSocial.toLowerCase().includes(term) ||
+      c.nombreComercial?.toLowerCase().includes(term) ||
+      c.rfc?.toLowerCase().includes(term)
   )
 })
 
@@ -60,15 +64,18 @@ const prevPage = () => setPage(currentPage.value - 1)
 /* =======================
    WATCH
 ======================= */
-watch([search, itemsPerPage], () => {
-  currentPage.value = 1
-})
+watch([search, itemsPerPage], () => (currentPage.value = 1))
 
 /* =======================
    ACTIONS
 ======================= */
 function goToClient(id: string) {
   navigateTo(`/clients/${id}`)
+}
+
+function resetFilters() {
+  search.value = ''
+  currentPage.value = 1
 }
 </script>
 
@@ -90,15 +97,15 @@ function goToClient(id: string) {
           <input
             v-model="search"
             type="text"
-            placeholder="Buscar por razón social o RFC..."
+            placeholder="Buscar por razón social, nombre o RFC..."
             class="input input-sm input-bordered w-full pl-9"
           />
         </div>
 
-        <!-- Recargar -->
-        <button class="btn btn-sm" type="button" @click="clientsStore.fetch(itemsPerPage)">
-          <Icon name="refresh" class="h-4 w-4" />
-          Recargar
+        <!-- Limpiar -->
+        <button class="btn btn-sm" type="button" @click="resetFilters">
+          <Icon name="x" class="h-4 w-4" />
+          Limpiar
         </button>
       </div>
 
@@ -139,7 +146,7 @@ function goToClient(id: string) {
           <tr v-for="c in paginated" :key="c.id" class="transition hover:bg-base-200/40">
             <td class="px-4 py-3 font-semibold">
               {{ c.razonSocial }}
-              <div v-if="c.nombreComercial" class="text-xs opacity-60">
+              <div v-if="c.nombreComercial" class="opacity-60 text-xs">
                 {{ c.nombreComercial }}
               </div>
             </td>
@@ -162,6 +169,7 @@ function goToClient(id: string) {
                 <button
                   type="button"
                   class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
+                  data-tip="Ver"
                   @click="goToClient(c.id)"
                 >
                   <Icon name="eye" size="sm" />
@@ -171,6 +179,7 @@ function goToClient(id: string) {
                   v-if="auth.hasPermission('clients:update')"
                   type="button"
                   class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
+                  data-tip="Editar"
                   @click="goToClient(c.id)"
                 >
                   <Icon name="edit" size="sm" />

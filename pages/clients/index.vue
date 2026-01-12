@@ -31,7 +31,8 @@ async function handleSubmit(payload: CreateClientDto) {
 }
 
 onMounted(() => {
-  clients.fetch()
+  clients.reset()
+  clients.fetch(10)
 })
 </script>
 
