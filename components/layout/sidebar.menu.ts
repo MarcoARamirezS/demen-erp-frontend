@@ -66,12 +66,6 @@ export const sidebarMenu: SidebarMenuItem[] = [
         to: '/roles',
         permission: 'roles:list',
       },
-      {
-        label: 'Permisos',
-        icon: 'lock',
-        to: '/permissions',
-        permission: 'permissions:list',
-      },
     ],
   },
 
