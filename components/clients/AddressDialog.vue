@@ -8,13 +8,15 @@ import type { ClientAddress, CreateClientAddressDto } from '~/types/client-addre
 
 const props = defineProps<{
   modelValue: boolean
-  clientId: string
+  clienteId: string
   model?: ClientAddress | null
   mode: 'create' | 'edit'
-  existingAddresses: ClientAddress[]
 }>()
 
-const emit = defineEmits(['update:modelValue', 'submit'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', v: boolean): void
+  (e: 'submit', payload: CreateClientAddressDto): void
+}>()
 
 const ui = useUiStore()
 
@@ -23,22 +25,13 @@ const open = computed({
   set: v => emit('update:modelValue', v),
 })
 
-const alreadyFiscal = computed(() =>
-  props.existingAddresses.some(a => a.esFiscal && a.id !== props.model?.id)
-)
-
-const alreadyEnvio = computed(() =>
-  props.existingAddresses.some(a => a.esEnvio && a.id !== props.model?.id)
-)
-
 const form = ref<CreateClientAddressDto>({
-  clientId: props.clientId,
+  clienteId: props.clienteId,
+  nombre: '',
   calle: '',
   ciudad: '',
   estado: '',
   pais: 'México',
-  esFiscal: false,
-  esEnvio: false,
   activo: true,
 })
 
@@ -46,25 +39,30 @@ watch(
   () => props.model,
   v => {
     if (v) {
-      form.value = { ...v }
+      form.value = {
+        clienteId: props.clienteId,
+        nombre: v.nombre,
+        calle: v.calle,
+        numero: v.numero,
+        colonia: v.colonia,
+        ciudad: v.ciudad,
+        estado: v.estado,
+        pais: v.pais,
+        codigoPostal: v.codigoPostal,
+        contactoNombre: v.contactoNombre,
+        contactoTelefono: v.contactoTelefono,
+        contactoEmail: v.contactoEmail,
+        esPrincipal: v.esPrincipal,
+        activo: v.activo,
+      }
     }
   },
   { immediate: true }
 )
 
 function submit() {
-  if (!form.value.calle || !form.value.ciudad || !form.value.estado) {
+  if (!form.value.nombre || !form.value.calle || !form.value.ciudad || !form.value.estado) {
     ui.showToast('warning', 'Completa los campos obligatorios')
-    return
-  }
-
-  if (form.value.esFiscal && alreadyFiscal.value) {
-    ui.showToast('warning', 'Ya existe una dirección fiscal')
-    return
-  }
-
-  if (form.value.esEnvio && alreadyEnvio.value) {
-    ui.showToast('warning', 'Ya existe una dirección de envío')
     return
   }
 
@@ -80,22 +78,16 @@ function submit() {
     :title="mode === 'create' ? 'Nueva dirección' : 'Editar dirección'"
   >
     <form class="space-y-4" @submit.prevent="submit">
+      <UiInput
+        v-model="form.nombre"
+        label="Nombre de la dirección *"
+        placeholder="Sucursal Centro"
+      />
+
       <UiInput v-model="form.calle" label="Calle *" />
       <UiInput v-model="form.ciudad" label="Ciudad *" />
       <UiInput v-model="form.estado" label="Estado *" />
       <UiInput v-model="form.pais" label="País" />
-
-      <div class="flex gap-6 pt-2">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" v-model="form.esFiscal" class="checkbox checkbox-primary" />
-          <span>Dirección fiscal</span>
-        </label>
-
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" v-model="form.esEnvio" class="checkbox checkbox-success" />
-          <span>Dirección de envío</span>
-        </label>
-      </div>
 
       <div class="flex justify-end gap-3 pt-4 border-t">
         <UiButton variant="ghost" type="button" @click="open = false">Cancelar</UiButton>

@@ -8,33 +8,29 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
   }),
 
   actions: {
-    async fetchByClient(clientId: string) {
+    async fetchByClient(clienteId: string) {
       this.loading = true
-      const api = useApi()
-
-      this.items = await api('/clients/addresses', {
-        params: { clientId },
-      })
-
-      this.loading = false
+      try {
+        this.items = await useApi('/clients/addresses', {
+          params: { clienteId }, // 🔥 CAMBIO CLAVE
+        })
+      } finally {
+        this.loading = false
+      }
     },
 
     async create(payload: CreateClientAddressDto) {
-      const api = useApi()
-
-      await api('/clients/addresses', {
+      await useApi('/clients/addresses', {
         method: 'POST',
         body: {
           ...payload,
-          esPrincipal: payload.esFiscal, // 🔥 MAPEO IMPORTANTE
+          esPrincipal: payload.esFiscal, // 🔁 mapeo backend
         },
       })
     },
 
     async update(id: string, payload: Partial<CreateClientAddressDto>) {
-      const api = useApi()
-
-      await api(`/clients/addresses/${id}`, {
+      await useApi(`/clients/addresses/${id}`, {
         method: 'PATCH',
         body: {
           ...payload,
@@ -44,9 +40,7 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
     },
 
     async remove(id: string) {
-      const api = useApi()
-
-      await api(`/clients/addresses/${id}`, {
+      await useApi(`/clients/addresses/${id}`, {
         method: 'DELETE',
       })
     },

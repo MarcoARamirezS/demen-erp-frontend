@@ -78,8 +78,7 @@ async function remove(id: string) {
 
   <AddressDialog
     v-model="showDialog"
-    :client-id="clientId"
-    :existing-addresses="store.items"
+    :cliente-id="clientId"
     :model="selected"
     :mode="selected ? 'edit' : 'create'"
     @submit="save"
