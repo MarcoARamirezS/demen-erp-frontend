@@ -1,196 +1,270 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useClientsStore } from '~/stores/clients.store'
 import { useAuthStore } from '~/stores/auth.store'
 import Icon from '~/components/ui/Icon.vue'
-import UiButton from '~/components/ui/UiButton.vue'
-import UiInput from '~/components/ui/UiInput.vue'
 
 const clientsStore = useClientsStore()
 const auth = useAuthStore()
 
-/* =========================
-   FILTERS / STATE
-========================= */
+/* =======================
+   STATE
+======================= */
 const search = ref('')
+const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
-/* =========================
+/* =======================
    FETCH
-========================= */
-onMounted(() => {
-  clientsStore.fetch(itemsPerPage.value)
-})
+======================= */
+clientsStore.fetch(itemsPerPage.value)
 
-/* =========================
-   COMPUTED
-========================= */
-const filteredItems = computed(() => {
-  if (!search.value) return clientsStore.items
+/* =======================
+   FILTERED
+======================= */
+const filtered = computed(() => {
+  const term = search.value.toLowerCase()
 
-  const q = search.value.toLowerCase()
-  return clientsStore.items.filter(c =>
-    [c.razonSocial, c.nombreComercial, c.rfc]
-      .filter(Boolean)
-      .some(v => v!.toLowerCase().includes(q))
+  return clientsStore.items.filter(
+    c => !term || c.razonSocial.toLowerCase().includes(term) || c.rfc?.toLowerCase().includes(term)
   )
 })
 
-/* =========================
+/* =======================
+   PAGINATION
+======================= */
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filtered.value.length / itemsPerPage.value))
+)
+
+const paginated = computed(() =>
+  filtered.value.slice(
+    (currentPage.value - 1) * itemsPerPage.value,
+    currentPage.value * itemsPerPage.value
+  )
+)
+
+const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
+const endIndex = computed(() => startIndex.value + paginated.value.length)
+
+const visiblePages = computed(() => {
+  const start = Math.max(1, currentPage.value - 2)
+  const end = Math.min(totalPages.value, currentPage.value + 2)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
+const setPage = (p: number) => (currentPage.value = p)
+const nextPage = () => setPage(currentPage.value + 1)
+const prevPage = () => setPage(currentPage.value - 1)
+
+/* =======================
+   WATCH
+======================= */
+watch([search, itemsPerPage], () => {
+  currentPage.value = 1
+})
+
+/* =======================
    ACTIONS
-========================= */
+======================= */
 function goToClient(id: string) {
   navigateTo(`/clients/${id}`)
-}
-
-function reload() {
-  clientsStore.fetch(itemsPerPage.value)
 }
 </script>
 
 <template>
   <div class="animate-fadeIn rounded-xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <!-- =========================
-         HEADER / FILTERS
-    ========================== -->
+    <!-- =======================
+         FILTROS
+    ======================== -->
     <div
-      class="mb-4 flex flex-col gap-3 rounded-lg bg-gradient-to-r from-base-200 to-base-100 p-3 md:flex-row md:items-center md:justify-between"
+      class="mb-4 flex flex-col gap-3 rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4 shadow-sm md:flex-row md:items-center md:justify-between"
     >
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <!-- Buscador -->
-          <div class="flex flex-1 items-center gap-3">
-            <UiInput
-              v-model="search"
-              size="xl"
-              class="flex-1 max-w-3xl"
-              placeholder="Buscar cliente por razón social o RFC"
-              icon="search"
-            />
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+        <!-- Buscar -->
+        <div class="relative w-full md:w-80">
+          <span class="pointer-events-none absolute left-3 top-2.5 opacity-50">
+            <Icon name="search" class="h-4 w-4" />
+          </span>
 
-            <UiButton size="md" variant="outline" class="shrink-0" @click="reload">
-              <Icon name="refresh" size="md" />
-            </UiButton>
-          </div>
-
-          <!-- Selector -->
-          <div class="flex items-center gap-2 text-sm shrink-0">
-            <span class="text-base-content/60">Mostrar</span>
-            <select
-              v-model="itemsPerPage"
-              class="select select-md select-bordered"
-              @change="reload"
-            >
-              <option :value="10">10</option>
-              <option :value="20">20</option>
-              <option :value="50">50</option>
-            </select>
-          </div>
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Buscar por razón social o RFC..."
+            class="input input-sm input-bordered w-full pl-9"
+          />
         </div>
+
+        <!-- Recargar -->
+        <button class="btn btn-sm" type="button" @click="clientsStore.fetch(itemsPerPage)">
+          <Icon name="refresh" class="h-4 w-4" />
+          Recargar
+        </button>
+      </div>
+
+      <!-- Por página -->
+      <div class="flex items-center gap-2 text-xs opacity-70 md:justify-end">
+        <span class="font-medium">Mostrar:</span>
+        <select v-model.number="itemsPerPage" class="select select-xs select-bordered">
+          <option :value="10">10</option>
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+        </select>
+        <span>por página</span>
       </div>
     </div>
 
-    <!-- =========================
-         DESKTOP TABLE
-    ========================== -->
-    <div class="hidden md:block overflow-x-auto">
-      <table class="table w-full">
-        <thead class="bg-base-200 text-xs uppercase text-base-content/70">
+    <!-- =======================
+         TABLA DESKTOP
+    ======================== -->
+    <div class="hidden md:block overflow-x-auto rounded-xl border border-base-300">
+      <table class="table w-full text-sm">
+        <thead class="bg-base-200 text-xs uppercase tracking-wide">
           <tr>
-            <th>Razón social</th>
-            <th>RFC</th>
-            <th>Email</th>
-            <th>Estado</th>
-            <th class="text-right">Acciones</th>
+            <th class="px-4 py-3">Razón social</th>
+            <th class="px-4 py-3">RFC</th>
+            <th class="px-4 py-3">Email</th>
+            <th class="px-4 py-3 text-center">Estado</th>
+            <th class="px-4 py-3 text-center">Acciones</th>
           </tr>
         </thead>
 
-        <tbody>
-          <!-- Loading -->
-          <tr v-if="clientsStore.loading">
-            <td colspan="5" class="py-8 text-center text-base-content/50">Cargando clientes…</td>
+        <tbody v-if="clientsStore.loading">
+          <tr>
+            <td colspan="5" class="p-8 text-center opacity-70">Cargando clientes…</td>
           </tr>
+        </tbody>
 
-          <!-- Empty -->
-          <tr v-else-if="!filteredItems.length">
-            <td colspan="5" class="py-8 text-center text-base-content/50">
-              No se encontraron clientes
-            </td>
-          </tr>
-
-          <!-- Rows -->
-          <tr v-for="c in filteredItems" :key="c.id" class="hover:bg-base-200 transition">
-            <td class="font-medium">
+        <tbody v-else-if="paginated.length" class="divide-y divide-base-300">
+          <tr v-for="c in paginated" :key="c.id" class="transition hover:bg-base-200/40">
+            <td class="px-4 py-3 font-semibold">
               {{ c.razonSocial }}
-              <div v-if="c.nombreComercial" class="text-xs text-base-content/60">
+              <div v-if="c.nombreComercial" class="text-xs opacity-60">
                 {{ c.nombreComercial }}
               </div>
             </td>
 
-            <td>{{ c.rfc || '—' }}</td>
-            <td>{{ c.email || '—' }}</td>
+            <td class="px-4 py-3">{{ c.rfc || '—' }}</td>
+            <td class="px-4 py-3">{{ c.email || '—' }}</td>
 
-            <td>
+            <td class="px-4 py-3 text-center">
               <span
-                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                :class="c.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+                :class="c.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
               >
-                <span
-                  class="h-1.5 w-1.5 rounded-full"
-                  :class="c.activo ? 'bg-green-500' : 'bg-red-500'"
-                />
+                <span class="h-2 w-2 rounded-full" :class="c.activo ? 'bg-success' : 'bg-error'" />
                 {{ c.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
 
-            <td class="text-right">
-              <div class="flex justify-end gap-2">
-                <UiButton
-                  size="xs"
-                  variant="ghost"
-                  data-tip="Ver detalle"
+            <td class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
                   @click="goToClient(c.id)"
                 >
                   <Icon name="eye" size="sm" />
-                </UiButton>
+                </button>
 
-                <UiButton
+                <button
                   v-if="auth.hasPermission('clients:update')"
-                  size="xs"
-                  variant="ghost"
-                  data-tip="Editar"
+                  type="button"
+                  class="btn btn-circle btn-sm btn-ghost text-primary hover:bg-primary/10"
                   @click="goToClient(c.id)"
                 >
                   <Icon name="edit" size="sm" />
-                </UiButton>
+                </button>
               </div>
+            </td>
+          </tr>
+        </tbody>
+
+        <tbody v-else>
+          <tr>
+            <td colspan="5" class="p-8 text-center opacity-70">
+              No hay resultados con los filtros actuales.
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- =========================
-         MOBILE CARDS
-    ========================== -->
-    <div class="md:hidden space-y-3">
+    <!-- =======================
+         CARDS MOBILE
+    ======================== -->
+    <div class="grid gap-3 md:hidden">
       <div
-        v-for="c in filteredItems"
+        v-for="c in paginated"
         :key="c.id"
-        class="rounded-xl border border-base-300 bg-base-200 p-4 shadow-sm"
+        class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
-        <div class="font-semibold">{{ c.razonSocial }}</div>
-        <div class="text-xs text-base-content/60 mb-2">
-          {{ c.rfc || 'Sin RFC' }}
-        </div>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="font-semibold">{{ c.razonSocial }}</p>
+            <p class="text-sm opacity-60">{{ c.rfc || 'Sin RFC' }}</p>
+          </div>
 
-        <div class="flex justify-between items-center">
-          <span class="badge" :class="c.activo ? 'badge-success' : 'badge-error'">
+          <span
+            class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+            :class="c.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
+          >
+            <span class="h-2 w-2 rounded-full" :class="c.activo ? 'bg-success' : 'bg-error'" />
             {{ c.activo ? 'Activo' : 'Inactivo' }}
           </span>
-
-          <UiButton size="xs" variant="primary" @click="goToClient(c.id)"> Ver </UiButton>
         </div>
+
+        <div class="mt-3 flex justify-end gap-2">
+          <button
+            type="button"
+            class="btn btn-circle btn-sm btn-ghost text-primary"
+            @click="goToClient(c.id)"
+          >
+            <Icon name="eye" size="sm" />
+          </button>
+
+          <button
+            v-if="auth.hasPermission('clients:update')"
+            type="button"
+            class="btn btn-circle btn-sm btn-ghost text-primary"
+            @click="goToClient(c.id)"
+          >
+            <Icon name="edit" size="sm" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================
+         PAGINACIÓN
+    ======================== -->
+    <div class="mt-4 flex flex-col items-center justify-center gap-3">
+      <p class="text-xs opacity-70">
+        Mostrando {{ startIndex + 1 }}–{{ endIndex }} de {{ filtered.length }}
+      </p>
+
+      <div class="join">
+        <button class="btn join-item btn-sm" :disabled="currentPage === 1" @click="prevPage">
+          «
+        </button>
+
+        <button
+          v-for="p in visiblePages"
+          :key="p"
+          class="btn join-item btn-sm"
+          :class="p === currentPage ? 'btn-primary' : ''"
+          @click="setPage(p)"
+        >
+          {{ p }}
+        </button>
+
+        <button
+          class="btn join-item btn-sm"
+          :disabled="currentPage === totalPages"
+          @click="nextPage"
+        >
+          »
+        </button>
       </div>
     </div>
   </div>

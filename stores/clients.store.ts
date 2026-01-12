@@ -32,13 +32,16 @@ export const useClientsStore = defineStore('clients', {
     },
 
     async create(payload: CreateClientDto) {
-      const api = useApi
-      const res = await api('/clients', {
-        method: 'POST',
-        body: payload,
-      })
-
-      return res
+      this.loading = true
+      try {
+        await useApi('/clients', {
+          method: 'POST',
+          body: payload,
+        })
+        await this.fetch()
+      } finally {
+        this.loading = false
+      }
     },
 
     async update(id: string, payload: Partial<CreateClientDto>) {

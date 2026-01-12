@@ -3,12 +3,15 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useClientAddressesStore } from '~/stores/clientAddresses.store'
 import { useAuthStore } from '~/stores/auth.store'
+import { useUiStore } from '~/stores/ui.store'
+
 import ClientHeader from '~/components/clients/ClientHeader.vue'
 import AddressTable from '~/components/clients/AddressTable.vue'
 import AddressDialog from '~/components/clients/AddressDialog.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const ui = useUiStore()
 const store = useClientAddressesStore()
 
 const showDialog = ref(false)
@@ -16,8 +19,8 @@ const selected = ref(null)
 
 const clientId = route.params.id as string
 
-onMounted(async () => {
-  await store.fetchByClient(clientId)
+onMounted(() => {
+  store.fetchByClient(clientId)
 })
 
 async function save(payload: any) {
@@ -76,6 +79,7 @@ async function remove(id: string) {
   <AddressDialog
     v-model="showDialog"
     :client-id="clientId"
+    :existing-addresses="store.items"
     :model="selected"
     :mode="selected ? 'edit' : 'create'"
     @submit="save"

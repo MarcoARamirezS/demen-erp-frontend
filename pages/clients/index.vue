@@ -4,6 +4,7 @@ import { useClientsStore } from '~/stores/clients.store'
 import { useAuthStore } from '~/stores/auth.store'
 import ClientTable from '~/components/clients/ClientTable.vue'
 import ClientDialog from '~/components/clients/ClientDialog.vue'
+import type { CreateClientDto } from '~/types/client'
 
 const clients = useClientsStore()
 const auth = useAuthStore()
@@ -14,6 +15,19 @@ const dialogMode = ref<'create' | 'edit'>('create')
 function openCreateDialog() {
   dialogMode.value = 'create'
   openDialog.value = true
+}
+
+/* =========================
+   SAVE HANDLER (CLAVE)
+========================= */
+async function handleSubmit(payload: CreateClientDto) {
+  try {
+    await clients.create(payload)
+    openDialog.value = false
+  } catch (e) {
+    // El store ya debería mostrar toast si falla
+    console.error(e)
+  }
 }
 
 onMounted(() => {
@@ -29,17 +43,20 @@ onMounted(() => {
         <p class="text-sm text-base-content/60">Gestión de clientes del sistema</p>
       </div>
 
-      <UiButton
-        v-if="auth.hasPermission('clients:create')"
-        variant="primary"
-        @click="openCreateDialog"
-      >
-        Nuevo cliente
-      </UiButton>
+      <ClientOnly>
+        <UiButton
+          v-if="auth.hasPermission('clients:create')"
+          variant="primary"
+          @click="openCreateDialog"
+        >
+          Nuevo cliente
+        </UiButton>
+      </ClientOnly>
     </header>
 
     <ClientTable />
 
-    <ClientDialog v-model="openDialog" :mode="dialogMode" />
+    <!-- 🔥 AQUÍ ESTABA EL ERROR -->
+    <ClientDialog v-model="openDialog" :mode="dialogMode" @submit="handleSubmit" />
   </div>
 </template>

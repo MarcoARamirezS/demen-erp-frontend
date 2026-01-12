@@ -10,7 +10,7 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
   actions: {
     async fetchByClient(clientId: string) {
       this.loading = true
-      const api = useApi
+      const api = useApi()
 
       this.items = await api('/clients/addresses', {
         params: { clientId },
@@ -20,23 +20,32 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
     },
 
     async create(payload: CreateClientAddressDto) {
-      const api = useApi
+      const api = useApi()
+
       await api('/clients/addresses', {
         method: 'POST',
-        body: payload,
+        body: {
+          ...payload,
+          esPrincipal: payload.esFiscal, // 🔥 MAPEO IMPORTANTE
+        },
       })
     },
 
     async update(id: string, payload: Partial<CreateClientAddressDto>) {
-      const api = useApi
+      const api = useApi()
+
       await api(`/clients/addresses/${id}`, {
         method: 'PATCH',
-        body: payload,
+        body: {
+          ...payload,
+          esPrincipal: payload.esFiscal,
+        },
       })
     },
 
     async remove(id: string) {
-      const api = useApi
+      const api = useApi()
+
       await api(`/clients/addresses/${id}`, {
         method: 'DELETE',
       })
