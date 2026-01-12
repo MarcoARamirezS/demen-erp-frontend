@@ -178,21 +178,25 @@ const resourceLabels: Record<string, string> = {
   contabilidad: 'Contabilidad',
   compras: 'Compras',
   audit: 'Auditoría',
+  clients: 'Clientes',
+  client_addresses: 'Direcciones de clientes',
 }
 
 const resourceIcons: Record<string, string> = {
   ventas: 'shopping-cart',
   users: 'users',
   roles: 'key',
-  reportes: 'bar-chart',
+  reportes: 'chartBar',
   proyectos: 'folder',
   permissions: 'shield',
-  inventarios: 'archive',
+  inventarios: 'database',
   ingenieria: 'settings',
   cxc: 'credit-card',
   contabilidad: 'calculator',
   compras: 'truck',
   audit: 'clipboard',
+  clients: 'users',
+  client_addresses: 'home',
 }
 
 const actionLabels: Record<string, string> = {
@@ -261,6 +265,7 @@ onMounted(async () => {
   if (!permissionsStore.items.length) {
     await permissionsStore.fetch()
   }
+
   activeTab.value = filteredResources.value[0] ?? ''
 })
 

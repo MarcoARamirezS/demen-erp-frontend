@@ -97,6 +97,11 @@ const icons: Record<string, string> = {
 
   exclamation: 'M12 8v4m0 4h.01',
   dotsVertical: 'M12 5h.01M12 12h.01M12 19h.01',
+  // Clients
+  usersGroup:
+    'M7 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M14 21v-1a6 6 0 0 1 8 0v1',
+  location:
+    'M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z',
 }
 
 const icon = computed(() => icons[props.name])

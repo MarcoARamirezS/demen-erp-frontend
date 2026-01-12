@@ -1,3 +1,6 @@
+/* =========================
+   TYPES
+========================= */
 export interface SidebarBase {
   label: string
   icon?: string
@@ -14,12 +17,39 @@ export interface SidebarGroup extends SidebarBase {
 
 export type SidebarMenuItem = SidebarLink | SidebarGroup
 
+/* =========================
+   SIDEBAR MENU
+========================= */
 export const sidebarMenu: SidebarMenuItem[] = [
+  /* =========================
+     DASHBOARD
+  ========================= */
   {
     label: 'Inicio',
     icon: 'home',
     to: '/',
   },
+
+  /* =========================
+     CLIENTES (DOMINIO)
+  ========================= */
+  {
+    label: 'Clientes',
+    icon: 'users', // entidad de negocio (NO usersGroup)
+    permission: 'clients:list',
+    children: [
+      {
+        label: 'Listado',
+        icon: 'documentText',
+        to: '/clients',
+        permission: 'clients:list',
+      },
+    ],
+  },
+
+  /* =========================
+     SEGURIDAD (ADMIN)
+  ========================= */
   {
     label: 'Seguridad',
     icon: 'shield',
@@ -28,16 +58,20 @@ export const sidebarMenu: SidebarMenuItem[] = [
         label: 'Usuarios',
         icon: 'user',
         to: '/usuarios',
-        permission: 'users:read',
+        permission: 'users:list',
       },
       {
         label: 'Roles',
         icon: 'key',
         to: '/roles',
-        permission: 'roles:read',
+        permission: 'roles:list',
       },
     ],
   },
+
+  /* =========================
+     AUDITORÍA
+  ========================= */
   {
     label: 'Auditoría',
     icon: 'clipboard',
@@ -46,7 +80,7 @@ export const sidebarMenu: SidebarMenuItem[] = [
         label: 'Bitácora',
         icon: 'search',
         to: '/audit',
-        permission: 'audit:read',
+        permission: 'audit:list',
       },
     ],
   },
