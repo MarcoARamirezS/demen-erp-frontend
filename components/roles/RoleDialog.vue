@@ -13,21 +13,19 @@
       <section class="space-y-4">
         <h3 class="font-semibold text-primary">Permisos</h3>
 
-        <!-- Buscador -->
         <UiInput
           v-model="search"
           size="sm"
-          placeholder="Buscar permiso (ventas, usuarios, eliminar...)"
+          placeholder="Buscar permiso (ventas, proyectos, eliminar...)"
         />
 
-        <!-- Acciones globales -->
         <div class="flex flex-wrap gap-2">
           <UiButton size="sm" variant="outline" type="button" @click="toggleAllPermissions">
             Seleccionar todos
           </UiButton>
         </div>
 
-        <!-- Tabs por recurso -->
+        <!-- TABS -->
         <div class="flex flex-wrap gap-2">
           <button
             v-for="resource in filteredResources"
@@ -50,7 +48,7 @@
           </button>
         </div>
 
-        <!-- Permisos del tab activo -->
+        <!-- PERMISOS -->
         <div
           v-if="activePermissions.length"
           class="rounded-xl border border-base-300 bg-base-100 p-4"
@@ -77,11 +75,9 @@
         </div>
       </section>
 
-      <!-- =========================
-           RESUMEN
-      ========================== -->
+      <!-- RESUMEN -->
       <section v-if="form.permissionCodes.length" class="space-y-2">
-        <h4 class="text-sm font-semibold text-secondary">Resumen de permisos asignados</h4>
+        <h4 class="text-sm font-semibold text-secondary">Resumen de permisos</h4>
 
         <div class="flex flex-wrap gap-2">
           <span
@@ -94,9 +90,7 @@
         </div>
       </section>
 
-      <!-- =========================
-           ACCIONES
-      ========================== -->
+      <!-- ACCIONES -->
       <div class="flex justify-end gap-3 pt-4 border-t">
         <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
 
@@ -118,37 +112,22 @@ import { usePermissionsStore } from '~/stores/permissions.store'
 import { useUiStore } from '~/stores/ui.store'
 import type { Role, CreateRoleDto } from '~/types/role'
 
-/* =========================
-   PROPS / EMITS
-========================= */
 const props = defineProps<{
   modelValue: boolean
   mode: 'create' | 'edit'
   model?: Role | null
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (e: 'submit', payload: Partial<CreateRoleDto>): void
-}>()
+const emit = defineEmits(['update:modelValue', 'submit'])
 
-/* =========================
-   STORES
-========================= */
 const permissionsStore = usePermissionsStore()
 const ui = useUiStore()
 
-/* =========================
-   DIALOG STATE
-========================= */
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
 
-/* =========================
-   FORM
-========================= */
 const form = ref<Partial<CreateRoleDto>>({
   name: '',
   description: '',
@@ -156,21 +135,24 @@ const form = ref<Partial<CreateRoleDto>>({
   active: true,
 })
 
-/* =========================
-   FILTERS / TABS
-========================= */
 const search = ref('')
 const activeTab = ref('')
 
 /* =========================
-   LABELS / ICONS
+   LABELS (FIX DEFINITIVO)
 ========================= */
 const resourceLabels: Record<string, string> = {
   ventas: 'Ventas',
   users: 'Usuarios',
   roles: 'Roles',
   reportes: 'Reportes',
+
   proyectos: 'Proyectos',
+  projects: 'Proyectos',
+
+  project_versions: 'Versiones',
+  project_photos: 'Fotos',
+
   permissions: 'Permisos',
   inventarios: 'Inventarios',
   ingenieria: 'Ingeniería',
@@ -187,7 +169,13 @@ const resourceIcons: Record<string, string> = {
   users: 'users',
   roles: 'key',
   reportes: 'chartBar',
+
   proyectos: 'folder',
+  projects: 'folder',
+
+  project_versions: 'layers',
+  project_photos: 'image',
+
   permissions: 'shield',
   inventarios: 'database',
   ingenieria: 'settings',
@@ -205,11 +193,13 @@ const actionLabels: Record<string, string> = {
   list: 'Listar',
   update: 'Actualizar',
   delete: 'Eliminar',
+  set_current: 'Marcar vigente',
 }
 
-/* =========================
-   PERMISSIONS GROUPED
-========================= */
+function normalizeResource(resource: string) {
+  return resource === 'projects' ? 'proyectos' : resource
+}
+
 const permissionsByResource = computed(() => {
   const map: Record<string, any[]> = {}
 
@@ -217,20 +207,17 @@ const permissionsByResource = computed(() => {
     const text = `${p.resource} ${p.action} ${p.code}`.toLowerCase()
     if (search.value && !text.includes(search.value.toLowerCase())) continue
 
-    if (!map[p.resource]) map[p.resource] = []
-    map[p.resource].push(p)
+    const resource = normalizeResource(p.resource)
+    if (!map[resource]) map[resource] = []
+    map[resource].push(p)
   }
 
   return map
 })
 
 const filteredResources = computed(() => Object.keys(permissionsByResource.value))
-
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 
-/* =========================
-   HELPERS
-========================= */
 function selectedCount(resource: string) {
   return (
     permissionsByResource.value[resource]?.filter(p => form.value.permissionCodes?.includes(p.code))
@@ -240,11 +227,10 @@ function selectedCount(resource: string) {
 
 function toggleAllActiveTab() {
   const codes = activePermissions.value.map(p => p.code)
-  const selected = new Set(form.value.permissionCodes)
-  const allSelected = codes.every(c => selected.has(c))
-
-  codes.forEach(c => (allSelected ? selected.delete(c) : selected.add(c)))
-  form.value.permissionCodes = Array.from(selected)
+  const set = new Set(form.value.permissionCodes)
+  const all = codes.every(c => set.has(c))
+  codes.forEach(c => (all ? set.delete(c) : set.add(c)))
+  form.value.permissionCodes = Array.from(set)
 }
 
 function toggleAllPermissions() {
@@ -255,17 +241,14 @@ function toggleAllPermissions() {
 
 function formatPermissionChip(code: string) {
   const [res, act] = code.split(':')
-  return `${resourceLabels[res]} · ${actionLabels[act]}`
+  const resource = normalizeResource(res)
+  return `${resourceLabels[resource]} · ${actionLabels[act]}`
 }
 
-/* =========================
-   LIFECYCLE
-========================= */
 onMounted(async () => {
   if (!permissionsStore.items.length) {
     await permissionsStore.fetch()
   }
-
   activeTab.value = filteredResources.value[0] ?? ''
 })
 
@@ -279,15 +262,11 @@ watch(
   { immediate: true }
 )
 
-/* =========================
-   SUBMIT
-========================= */
 function submit() {
   if (!form.value.name) {
     ui.showToast('warning', 'El nombre del rol es obligatorio')
     return
   }
-
   emit('submit', form.value)
 }
 </script>
