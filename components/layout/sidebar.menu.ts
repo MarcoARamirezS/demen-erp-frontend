@@ -31,11 +31,11 @@ export const sidebarMenu: SidebarMenuItem[] = [
   },
 
   /* =========================
-     CLIENTES (DOMINIO)
+     CLIENTES
   ========================= */
   {
     label: 'Clientes',
-    icon: 'users', // entidad de negocio (NO usersGroup)
+    icon: 'users',
     permission: 'clients:list',
     children: [
       {
@@ -48,7 +48,24 @@ export const sidebarMenu: SidebarMenuItem[] = [
   },
 
   /* =========================
-     SEGURIDAD (ADMIN)
+     PROYECTOS
+  ========================= */
+  {
+    label: 'Proyectos',
+    icon: 'briefcase',
+    permission: 'projects:list',
+    children: [
+      {
+        label: 'Listado',
+        icon: 'documentText',
+        to: '/projects',
+        permission: 'projects:list',
+      },
+    ],
+  },
+
+  /* =========================
+     SEGURIDAD
   ========================= */
   {
     label: 'Seguridad',
