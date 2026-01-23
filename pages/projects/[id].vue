@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+
 import Icon from '~/components/ui/Icon.vue'
 import UiButton from '~/components/ui/UiButton.vue'
 
@@ -12,6 +13,9 @@ import ProjectDialog from '~/components/projects/ProjectDialog.vue'
 import ProjectVersions from '~/components/projects/ProjectVersions.vue'
 import ProjectPhotos from '~/components/projects/ProjectPhotos.vue'
 
+/* =========================
+   STORES / ROUTE
+========================= */
 const route = useRoute()
 const auth = useAuthStore()
 const projectsStore = useProjectsStore()
@@ -33,7 +37,7 @@ onMounted(async () => {
 })
 
 /* =========================
-   LAZY LOAD
+   LAZY LOAD VERSIONS
 ========================= */
 watch(activeTab, async tab => {
   if (tab === 'versions' && !versionsStore.loadedFor(projectId)) {
@@ -47,39 +51,49 @@ watch(activeTab, async tab => {
 const project = computed(() => projectsStore.selected)
 
 const canEdit = computed(() => auth.hasPermission('projects:update'))
+
+function statusLabel(status?: string) {
+  const map: Record<string, string> = {
+    EN_AUTORIZACION: 'En autorización',
+    AUTORIZADO: 'Autorizado',
+    CANCELADO: 'Cancelado',
+  }
+  return status ? map[status] || status : '—'
+}
 </script>
 
 <template>
   <div v-if="project" class="space-y-6">
     <!-- =======================
-         HEADER / BREADCRUMB
+         BREADCRUMB
     ======================== -->
-    <div class="space-y-2">
-      <nav class="flex items-center gap-2 text-sm text-base-content/60">
-        <NuxtLink to="/projects" class="flex items-center gap-1 hover:text-primary">
-          <Icon name="briefcase" size="sm" />
-          Proyectos
-        </NuxtLink>
+    <nav class="flex items-center gap-2 text-sm text-base-content/60">
+      <NuxtLink to="/projects" class="flex items-center gap-1 hover:text-primary">
+        <Icon name="briefcase" size="sm" />
+        Proyectos
+      </NuxtLink>
 
-        <Icon name="chevron-right" size="sm" />
+      <Icon name="chevron-right" size="sm" />
 
-        <span class="font-medium text-base-content">
-          {{ project.descripcion }}
-        </span>
-      </nav>
+      <span class="font-medium text-base-content">
+        {{ project.descripcion || 'Proyecto sin descripción' }}
+      </span>
+    </nav>
 
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold">Proyecto</h1>
-          <p class="text-sm opacity-60">
-            Versión vigente: <strong>{{ project.versionActual }}</strong>
-          </p>
-        </div>
-
-        <UiButton v-if="canEdit" size="sm" variant="primary" @click="showEditDialog = true">
-          Editar proyecto
-        </UiButton>
+    <!-- =======================
+         HEADER
+    ======================== -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold">Proyecto</h1>
+        <p class="text-sm opacity-60">
+          Versión activa: <strong>{{ project.activeVersion || '—' }}</strong>
+        </p>
       </div>
+
+      <UiButton v-if="canEdit" size="sm" variant="primary" @click="showEditDialog = true">
+        Editar información
+      </UiButton>
     </div>
 
     <!-- =======================
@@ -112,53 +126,68 @@ const canEdit = computed(() => auth.hasPermission('projects:update'))
     </div>
 
     <!-- =======================
-         TAB CONTENT
+         INFO
     ======================== -->
-    <!-- INFO -->
     <div
       v-if="activeTab === 'info'"
       class="rounded-xl border border-base-300 bg-base-100 p-6 shadow-sm"
     >
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <!-- Cliente -->
         <div>
           <span class="text-xs opacity-60">Cliente</span>
-          <div class="font-medium">{{ project.clientId }}</div>
-        </div>
-
-        <div>
-          <span class="text-xs opacity-60">Fecha de levantamiento</span>
-          <div class="font-medium">{{ project.fechaLevantamiento }}</div>
-        </div>
-
-        <div class="md:col-span-2">
-          <span class="text-xs opacity-60">Descripción</span>
           <div class="font-medium">
-            {{ project.descripcion }}
+            {{ project.client?.razonSocial || '—' }}
           </div>
         </div>
 
+        <!-- Dirección -->
+        <div>
+          <span class="text-xs opacity-60">Dirección</span>
+          <div class="font-medium">
+            {{ project.address?.label || '—' }}
+          </div>
+        </div>
+
+        <!-- Fecha -->
+        <div>
+          <span class="text-xs opacity-60">Fecha de levantamiento</span>
+          <div class="font-medium">
+            {{ project.fechaLevantamiento || '—' }}
+          </div>
+        </div>
+
+        <!-- Estado -->
         <div>
           <span class="text-xs opacity-60">Estado</span>
           <div>
             <span
-              class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+              class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
               :class="project.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
             >
-              <span
-                class="h-2 w-2 rounded-full"
-                :class="project.activo ? 'bg-success' : 'bg-error'"
-              />
-              {{ project.activo ? 'Activo' : 'Inactivo' }}
+              {{ statusLabel(project.status) }}
             </span>
+          </div>
+        </div>
+
+        <!-- Descripción -->
+        <div class="md:col-span-2">
+          <span class="text-xs opacity-60">Descripción</span>
+          <div class="font-medium">
+            {{ project.descripcion || '—' }}
           </div>
         </div>
       </div>
     </div>
 
-    <!-- VERSIONS -->
+    <!-- =======================
+         VERSIONS
+    ======================== -->
     <ProjectVersions v-if="activeTab === 'versions'" :project-id="projectId" />
 
-    <!-- PHOTOS -->
+    <!-- =======================
+         PHOTOS
+    ======================== -->
     <ProjectPhotos v-if="activeTab === 'photos'" :project-id="projectId" />
 
     <!-- =======================
