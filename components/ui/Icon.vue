@@ -72,7 +72,6 @@ const icons: Record<string, string> = {
   clock: 'M12 6v6l4 2',
 
   document: 'M7 2h8l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z',
-  documentText: 'M9 12h6m-6 4h6m-6-8h6',
 
   chartBar: 'M5 12h3v7H5v-7zm5-4h3v11h-3V8zm5-4h3v15h-3V4',
   chartPie: 'M11 3.055A9 9 0 1 0 20.945 13H11V3.055z',
@@ -102,6 +101,9 @@ const icons: Record<string, string> = {
     'M7 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M14 21v-1a6 6 0 0 1 8 0v1',
   location:
     'M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z',
+  documentText: 'M9 12h6m-6 4h6m-6-8h6',
+  briefcase:
+    'M10 4h4a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3V6a2 2 0 0 1 2-2zm4 4V6h-4v2h4zm-9 4v2h14v-2H5z',
 }
 
 const icon = computed(() => icons[props.name])

@@ -70,13 +70,17 @@ export const useProjectsStore = defineStore('projects', {
     /* =========================
        CREATE
     ========================= */
-    async create(payload: { clientId: string; fechaLevantamiento: string; descripcion: string }) {
+    async create(payload: {
+      clientId: string
+      clientAddressId: string
+      fechaLevantamiento: string
+      descripcion: string
+    }) {
       await useApi('/projects', {
         method: 'POST',
         body: payload,
       })
 
-      // 🔁 Refrescar listado
       this.reset()
       await this.fetch()
     },

@@ -14,13 +14,13 @@ const addressesStore = useClientAddressesStore()
 const clientsStore = useClientsStore()
 
 const showDialog = ref(false)
-const selected = ref(null)
+const selected = ref<any | null>(null)
 
 const clientId = computed(() => route.params.id as string)
 const clientName = computed(() => clientsStore.selected?.razonSocial || 'Cliente')
 
 onMounted(async () => {
-  if (!clientsStore.selected) {
+  if (!clientsStore.selected || clientsStore.selected.id !== clientId.value) {
     await clientsStore.getById(clientId.value)
   }
 
@@ -31,7 +31,10 @@ async function save(payload: any) {
   if (selected.value) {
     await addressesStore.update(selected.value.id, payload)
   } else {
-    await addressesStore.create(payload)
+    await addressesStore.create({
+      ...payload,
+      clientId: clientId.value,
+    })
   }
 
   selected.value = null
@@ -59,15 +62,17 @@ async function save(payload: any) {
     :can-update="auth.hasPermission('client_addresses:update')"
     :can-delete="auth.hasPermission('client_addresses:delete')"
     @edit="
-      v => {
-        selected = v
+      a => {
+        selected = a
         showDialog = true
       }
     "
     @delete="id => addressesStore.remove(id)"
   />
 
+  <!-- 🔥 FIX CLAVE -->
   <AddressDialog
+    v-if="showDialog"
     v-model="showDialog"
     :client-id="clientId"
     :existing-addresses="addressesStore.items"

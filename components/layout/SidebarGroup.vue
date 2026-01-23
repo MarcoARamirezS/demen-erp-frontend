@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Icon from '~/components/ui/Icon.vue'
-
-defineEmits(['navigate'])
+import SidebarItem from './SidebarItem.vue'
 
 const props = defineProps<{
   label: string
@@ -13,43 +14,57 @@ const props = defineProps<{
   }[]
 }>()
 
-const isOpen = ref(false)
-const toggle = () => (isOpen.value = !isOpen.value)
+const route = useRoute()
+const open = ref(false)
+
+/* =========================
+   ACTIVE STATE
+========================= */
+const isActive = computed(() => props.items.some(i => route.path.startsWith(i.to)))
 </script>
 
 <template>
-  <div>
+  <div class="space-y-1">
+    <!-- GROUP HEADER -->
     <button
       type="button"
-      @click="toggle"
-      class="flex w-full items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-base-content/70 hover:bg-base-300 transition"
+      class="group flex w-full items-center justify-between gap-3 px-4 py-2 rounded-lg text-sm transition-all"
+      :class="
+        isActive
+          ? 'bg-primary/10 text-primary font-semibold'
+          : 'text-base-content/70 hover:bg-base-300 hover:text-base-content'
+      "
+      @click="open = !open"
     >
-      <Icon v-if="icon" :name="icon" />
-      <span class="flex-1 text-left">{{ label }}</span>
-      <Icon :name="isOpen ? 'chevronUp' : 'chevronDown'" size="sm" />
+      <div class="flex items-center gap-3">
+        <!-- 🔥 ICONO DEL GRUPO (FIX CLAVE) -->
+        <Icon
+          v-if="icon"
+          :name="icon"
+          size="md"
+          class="shrink-0 text-current opacity-80 group-hover:opacity-100"
+        />
+
+        <span>{{ label }}</span>
+      </div>
+
+      <Icon
+        name="chevronDown"
+        size="sm"
+        class="transition-transform"
+        :class="open ? 'rotate-180' : ''"
+      />
     </button>
 
-    <transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0 max-h-0"
-      enter-to-class="opacity-100 max-h-96"
-      leave-active-class="transition-all duration-150 ease-in"
-      leave-from-class="opacity-100 max-h-96"
-      leave-to-class="opacity-0 max-h-0"
-    >
-      <div v-show="isOpen" class="ml-6 mt-1 space-y-1 overflow-hidden">
-        <NuxtLink
-          v-for="item in items"
-          :key="item.to"
-          :to="item.to"
-          @click="$emit('navigate')"
-          class="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-base-content/60 hover:bg-base-300 hover:text-base-content transition"
-          active-class="bg-primary/10 text-primary font-medium"
-        >
-          <Icon v-if="item.icon" :name="item.icon" size="sm" />
-          <span>{{ item.label }}</span>
-        </NuxtLink>
-      </div>
-    </transition>
+    <!-- CHILDREN -->
+    <div v-show="open" class="ml-6 mt-1 space-y-1">
+      <SidebarItem
+        v-for="item in items"
+        :key="item.to"
+        :label="item.label"
+        :to="item.to"
+        :icon="item.icon"
+      />
+    </div>
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Icon from '~/components/ui/Icon.vue'
 
@@ -25,7 +26,14 @@ const isActive = computed(() => route.path === props.to)
         : 'text-base-content/70 hover:bg-base-300 hover:text-base-content'
     "
   >
-    <Icon v-if="icon" :name="icon" size="md" />
+    <!-- ICONO -->
+    <Icon
+      v-if="icon"
+      :name="icon"
+      size="md"
+      class="shrink-0 text-current opacity-80 group-hover:opacity-100"
+    />
+
     <span>{{ label }}</span>
   </NuxtLink>
 </template>

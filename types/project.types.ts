@@ -1,10 +1,10 @@
 /* =========================
    PROJECTS
 ========================= */
-
 export interface Project {
   id: string
   clientId: string
+  clientAddressId: string // 👈 NUEVO
   fechaLevantamiento: string
   descripcion: string
   versionActual: string
@@ -16,11 +16,10 @@ export interface Project {
 /* =========================
    PROJECT VERSIONS
 ========================= */
-
 export interface ProjectVersion {
   id: string
   projectId: string
-  version: string // A, B, C...
+  version: string
   descripcion: string
   esActual: boolean
   createdAt: string
@@ -29,7 +28,6 @@ export interface ProjectVersion {
 /* =========================
    PROJECT PHOTOS
 ========================= */
-
 export interface ProjectPhoto {
   id: string
   projectId: string

@@ -2,7 +2,7 @@ import type { FireTimestamp } from '~/types/firestore'
 
 export interface ClientAddress {
   id: string
-  clientId: string
+  clienteId: string
 
   calle: string
   numeroExterior?: string

@@ -57,7 +57,11 @@ onMounted(() => {
 
     <ClientTable />
 
-    <!-- 🔥 AQUÍ ESTABA EL ERROR -->
-    <ClientDialog v-model="openDialog" :mode="dialogMode" @submit="handleSubmit" />
+    <ClientDialog
+      v-if="openDialog"
+      v-model="openDialog"
+      :mode="dialogMode"
+      @submit="handleSubmit"
+    />
   </div>
 </template>
