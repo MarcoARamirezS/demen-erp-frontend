@@ -14,6 +14,9 @@ export const useRolesStore = defineStore('roles', {
   },
 
   actions: {
+    /* =========================
+       FETCH
+    ========================= */
     async fetch(limit = 25) {
       this.loading = true
       try {
@@ -21,33 +24,48 @@ export const useRolesStore = defineStore('roles', {
           `/roles?limit=${limit}`
         )
 
-        this.items = res.items
-        this.nextCursor = res.nextCursor
+        this.items = res.items ?? []
+        this.nextCursor = res.nextCursor ?? null
       } finally {
         this.loading = false
       }
     },
 
+    /* =========================
+       CREATE
+       ✅ NO asumir retorno
+    ========================= */
     async create(payload: CreateRoleDto) {
-      const { data } = await useApi<Role>('/roles', {
+      await useApi('/roles', {
         method: 'POST',
         body: payload,
       })
+
+      // 🔄 Estado consistente
       await this.fetch()
     },
 
+    /* =========================
+       UPDATE
+       ✅ NO pisar con undefined
+    ========================= */
     async update(id: string, payload: UpdateRoleDto) {
-      const { data } = await useApi<Role>(`/roles/${id}`, {
+      await useApi(`/roles/${id}`, {
         method: 'PATCH',
         body: payload,
       })
 
-      const idx = this.items.findIndex(r => r.id === id)
-      if (idx !== -1) this.items[idx] = data
+      // 🔄 Estado consistente
+      await this.fetch()
     },
 
+    /* =========================
+       DELETE (soft / hard)
+    ========================= */
     async remove(id: string) {
       await useApi(`/roles/${id}`, { method: 'DELETE' })
+
+      // Limpieza local segura
       this.items = this.items.filter(r => r.id !== id)
     },
   },

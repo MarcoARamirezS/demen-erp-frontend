@@ -39,8 +39,8 @@
             "
             @click="activeTab = resource"
           >
-            <Icon :name="resourceIcons[resource]" size="sm" />
-            {{ resourceLabels[resource] }}
+            <Icon :name="resourceIcons[resource] || DEFAULT_ICON" size="sm" />
+            {{ resourceLabels[resource] ?? resource }}
 
             <span class="rounded-full bg-base-100 px-2 py-0.5 text-xs">
               {{ selectedCount(resource) }}/{{ permissionsByResource[resource]?.length ?? 0 }}
@@ -53,9 +53,9 @@
           v-if="activePermissions.length"
           class="rounded-xl border border-base-300 bg-base-100 p-4"
         >
-          <div class="mb-3 flex justify-between items-center">
-            <h4 class="font-semibold uppercase text-sm text-primary">
-              {{ resourceLabels[activeTab] }}
+          <div class="mb-3 flex items-center justify-between">
+            <h4 class="text-sm font-semibold uppercase text-primary">
+              {{ resourceLabels[activeTab] ?? activeTab }}
             </h4>
 
             <UiButton size="xs" variant="ghost" type="button" @click="toggleAllActiveTab">
@@ -63,19 +63,21 @@
             </UiButton>
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
             <UiCheckbox
               v-for="p in activePermissions"
               :key="p.code"
               v-model="form.permissionCodes"
               :value="p.code"
-              :label="actionLabels[p.action]"
+              :label="actionLabels[p.action] ?? p.action"
             />
           </div>
         </div>
       </section>
 
-      <!-- RESUMEN -->
+      <!-- =========================
+           RESUMEN
+      ========================== -->
       <section v-if="form.permissionCodes.length" class="space-y-2">
         <h4 class="text-sm font-semibold text-secondary">Resumen de permisos</h4>
 
@@ -90,8 +92,10 @@
         </div>
       </section>
 
-      <!-- ACCIONES -->
-      <div class="flex justify-end gap-3 pt-4 border-t">
+      <!-- =========================
+           ACCIONES
+      ========================== -->
+      <div class="flex justify-end gap-3 border-t pt-4">
         <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
 
         <UiButton variant="primary" type="submit"> Guardar </UiButton>
@@ -112,6 +116,14 @@ import { usePermissionsStore } from '~/stores/permissions.store'
 import { useUiStore } from '~/stores/ui.store'
 import type { Role, CreateRoleDto } from '~/types/role'
 
+/* =========================
+   CONSTANTES
+========================= */
+const DEFAULT_ICON = 'circle'
+
+/* =========================
+   PROPS / EMITS
+========================= */
 const props = defineProps<{
   modelValue: boolean
   mode: 'create' | 'edit'
@@ -120,9 +132,15 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 
+/* =========================
+   STORES
+========================= */
 const permissionsStore = usePermissionsStore()
 const ui = useUiStore()
 
+/* =========================
+   STATE
+========================= */
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
@@ -139,7 +157,23 @@ const search = ref('')
 const activeTab = ref('')
 
 /* =========================
-   LABELS (FIX DEFINITIVO)
+   NORMALIZACIÓN DE RESOURCE
+========================= */
+function normalizeResource(resource: string) {
+  const map: Record<string, string> = {
+    projects: 'proyectos',
+    project_versions: 'versiones',
+    project_photos: 'fotos',
+    // Proveedores / Productos
+    suppliers: 'proveedores',
+    supplier_products: 'proveedor_productos',
+    products: 'productos',
+  }
+  return map[resource] ?? resource
+}
+
+/* =========================
+   LABELS / ICONOS
 ========================= */
 const resourceLabels: Record<string, string> = {
   ventas: 'Ventas',
@@ -148,10 +182,12 @@ const resourceLabels: Record<string, string> = {
   reportes: 'Reportes',
 
   proyectos: 'Proyectos',
-  projects: 'Proyectos',
+  versiones: 'Versiones',
+  fotos: 'Fotos',
 
-  project_versions: 'Versiones',
-  project_photos: 'Fotos',
+  proveedores: 'Proveedores',
+  proveedor_productos: 'Productos por proveedor',
+  productos: 'Productos',
 
   permissions: 'Permisos',
   inventarios: 'Inventarios',
@@ -171,10 +207,12 @@ const resourceIcons: Record<string, string> = {
   reportes: 'chartBar',
 
   proyectos: 'folder',
-  projects: 'folder',
+  versiones: 'layers',
+  fotos: 'image',
 
-  project_versions: 'layers',
-  project_photos: 'image',
+  proveedores: 'truck',
+  proveedor_productos: 'link',
+  productos: 'box',
 
   permissions: 'shield',
   inventarios: 'database',
@@ -196,10 +234,9 @@ const actionLabels: Record<string, string> = {
   set_current: 'Marcar vigente',
 }
 
-function normalizeResource(resource: string) {
-  return resource === 'projects' ? 'proyectos' : resource
-}
-
+/* =========================
+   COMPUTEDS
+========================= */
 const permissionsByResource = computed(() => {
   const map: Record<string, any[]> = {}
 
@@ -218,6 +255,9 @@ const permissionsByResource = computed(() => {
 const filteredResources = computed(() => Object.keys(permissionsByResource.value))
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 
+/* =========================
+   HELPERS
+========================= */
 function selectedCount(resource: string) {
   return (
     permissionsByResource.value[resource]?.filter(p => form.value.permissionCodes?.includes(p.code))
@@ -228,8 +268,8 @@ function selectedCount(resource: string) {
 function toggleAllActiveTab() {
   const codes = activePermissions.value.map(p => p.code)
   const set = new Set(form.value.permissionCodes)
-  const all = codes.every(c => set.has(c))
-  codes.forEach(c => (all ? set.delete(c) : set.add(c)))
+  const allSelected = codes.every(c => set.has(c))
+  codes.forEach(c => (allSelected ? set.delete(c) : set.add(c)))
   form.value.permissionCodes = Array.from(set)
 }
 
@@ -242,9 +282,12 @@ function toggleAllPermissions() {
 function formatPermissionChip(code: string) {
   const [res, act] = code.split(':')
   const resource = normalizeResource(res)
-  return `${resourceLabels[resource]} · ${actionLabels[act]}`
+  return `${resourceLabels[resource] ?? resource} · ${actionLabels[act] ?? act}`
 }
 
+/* =========================
+   LIFECYCLE
+========================= */
 onMounted(async () => {
   if (!permissionsStore.items.length) {
     await permissionsStore.fetch()
@@ -262,6 +305,9 @@ watch(
   { immediate: true }
 )
 
+/* =========================
+   SUBMIT
+========================= */
 function submit() {
   if (!form.value.name) {
     ui.showToast('warning', 'El nombre del rol es obligatorio')

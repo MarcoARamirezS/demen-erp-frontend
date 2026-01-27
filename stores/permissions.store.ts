@@ -16,7 +16,7 @@ export const usePermissionsStore = defineStore('permissions', {
     async fetch() {
       this.loading = true
       try {
-        const res = await useApi<{ items: Permission[] }>('/permissions?limit=100')
+        const res = await useApi<{ items: Permission[] }>('/permissions?limit=300')
         this.items = res.items
       } finally {
         this.loading = false

@@ -8,7 +8,7 @@
       <!-- HEADER -->
       <div class="flex items-start gap-4 rounded-lg bg-base-200/60 p-4">
         <div class="rounded-full bg-primary/10 p-3">
-          <Icon name="shield" />
+          <Icon :name="headerIcon" />
         </div>
 
         <div class="min-w-0">
@@ -92,16 +92,10 @@ const open = computed({
   },
 })
 
-/* =========================
-   ACTOR COMPUTEDS
-========================= */
 const actorNombre = computed(() => props.model?.actor?.nombre || null)
 const actorUsuario = computed(() => props.model?.actor?.usuario || null)
 const actorId = computed(() => props.model?.actor?.id || props.model?.actorUserId || null)
 
-/* =========================
-   META
-========================= */
 const prettyMeta = computed(() => {
   try {
     return JSON.stringify(props.model?.meta ?? {}, null, 2)
@@ -109,4 +103,6 @@ const prettyMeta = computed(() => {
     return String(props.model?.meta ?? '')
   }
 })
+
+const headerIcon = computed(() => (props.model?.resource === 'auth' ? 'lock' : 'clipboard'))
 </script>

@@ -1,35 +1,46 @@
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div class="space-y-4 md:space-y-6">
+    <!-- HEADER -->
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold">Auditoría</h1>
         <p class="text-sm opacity-60">Trazabilidad de acciones del sistema</p>
       </div>
 
       <ClientOnly>
+        <!-- Desktop -->
         <UiButton
-          icon="refresh-cw"
+          icon="refresh"
           variant="ghost"
           size="sm"
+          class="hidden sm:inline-flex"
           :disabled="store.loading"
           @click="refresh"
         >
           Recargar
         </UiButton>
+
+        <!-- Mobile -->
+        <UiButton
+          icon="refresh"
+          variant="outline"
+          size="sm"
+          class="sm:hidden self-start"
+          :disabled="store.loading"
+          @click="refresh"
+        />
       </ClientOnly>
     </div>
 
+    <!-- TABLE -->
     <AuditTable
       :items="store.items"
       :loading="store.loading"
       :can-read="canRead"
-      :has-more="store.hasMore"
       @view="openView"
-      @load-more="loadMore"
-      @refresh="refresh"
     />
 
+    <!-- DIALOG -->
     <ClientOnly>
       <AuditDialog
         v-model="dialogOpen"
@@ -73,11 +84,6 @@ async function refresh() {
   if (!canList.value) return
   await store.fetch()
   ui.showToast('success', 'Auditoría actualizada')
-}
-
-async function loadMore() {
-  if (!canList.value) return
-  await store.fetchMore()
 }
 
 async function openView(id: string) {

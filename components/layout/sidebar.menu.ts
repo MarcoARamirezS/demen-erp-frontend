@@ -65,6 +65,35 @@ export const sidebarMenu: SidebarMenuItem[] = [
   },
 
   /* =========================
+   CATÁLOGOS
+========================= */
+  {
+    label: 'Catálogos',
+    icon: 'database',
+    permission: 'products:list',
+    children: [
+      {
+        label: 'Productos',
+        icon: 'box',
+        to: '/products',
+        permission: 'products:list',
+      },
+      {
+        label: 'Proveedores',
+        icon: 'truck',
+        to: '/suppliers',
+        permission: 'suppliers:list',
+      },
+      {
+        label: 'Productos por proveedor',
+        icon: 'link',
+        to: '/supplier-products',
+        permission: 'supplier_products:list',
+      },
+    ],
+  },
+
+  /* =========================
      SEGURIDAD
   ========================= */
   {
