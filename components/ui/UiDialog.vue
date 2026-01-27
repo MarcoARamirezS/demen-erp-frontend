@@ -1,87 +1,67 @@
-<!-- components/ui/UiDialog.vue -->
+<template>
+  <dialog ref="dialog" class="modal" :class="{ 'modal-open': modelValue }">
+    <div
+      class="modal-box relative flex max-h-[90vh] w-[95] flex-col rounded-2xl border border-base-300 bg-base-100 p-0 shadow-xl"
+      :class="sizeClass"
+    >
+      <!-- CLOSE BUTTON (DEFAULT, OPTIONAL) -->
+      <button
+        v-if="!hideClose"
+        class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 z-20"
+        aria-label="Cerrar"
+        @click="close"
+      >
+        <Icon name="close" />
+      </button>
+
+      <!-- CONTENT SLOT -->
+      <slot />
+    </div>
+
+    <!-- BACKDROP -->
+    <form method="dialog" class="modal-backdrop">
+      <button aria-label="Cerrar" />
+    </form>
+  </dialog>
+</template>
+
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { ref, watch, computed } from 'vue'
+import Icon from '~/components/ui/Icon.vue'
 
-type UiDialogSize = 'sm' | 'md' | 'lg' | 'xl'
+const props = defineProps<{
+  modelValue: boolean
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  hideClose?: boolean
+}>()
 
-const props = withDefaults(
-  defineProps<{
-    modelValue: boolean
-    title?: string
-    size?: UiDialogSize
-    closeOnBackdrop?: boolean
-  }>(),
-  {
-    title: '',
-    size: 'lg',
-    closeOnBackdrop: true,
+const emit = defineEmits(['update:modelValue'])
+
+const dialog = ref<HTMLDialogElement | null>(null)
+
+watch(
+  () => props.modelValue,
+  v => {
+    if (!dialog.value) return
+    v ? dialog.value.showModal() : dialog.value.close()
   }
 )
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-}>()
-
-const dlg = ref<HTMLDialogElement | null>(null)
+const close = () => {
+  emit('update:modelValue', false)
+}
 
 const sizeClass = computed(() => {
   switch (props.size) {
     case 'sm':
-      return 'max-w-md'
+      return 'max-w-sm'
     case 'md':
-      return 'max-w-2xl'
+      return 'max-w-md'
     case 'lg':
-      return 'max-w-4xl'
+      return 'max-w-3xl'
     case 'xl':
-      return 'max-w-6xl'
     default:
-      return 'max-w-4xl'
+      return 'max-w-5xl'
   }
 })
-
-const close = () => emit('update:modelValue', false)
-
-watch(
-  () => props.modelValue,
-  async v => {
-    await nextTick()
-    if (!dlg.value) return
-    if (v && !dlg.value.open) dlg.value.showModal()
-    if (!v && dlg.value.open) dlg.value.close()
-  },
-  { immediate: true }
-)
-
-// Cuando el usuario cierra con ESC o el close() nativo
-const onCloseNative = () => {
-  if (props.modelValue) emit('update:modelValue', false)
-}
-
-// click backdrop
-const onBackdropClick = (e: MouseEvent) => {
-  if (!props.closeOnBackdrop) return
-  if (e.target === dlg.value) close()
-}
 </script>
-
-<template>
-  <dialog ref="dlg" class="modal" @close="onCloseNative" @click="onBackdropClick">
-    <div class="modal-box w-11/12 p-0" :class="sizeClass">
-      <!-- Header -->
-      <div class="flex items-center justify-between gap-3 border-b border-base-300 px-5 py-4">
-        <div class="min-w-0">
-          <h3 class="truncate text-base font-semibold">
-            {{ title }}
-          </h3>
-        </div>
-
-        <button class="btn btn-ghost btn-sm" type="button" @click="close">✕</button>
-      </div>
-
-      <!-- Body -->
-      <div class="px-5 py-5">
-        <slot />
-      </div>
-    </div>
-  </dialog>
-</template>
