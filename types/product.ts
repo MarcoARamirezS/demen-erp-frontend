@@ -1,5 +1,4 @@
 // 📁 ~/types/product.ts
-
 import type { FireTimestamp } from '~/types/fire'
 
 /**
@@ -10,7 +9,9 @@ import type { FireTimestamp } from '~/types/fire'
 export interface Product {
   id: string
 
+  /** SKU interno generado por sistema */
   sku: string
+
   name: string
   description?: string
 
@@ -22,10 +23,20 @@ export interface Product {
 
 /**
  * DTO creación
+ * 🔥 SKU NO viene del frontend
  */
 export interface CreateProductDto {
-  sku: string
   name: string
+  description?: string
+  active?: boolean
+}
+
+/**
+ * DTO actualización
+ * (SKU no editable)
+ */
+export interface UpdateProductDto {
+  name?: string
   description?: string
   active?: boolean
 }

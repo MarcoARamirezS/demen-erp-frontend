@@ -1,61 +1,111 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth.store'
 import { useProductsStore } from '~/stores/products.store'
-import Icon from '~/components/ui/Icon.vue'
+import { useUiStore } from '~/stores/ui.store'
+
+import ProductTable from '~/components/products/ProductTable.vue'
+import ProductDialog from '~/components/products/ProductDialog.vue'
+import type { CreateProductDto } from '~/types/product'
+
+definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const auth = useAuthStore()
 const products = useProductsStore()
+const ui = useUiStore()
 
-onMounted(() => {
-  products.reset()
-  products.fetch()
+const dialogOpen = ref(false)
+const dialogMode = ref<'create' | 'edit'>('create')
+const selected = ref<any | null>(null)
+
+const canList = computed(() => auth.hasPermission('products:list'))
+const canCreate = computed(() => auth.hasPermission('products:create'))
+const canRead = computed(() => auth.hasPermission('products:read'))
+
+onMounted(async () => {
+  if (!canList.value) {
+    ui.showToast('warning', 'No tienes permiso para ver Productos')
+    return
+  }
+  await refresh()
 })
+
+async function refresh() {
+  products.reset()
+  await products.fetch()
+}
+
+function openCreate() {
+  selected.value = null
+  dialogMode.value = 'create'
+  dialogOpen.value = true
+}
+
+function openEdit(p: any) {
+  selected.value = p
+  dialogMode.value = 'edit'
+  dialogOpen.value = true
+}
+
+async function submit(payload: CreateProductDto) {
+  if (dialogMode.value === 'create') {
+    await products.create(payload)
+  } else if (selected.value) {
+    await products.update(selected.value.id, payload)
+  }
+  dialogOpen.value = false
+}
 </script>
 
 <template>
   <div class="space-y-6">
-    <header class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold">Productos</h1>
-        <p class="text-sm text-base-content/60">Catálogo de productos (sin inventario)</p>
+    <!-- =========================
+         HEADER CARD
+    ========================== -->
+    <div
+      class="rounded-2xl border border-base-300 bg-gradient-to-br from-base-200/60 to-base-100 p-5"
+    >
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Productos</h1>
+          <p class="text-sm opacity-70">Catálogo de productos (sin inventario)</p>
+        </div>
+
+        <ClientOnly>
+          <div class="flex gap-2">
+            <UiButton
+              icon="refresh"
+              variant="outline"
+              size="sm"
+              :disabled="products.loading"
+              @click="refresh"
+            >
+              Recargar
+            </UiButton>
+
+            <UiButton v-if="canCreate" variant="primary" size="sm" @click="openCreate">
+              Nuevo producto
+            </UiButton>
+          </div>
+        </ClientOnly>
       </div>
-
-      <UiButton v-if="auth.hasPermission('products:create')" variant="primary">
-        Nuevo producto
-      </UiButton>
-    </header>
-
-    <div class="animate-fadeIn rounded-xl border border-base-300 bg-base-100 p-4 shadow-lg">
-      <table class="table w-full">
-        <thead class="bg-base-200 text-xs uppercase">
-          <tr>
-            <th>SKU</th>
-            <th>Nombre</th>
-            <th class="text-center">Estado</th>
-            <th class="text-center">Acciones</th>
-          </tr>
-        </thead>
-
-        <tbody v-if="products.loading">
-          <tr>
-            <td colspan="4" class="p-8 text-center">Cargando…</td>
-          </tr>
-        </tbody>
-
-        <tbody v-else>
-          <tr v-for="p in products.items" :key="p.id">
-            <td class="font-mono text-xs">{{ p.sku }}</td>
-            <td>{{ p.name }}</td>
-            <td class="text-center">
-              {{ p.active ? 'Activo' : 'Inactivo' }}
-            </td>
-            <td class="text-center">
-              <Icon name="eye" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
+
+    <!-- =========================
+         TABLE
+    ========================== -->
+    <ProductTable
+      :items="products.items"
+      :loading="products.loading"
+      :can-read="canRead"
+      @edit="openEdit"
+    />
+
+    <!-- =========================
+         DIALOG
+    ========================== -->
+    <ClientOnly>
+      <ProductDialog v-model="dialogOpen" :mode="dialogMode" :model="selected" @submit="submit" />
+    </ClientOnly>
   </div>
 </template>

@@ -1,6 +1,6 @@
 // 📁 ~/stores/products.store.ts
 import { defineStore } from 'pinia'
-import type { Product, CreateProductDto } from '~/types/product'
+import type { Product, CreateProductDto, UpdateProductDto } from '~/types/product'
 
 export const useProductsStore = defineStore('products', {
   state: () => ({
@@ -13,16 +13,19 @@ export const useProductsStore = defineStore('products', {
   actions: {
     async fetch(limit = 10) {
       this.loading = true
-      const api = useApi
+      try {
+        const api = useApi
 
-      const params: Record<string, any> = { limit }
-      if (this.cursor) params.cursor = this.cursor
+        const params: Record<string, any> = { limit }
+        if (this.cursor) params.cursor = this.cursor
 
-      const res = await api('/products', { params })
+        const res = await api('/products', { params })
 
-      this.items = res.items
-      this.cursor = res.nextCursor ?? null
-      this.loading = false
+        this.items = res.items
+        this.cursor = res.nextCursor ?? null
+      } finally {
+        this.loading = false
+      }
     },
 
     reset() {
@@ -50,11 +53,17 @@ export const useProductsStore = defineStore('products', {
       }
     },
 
-    async update(id: string, payload: Partial<CreateProductDto>) {
-      await useApi(`/products/${id}`, {
-        method: 'PATCH',
-        body: payload,
-      })
+    async update(id: string, payload: UpdateProductDto) {
+      this.loading = true
+      try {
+        await useApi(`/products/${id}`, {
+          method: 'PATCH',
+          body: payload,
+        })
+        await this.getById(id)
+      } finally {
+        this.loading = false
+      }
     },
   },
 })

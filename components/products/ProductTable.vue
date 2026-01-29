@@ -1,28 +1,36 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
-import type { Client } from '~/types/client'
+import type { Product } from '~/types/product'
 
 const props = defineProps<{
-  items: Client[]
+  items: Product[]
   loading?: boolean
   canRead?: boolean
+}>()
+
+defineEmits<{
+  (e: 'edit', product: Product): void
 }>()
 
 const search = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
+/* =========================
+   FILTER
+========================= */
 const filtered = computed(() => {
-  const term = search.value.toLowerCase().trim()
-  return (props.items || []).filter(c => {
+  const term = search.value.toLowerCase()
+  return (props.items || []).filter(p => {
     if (!term) return true
-    const text =
-      `${c.razonSocial} ${c.nombreComercial ?? ''} ${c.rfc ?? ''} ${c.email ?? ''}`.toLowerCase()
-    return text.includes(term)
+    return `${p.sku} ${p.name}`.toLowerCase().includes(term)
   })
 })
 
+/* =========================
+   PAGINATION
+========================= */
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filtered.value.length / itemsPerPage.value))
 )
@@ -50,16 +58,9 @@ const setPage = (p: number) => {
 const nextPage = () => setPage(currentPage.value + 1)
 const prevPage = () => setPage(currentPage.value - 1)
 
-watch([search, itemsPerPage], () => {
-  currentPage.value = 1
-})
+watch(search, () => (currentPage.value = 1))
 
-function goToClient(id: string) {
-  if (!props.canRead) return
-  navigateTo(`/clients/${id}`)
-}
-
-function resetFilters() {
+const resetFilters = () => {
   search.value = ''
   currentPage.value = 1
 }
@@ -82,24 +83,11 @@ function resetFilters() {
         <input
           v-model="search"
           type="text"
-          placeholder="Buscar por razón social, RFC, email..."
+          placeholder="Buscar por SKU o nombre..."
           class="input input-sm input-bordered w-full"
         />
 
-        <div class="grid grid-cols-2 gap-3">
-          <div class="text-xs opacity-70 flex items-center gap-2">
-            <span class="font-medium">Mostrar</span>
-            <select v-model.number="itemsPerPage" class="select select-sm select-bordered w-full">
-              <option :value="10">10</option>
-              <option :value="25">25</option>
-              <option :value="50">50</option>
-            </select>
-          </div>
-
-          <button class="btn btn-sm btn-outline w-full" type="button" @click="resetFilters">
-            Limpiar
-          </button>
-        </div>
+        <button class="btn btn-sm btn-outline w-full" @click="resetFilters">Limpiar filtros</button>
       </div>
     </details>
 
@@ -107,32 +95,21 @@ function resetFilters() {
          FILTERS (DESKTOP)
     ========================== -->
     <div
-      class="hidden md:flex items-center justify-between gap-3 rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+      class="hidden md:flex items-center gap-3 rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
     >
-      <div class="flex items-center gap-3">
-        <div class="relative w-80">
-          <span class="pointer-events-none absolute left-3 top-2.5 opacity-50">
-            <Icon name="search" class="h-4 w-4" />
-          </span>
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Buscar por razón social, RFC, email..."
-            class="input input-sm input-bordered w-full pl-9"
-          />
-        </div>
-
-        <button class="btn btn-sm btn-outline" type="button" @click="resetFilters">Limpiar</button>
+      <div class="relative w-72">
+        <span class="absolute left-3 top-2.5 opacity-50">
+          <Icon name="search" class="h-4 w-4" />
+        </span>
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Buscar por SKU o nombre..."
+          class="input input-sm input-bordered w-full pl-9"
+        />
       </div>
 
-      <div class="flex items-center gap-2 text-xs opacity-70">
-        <span class="font-medium">Mostrar:</span>
-        <select v-model.number="itemsPerPage" class="select select-sm select-bordered w-24">
-          <option :value="10">10</option>
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-        </select>
-      </div>
+      <button class="btn btn-sm btn-outline" @click="resetFilters">Limpiar</button>
     </div>
 
     <!-- =========================
@@ -142,9 +119,8 @@ function resetFilters() {
       <table class="table w-full text-sm">
         <thead class="bg-base-200 text-xs uppercase">
           <tr>
-            <th>Razón social</th>
-            <th>RFC</th>
-            <th>Email</th>
+            <th>SKU</th>
+            <th>Nombre</th>
             <th class="text-center">Estado</th>
             <th class="text-center">Acciones</th>
           </tr>
@@ -152,36 +128,31 @@ function resetFilters() {
 
         <tbody v-if="loading">
           <tr>
-            <td colspan="5" class="p-8 text-center opacity-70">Cargando clientes…</td>
+            <td colspan="4" class="p-8 text-center opacity-70">Cargando…</td>
           </tr>
         </tbody>
 
         <tbody v-else-if="paginated.length">
-          <tr v-for="c in paginated" :key="c.id" class="hover:bg-base-200/40">
-            <td>
-              <div class="font-semibold">{{ c.razonSocial }}</div>
-              <div v-if="c.nombreComercial" class="text-xs opacity-60">{{ c.nombreComercial }}</div>
-            </td>
-
-            <td>{{ c.rfc || '—' }}</td>
-            <td class="break-all">{{ c.email || '—' }}</td>
+          <tr v-for="p in paginated" :key="p.id" class="hover:bg-base-200/40">
+            <td class="font-mono text-xs">{{ p.sku }}</td>
+            <td>{{ p.name }}</td>
 
             <td class="text-center">
               <span
                 class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
-                :class="c.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
+                :class="p.active ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
               >
-                <span class="h-2 w-2 rounded-full" :class="c.activo ? 'bg-success' : 'bg-error'" />
-                {{ c.activo ? 'Activo' : 'Inactivo' }}
+                <span class="h-2 w-2 rounded-full" :class="p.active ? 'bg-success' : 'bg-error'" />
+                {{ p.active ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
 
             <td class="text-center">
-              <div class="tooltip" data-tip="Ver cliente">
+              <div class="tooltip" data-tip="Editar producto">
                 <button
                   class="btn btn-circle btn-sm btn-ghost"
                   :disabled="!canRead"
-                  @click="goToClient(c.id)"
+                  @click="$emit('edit', p)"
                 >
                   <Icon name="eye" size="sm" />
                 </button>
@@ -192,7 +163,7 @@ function resetFilters() {
 
         <tbody v-else>
           <tr>
-            <td colspan="5" class="p-8 text-center opacity-70">No hay resultados</td>
+            <td colspan="4" class="p-8 text-center opacity-70">No hay resultados</td>
           </tr>
         </tbody>
       </table>
@@ -203,23 +174,22 @@ function resetFilters() {
     ========================== -->
     <div class="md:hidden space-y-4">
       <div
-        v-for="c in paginated"
-        :key="c.id"
-        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm space-y-3"
+        v-for="p in paginated"
+        :key="p.id"
+        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm space-y-2"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="font-semibold truncate">{{ c.razonSocial }}</div>
-            <div class="text-xs opacity-60">{{ c.rfc || 'Sin RFC' }}</div>
-            <div class="text-xs opacity-60 truncate">{{ c.email || 'Sin email' }}</div>
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-semibold">{{ p.name }}</div>
+            <div class="text-xs font-mono opacity-60">{{ p.sku }}</div>
           </div>
 
           <span
-            class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold shrink-0"
-            :class="c.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
+            class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+            :class="p.active ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
           >
-            <span class="h-2 w-2 rounded-full" :class="c.activo ? 'bg-success' : 'bg-error'" />
-            {{ c.activo ? 'Activo' : 'Inactivo' }}
+            <span class="h-2 w-2 rounded-full" :class="p.active ? 'bg-success' : 'bg-error'" />
+            {{ p.active ? 'Activo' : 'Inactivo' }}
           </span>
         </div>
 
@@ -227,7 +197,7 @@ function resetFilters() {
           <button
             class="btn btn-circle btn-sm btn-ghost"
             :disabled="!canRead"
-            @click="goToClient(c.id)"
+            @click="$emit('edit', p)"
           >
             <Icon name="eye" size="sm" />
           </button>

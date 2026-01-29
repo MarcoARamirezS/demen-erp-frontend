@@ -1,60 +1,25 @@
-// 📁 ~/stores/suppliers.store.ts
-import { defineStore } from 'pinia'
-import type { Supplier, CreateSupplierDto } from '~/types/supplier'
+import type { FireTimestamp } from '~/types/fire'
 
-export const useSuppliersStore = defineStore('suppliers', {
-  state: () => ({
-    items: [] as Supplier[],
-    selected: null as Supplier | null,
-    loading: false,
-    cursor: null as string | null,
-  }),
+export interface Supplier {
+  id: string
 
-  actions: {
-    async fetch(limit = 10) {
-      this.loading = true
-      const api = useApi
+  razonSocial: string
+  nombreComercial?: string
+  rfc?: string
+  email?: string
+  telefono?: string
 
-      const params: Record<string, any> = { limit }
-      if (this.cursor) params.cursor = this.cursor
+  activo: boolean
 
-      const res = await api('/suppliers', { params })
+  createdAt: FireTimestamp
+  updatedAt: FireTimestamp
+}
 
-      this.items = res.items
-      this.cursor = res.nextCursor ?? null
-      this.loading = false
-    },
-
-    reset() {
-      this.items = []
-      this.cursor = null
-      this.selected = null
-    },
-
-    async getById(id: string) {
-      const api = useApi
-      this.selected = await api(`/suppliers/${id}`)
-    },
-
-    async create(payload: CreateSupplierDto) {
-      this.loading = true
-      try {
-        await useApi('/suppliers', {
-          method: 'POST',
-          body: payload,
-        })
-        this.reset()
-        await this.fetch()
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async update(id: string, payload: Partial<CreateSupplierDto>) {
-      await useApi(`/suppliers/${id}`, {
-        method: 'PATCH',
-        body: payload,
-      })
-    },
-  },
-})
+export interface CreateSupplierDto {
+  razonSocial: string
+  nombreComercial?: string
+  rfc?: string
+  email?: string
+  telefono?: string
+  activo?: boolean
+}
