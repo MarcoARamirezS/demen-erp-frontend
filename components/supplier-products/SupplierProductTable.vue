@@ -33,8 +33,8 @@ defineEmits<{ (e: 'delete', id: string): void }>()
         <tbody v-else>
           <tr v-for="sp in items" :key="sp.id" class="hover:bg-base-200/40">
             <td>{{ sp.supplier?.razonSocial }}</td>
-            <td>{{ sp.product?.name }}</td>
-            <td class="font-mono text-xs">{{ sp.supplierSku || '—' }}</td>
+            <td>{{ sp.product?.nombre }}</td>
+            <td class="font-mono text-xs">{{ sp.product?.sku || '—' }}</td>
             <td class="text-center">
               <button
                 v-if="canDelete"

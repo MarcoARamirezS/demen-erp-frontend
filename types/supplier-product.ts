@@ -23,8 +23,8 @@ export interface SupplierProduct {
   active: boolean
 
   /** Datos poblados (read-only desde backend) */
-  product?: Pick<Product, 'id' | 'sku' | 'name'>
-  supplier?: Pick<Supplier, 'id' | 'name'>
+  supplier?: Pick<Supplier, 'id' | 'razonSocial'>
+  product?: Pick<Product, 'id' | 'sku' | 'nombre'>
 
   createdAt: FireTimestamp
   updatedAt: FireTimestamp
