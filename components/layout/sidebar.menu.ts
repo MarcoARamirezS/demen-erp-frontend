@@ -48,6 +48,29 @@ export const sidebarMenu: SidebarMenuItem[] = [
   },
 
   /* =========================
+   INVENTARIO
+========================= */
+  {
+    label: 'Inventario',
+    icon: 'settings',
+    permission: 'products:list',
+    children: [
+      {
+        label: 'Productos',
+        icon: 'cube',
+        to: '/products',
+        permission: 'products:list',
+      },
+      {
+        label: 'Proveedores',
+        icon: 'truck',
+        to: '/suppliers',
+        permission: 'suppliers:list',
+      },
+    ],
+  },
+
+  /* =========================
      SEGURIDAD (ADMIN)
   ========================= */
   {
