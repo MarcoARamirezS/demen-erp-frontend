@@ -50,7 +50,11 @@ import { useUiStore } from '~/stores/ui.store'
 import AuditTable from '~/components/audit/AuditTable.vue'
 import AuditDialog from '~/components/audit/AuditDialog.vue'
 
-definePageMeta({ layout: 'default', middleware: 'auth' })
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'permission'],
+  permission: 'audit:list',
+})
 
 const store = useAuditStore()
 const auth = useAuthStore()
@@ -62,10 +66,6 @@ const canList = computed(() => auth.hasPermission('audit:list'))
 const canRead = computed(() => auth.hasPermission('audit:read'))
 
 onMounted(async () => {
-  if (!canList.value) {
-    ui.showToast('warning', 'No tienes permiso para ver Auditoría (audit:list)')
-    return
-  }
   await store.fetch()
 })
 

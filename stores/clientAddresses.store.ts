@@ -12,7 +12,7 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
       this.loading = true
       try {
         this.items = await useApi('/clients/addresses', {
-          params: { clienteId }, // 🔥 CAMBIO CLAVE
+          query: { clienteId }, // 🔥 CAMBIO CLAVE
         })
       } finally {
         this.loading = false

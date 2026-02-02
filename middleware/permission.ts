@@ -1,21 +1,29 @@
 export default defineNuxtRouteMiddleware(to => {
+  // ⛔ Solo cliente
+  if (process.server) return
+
   const auth = useAuthStore()
 
-  // Rutas públicas
-  if (to.path === '/login') return
+  // ⏳ Esperar a que auth esté listo
+  if (!auth.initialized) return
 
-  // No autenticado
-  if (!auth.accessToken) {
-    return navigateTo('/login')
-  }
+  // 🔒 Si no está autenticado, auth middleware decide
+  if (!auth.isAuthenticated) return
 
-  // Permiso requerido por página
-  const requiredPermission = to.meta.permission as string | undefined
-  if (!requiredPermission) return
+  // 📌 Leer permisos desde meta
+  const required = to.meta.permission as string | string[] | undefined
 
-  const normalized = requiredPermission.replace('.', ':')
+  console.log('[permission] required =>', required)
+  console.log('[permission] user perms =>', auth.permissions)
 
-  if (!auth.permissions.includes(normalized)) {
-    return navigateTo('/') // o página 403
+  if (!required) return
+
+  const allowed = Array.isArray(required)
+    ? required.some(p => auth.hasPermission(p))
+    : auth.hasPermission(required)
+
+  if (!allowed) {
+    console.warn('[permission] access denied:', required)
+    return navigateTo('/')
   }
 })

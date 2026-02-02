@@ -6,6 +6,12 @@ import ClientTable from '~/components/clients/ClientTable.vue'
 import ClientDialog from '~/components/clients/ClientDialog.vue'
 import type { CreateClientDto } from '~/types/client'
 
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'permission'],
+  permission: 'clients:list',
+})
+
 const clients = useClientsStore()
 const auth = useAuthStore()
 

@@ -55,7 +55,11 @@ import UsersTable from '~/components/users/UsersTable.vue'
 import UserDialog from '~/components/users/UserDialog.vue'
 import type { User } from '~/types/user'
 
-definePageMeta({ layout: 'default', middleware: 'auth' })
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'permission'],
+  permission: 'users:list',
+})
 
 const store = useUsersStore()
 const auth = useAuthStore()

@@ -1,114 +1,67 @@
 import { defineStore } from 'pinia'
-import { useUiStore } from '~/stores/ui.store'
-
-interface LoginPayload {
-  usuario: string
-  password: string
-}
 
 export const useAuthStore = defineStore('auth', {
-  state: () => {
-    const accessToken = useCookie<string | null>('accessToken')
-    const refreshToken = useCookie<string | null>('refreshToken')
-
-    return {
-      userId: null as string | null,
-      permissions: [] as string[],
-      accessToken: accessToken.value,
-      refreshToken: refreshToken.value,
-      loading: false,
-    }
-  },
+  state: () => ({
+    user: null,
+    permissions: [],
+    loading: false,
+    initialized: false,
+  }),
 
   getters: {
-    isAuthenticated: s => !!s.accessToken,
-    hasPermission: s => (perm: string) => s.permissions.includes(perm),
+    isAuthenticated: s => !!s.user,
+    hasPermission: s => (p: string) => s.permissions.includes(p),
   },
 
   actions: {
-    async login(payload: LoginPayload) {
-      const ui = useUiStore()
-      const api = useApi
+    async login(payload: { usuario: string; password: string }) {
+      await useApi('/auth/login', {
+        method: 'POST',
+        body: payload,
+      })
 
-      this.loading = true
-      ui.showLoading()
-
-      try {
-        const res = await api('/auth/login', {
-          method: 'POST',
-          body: payload,
-        })
-
-        // ✅ Cookies SSR-safe
-        const accessToken = useCookie<string | null>('accessToken')
-        const refreshToken = useCookie<string | null>('refreshToken')
-
-        accessToken.value = res.accessToken
-        refreshToken.value = res.refreshToken
-
-        this.accessToken = res.accessToken
-        this.refreshToken = res.refreshToken
-
-        await this.fetchMe()
-
-        ui.showToast('success', 'Bienvenido')
+      await this.fetchMe()
+      console.log('@@@ isAuthenticaded => ', this.isAuthenticated)
+      if (this.isAuthenticated) {
         navigateTo('/')
-      } catch (e) {
-        ui.showToast('error', 'Credenciales inválidas')
-        throw e
-      } finally {
-        this.loading = false
-        ui.hideLoading()
       }
     },
 
     async fetchMe() {
-      const api = useApi
-      const me = await api('/auth/me')
+      try {
+        this.loading = true
 
-      this.userId = me.id
-      this.permissions = me.permissions || []
-    },
+        const res = await useApi<any>('/auth/me')
 
-    async refresh() {
-      const refreshToken = useCookie<string | null>('refreshToken')
-
-      if (!refreshToken.value) return
-
-      const api = useApi
-
-      const res = await api('/auth/refresh', {
-        method: 'POST',
-        body: { refreshToken: refreshToken.value },
-      })
-
-      const accessToken = useCookie<string | null>('accessToken')
-
-      accessToken.value = res.accessToken
-      refreshToken.value = res.refreshToken
-
-      this.accessToken = res.accessToken
-      this.refreshToken = res.refreshToken
-    },
-
-    async logout() {
-      const api = useApi
-      const refreshToken = useCookie<string | null>('refreshToken')
-      const accessToken = useCookie<string | null>('accessToken')
-
-      if (refreshToken.value) {
-        await api('/auth/logout', {
-          method: 'POST',
-          body: { refreshToken: refreshToken.value },
-        })
+        // 🔑 AJUSTE CLAVE
+        this.user = {
+          id: res.id,
+        }
+        this.permissions = res.permissions ?? []
+      } catch (e: any) {
+        if (e?.code === 401 || e?.status === 401) {
+          await this.logout(false)
+        } else {
+          console.error('[fetchMe] non-auth error', e)
+        }
+      } finally {
+        this.loading = false
+        this.initialized = true
       }
+    },
 
-      // ✅ Limpieza total
-      refreshToken.value = null
-      accessToken.value = null
-
-      this.$reset()
-      navigateTo('/login')
+    async logout(redirect = true) {
+      try {
+        await useApi('/auth/logout', { method: 'POST' })
+      } catch (e) {
+        // ⚠️ Ignorar errores de logout (sesión ya inválida)
+        console.warn('[auth] logout skipped', e)
+      } finally {
+        this.user = null
+        this.permissions = []
+        this.initialized = true
+        if (redirect) navigateTo('/login')
+      }
     },
   },
 })

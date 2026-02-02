@@ -1,32 +1,17 @@
-export const useApi = async <T = any>(url: string, options: any = {}): Promise<T> => {
-  const auth = useAuthStore()
-  const config = useRuntimeConfig()
+// composables/useApi.ts
+export function useApi<T>(
+  url: string,
+  options: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+    body?: any
+    query?: Record<string, any>
+  } = {}
+): Promise<T> {
+  const { $api } = useNuxtApp()
 
-  const finalUrl = `${config.public.apiBaseUrl}${url}`
-
-  try {
-    return await $fetch<T>(finalUrl, {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
-      },
-      credentials: 'include',
-    })
-  } catch (e: any) {
-    if (e?.status === 401 && auth.refreshToken) {
-      await auth.refresh()
-
-      return await $fetch<T>(finalUrl, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
-        },
-        credentials: 'include',
-      })
-    }
-
-    throw e
-  }
+  return $api<T>(url, {
+    method: options.method ?? 'GET',
+    body: options.body,
+    query: options.query,
+  })
 }

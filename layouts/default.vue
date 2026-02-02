@@ -2,7 +2,8 @@
   <div
     class="flex min-h-screen"
     style="
-      background: radial-gradient(circle at top left, rgba(0, 182, 169, 0.06), transparent 55%),
+      background:
+        radial-gradient(circle at top left, rgba(0, 182, 169, 0.06), transparent 55%),
         linear-gradient(180deg, #f4f7f1 0%, #eef2ea 100%);
     "
   >
@@ -43,21 +44,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import AppSidebar from '~/components/layout/AppSidebar.vue'
 import AppHeader from '~/components/layout/AppHeader.vue'
 import UiGlobalLoader from '~/components/ui/UiGlobalLoader.vue'
 import UiToast from '~/components/ui/UiToast.vue'
 import UiConfirm from '~/components/ui/UiConfirm.vue'
-import { useAuthStore } from '~/stores/auth.store'
+
 import { useLayoutStore } from '~/stores/layout.store'
 
-const auth = useAuthStore()
+// 🔑 ESTO FALTABA
 const layout = useLayoutStore()
-
-onMounted(async () => {
-  if (auth.accessToken && !auth.userId) {
-    await auth.fetchMe()
-  }
-})
 </script>

@@ -40,7 +40,11 @@ import type { Role } from '~/types/role'
 import RolesTable from '~/components/roles/RolesTable.vue'
 import RoleDialog from '~/components/roles/RoleDialog.vue'
 
-definePageMeta({ layout: 'default', middleware: 'auth' })
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'permission'],
+  permission: 'roles:list',
+})
 
 const store = useRolesStore()
 const ui = useUiStore()
