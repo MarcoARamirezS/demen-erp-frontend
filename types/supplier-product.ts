@@ -6,23 +6,27 @@ import type { Supplier } from './supplier'
 
 /**
  * Relación Proveedor - Producto
- * ✅ Aquí vive el precio de compra
+ * ✅ Incluye precio vigente (read-only)
  * ❌ No inventario
- * ❌ No existencias
+ * ❌ No stock
  */
 export interface SupplierProduct {
   id: string
 
-  productId: string
   supplierId: string
+  productId: string
 
-  supplierSku?: string // SKU del proveedor
-  purchasePrice: number // Precio de compra
-  currency: 'MXN' | 'USD'
+  supplierSku?: string
+
+  /** 🔥 PRECIO VIGENTE (materializado desde backend) */
+  currentPrice?: {
+    cost: number
+    currency: 'MXN' | 'USD'
+  }
 
   active: boolean
 
-  /** Datos poblados (read-only desde backend) */
+  /** Poblado (solo lectura) */
   supplier?: Pick<Supplier, 'id' | 'razonSocial'>
   product?: Pick<Product, 'id' | 'sku' | 'nombre'>
 
@@ -31,13 +35,12 @@ export interface SupplierProduct {
 }
 
 /**
- * DTO creación
+ * DTO creación relación
+ * (NO incluye precio)
  */
 export interface CreateSupplierProductDto {
-  productId: string
   supplierId: string
+  productId: string
   supplierSku?: string
-  purchasePrice: number
-  currency: 'MXN' | 'USD'
   active?: boolean
 }
