@@ -31,15 +31,20 @@
     <!-- =========================
          INFO PRODUCTO
     ========================== -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
         <p class="text-xs opacity-60">Marca</p>
-        <p class="font-medium">{{ product?.brand || '-' }}</p>
+        <p class="font-medium">{{ product?.brand || '—' }}</p>
       </div>
 
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
         <p class="text-xs opacity-60">Categoría</p>
-        <p class="font-medium">{{ product?.category || '-' }}</p>
+        <p class="font-medium">{{ product?.category || '—' }}</p>
+      </div>
+
+      <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+        <p class="text-xs opacity-60">Unidad</p>
+        <p class="font-medium uppercase">{{ product?.unit }}</p>
       </div>
     </div>
 
@@ -47,10 +52,12 @@
          PROVEEDORES DEL PRODUCTO
     ========================== -->
     <SupplierProductsTable
-      :items="supplierProducts"
+      :items="supplierProductsStore.items"
       :loading="supplierProductsStore.loading"
+      :has-more="supplierProductsStore.hasMore"
       @edit="openEdit"
       @delete="remove"
+      @load-more="loadMore"
     />
 
     <!-- =========================
@@ -68,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useProductsStore } from '~/stores/products.store'
@@ -99,18 +106,16 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const dialogModel = ref<Partial<SupplierProduct> | null>(null)
 
-const product = computed(() => productsStore.selected)
-
-const supplierProducts = computed(() =>
-  supplierProductsStore.items.filter(i => i.productId === productId)
+const product = computed(
+  () => productsStore.items.find(p => p.id === productId) || productsStore.selected
 )
 
 onMounted(async () => {
-  await Promise.all([productsStore.get(productId), supplierProductsStore.fetch({ productId })])
-})
-
-onBeforeUnmount(() => {
-  productsStore.clearSelected()
+  await Promise.all([
+    productsStore.get(productId),
+    supplierProductsStore.reset(),
+    supplierProductsStore.fetch({ productId }),
+  ])
 })
 
 function openAssignSupplier() {
@@ -128,11 +133,15 @@ function openEdit(item: SupplierProduct) {
 async function handleSubmit(payload: any) {
   if (dialogMode.value === 'create') {
     await supplierProductsStore.create(payload)
-    ui.showToast('success', 'Proveedor asignado')
+    ui.showToast('success', 'Proveedor asignado al producto')
   } else {
     await supplierProductsStore.update(payload.id, payload)
     ui.showToast('success', 'Relación actualizada')
   }
+}
+
+function loadMore() {
+  supplierProductsStore.fetchMore({ productId })
 }
 
 function remove(item: SupplierProduct) {

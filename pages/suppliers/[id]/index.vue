@@ -40,7 +40,7 @@
       </div>
 
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-        <p class="text-xs opacity-60">Moneda</p>
+        <p class="text-xs opacity-60">Moneda por defecto</p>
         <p class="font-medium">{{ supplier?.defaultCurrency }}</p>
       </div>
 
@@ -54,10 +54,12 @@
          PRODUCTOS DEL PROVEEDOR
     ========================== -->
     <SupplierProductsTable
-      :items="supplierProducts"
+      :items="supplierProductsStore.items"
       :loading="supplierProductsStore.loading"
+      :has-more="supplierProductsStore.hasMore"
       @edit="openEdit"
       @delete="remove"
+      @load-more="loadMore"
     />
 
     <!-- =========================
@@ -75,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useSuppliersStore } from '~/stores/suppliers.store'
@@ -106,18 +108,16 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const dialogModel = ref<Partial<SupplierProduct> | null>(null)
 
-const supplier = computed(() => suppliersStore.selected)
-
-const supplierProducts = computed(() =>
-  supplierProductsStore.items.filter(i => i.supplierId === supplierId)
+const supplier = computed(
+  () => suppliersStore.items.find(s => s.id === supplierId) || suppliersStore.selected
 )
 
 onMounted(async () => {
-  await Promise.all([suppliersStore.get(supplierId), supplierProductsStore.fetch({ supplierId })])
-})
-
-onBeforeUnmount(() => {
-  suppliersStore.clearSelected()
+  await Promise.all([
+    suppliersStore.get(supplierId),
+    supplierProductsStore.reset(),
+    supplierProductsStore.fetch({ supplierId }),
+  ])
 })
 
 function openAssignProduct() {
@@ -135,11 +135,15 @@ function openEdit(item: SupplierProduct) {
 async function handleSubmit(payload: any) {
   if (dialogMode.value === 'create') {
     await supplierProductsStore.create(payload)
-    ui.showToast('success', 'Producto asignado')
+    ui.showToast('success', 'Producto asignado al proveedor')
   } else {
     await supplierProductsStore.update(payload.id, payload)
     ui.showToast('success', 'Relación actualizada')
   }
+}
+
+function loadMore() {
+  supplierProductsStore.fetchMore({ supplierId })
 }
 
 function remove(item: SupplierProduct) {
