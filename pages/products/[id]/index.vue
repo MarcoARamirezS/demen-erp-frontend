@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useProductsStore } from '~/stores/products.store'
@@ -83,7 +83,8 @@ import type { SupplierProduct } from '~/types/supplier-product'
 
 definePageMeta({
   layout: 'default',
-  middleware: ['auth', ['permission', 'products:read']],
+  middleware: ['auth', 'permission'],
+  permission: 'products:read',
 })
 
 const route = useRoute()
@@ -98,7 +99,7 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const dialogModel = ref<Partial<SupplierProduct> | null>(null)
 
-const product = computed(() => productsStore.items.find(p => p.id === productId))
+const product = computed(() => productsStore.selected)
 
 const supplierProducts = computed(() =>
   supplierProductsStore.items.filter(i => i.productId === productId)
@@ -106,6 +107,10 @@ const supplierProducts = computed(() =>
 
 onMounted(async () => {
   await Promise.all([productsStore.get(productId), supplierProductsStore.fetch({ productId })])
+})
+
+onBeforeUnmount(() => {
+  productsStore.clearSelected()
 })
 
 function openAssignSupplier() {

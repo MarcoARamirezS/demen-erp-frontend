@@ -45,6 +45,7 @@ import { onMounted, ref } from 'vue'
 import { useProductsStore } from '~/stores/products.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
+
 import ProductsTable from '~/components/products/ProductsTable.vue'
 import ProductDialog from '~/components/products/ProductDialog.vue'
 import type { Product } from '~/types/product'

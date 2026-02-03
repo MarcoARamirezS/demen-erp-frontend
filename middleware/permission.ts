@@ -13,9 +13,6 @@ export default defineNuxtRouteMiddleware(to => {
   // 📌 Leer permisos desde meta
   const required = to.meta.permission as string | string[] | undefined
 
-  console.log('[permission] required =>', required)
-  console.log('[permission] user perms =>', auth.permissions)
-
   if (!required) return
 
   const allowed = Array.isArray(required)

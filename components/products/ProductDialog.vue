@@ -1,27 +1,39 @@
 <template>
   <UiDialog v-model="open" size="xl">
-    <template #title>
-      {{ mode === 'create' ? 'Nuevo producto' : 'Editar producto' }}
-    </template>
+    <header class="border-b border-base-300 px-6 py-4">
+      <h2 class="text-lg font-semibold">
+        {{ mode === 'create' ? 'Nuevo producto' : 'Editar producto' }}
+      </h2>
+    </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
       <UiInput v-model="form.sku" label="SKU" />
       <UiInput v-model="form.internalCode" label="Código interno" />
 
       <UiInput v-model="form.name" label="Nombre" />
       <UiInput v-model="form.brand" label="Marca" />
 
-      <UiSelect v-model="form.unit" label="Unidad" :options="['m', 'pz', 'kg', 'lt']" />
+      <UiSelect v-model="form.unit" label="Unidad">
+        <UiOption value="m">m</UiOption>
+        <UiOption value="pz">pz</UiOption>
+        <UiOption value="kg">kg</UiOption>
+        <UiOption value="lt">lt</UiOption>
+      </UiSelect>
 
       <UiInput v-model="form.category" label="Categoría" />
 
-      <UiTextarea v-model="form.description" label="Descripción" class="md:col-span-2" />
+      <UiInput
+        v-model="form.description"
+        label="Descripción"
+        type="textarea"
+        class="md:col-span-2"
+      />
     </div>
 
-    <template #footer>
-      <UiButton variant="ghost" @click="open = false"> Cancelar </UiButton>
-      <UiButton variant="primary" @click="submit"> Guardar </UiButton>
-    </template>
+    <footer class="border-t border-base-300 px-6 py-4 flex justify-end gap-2">
+      <UiButton variant="ghost" @click="open = false">Cancelar</UiButton>
+      <UiButton variant="primary" @click="submit">Guardar</UiButton>
+    </footer>
   </UiDialog>
 </template>
 
@@ -29,34 +41,19 @@
 import { reactive, watch, computed } from 'vue'
 import type { Product } from '~/types/product'
 
-/* =========================
-   PROPS
-========================= */
 const props = defineProps<{
   modelValue: boolean
   mode: 'create' | 'edit'
   model: Product | null
 }>()
 
-/* =========================
-   EMITS
-========================= */
-const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (e: 'submit', payload: any): void
-}>()
+const emit = defineEmits(['update:modelValue', 'submit'])
 
-/* =========================
-   v-model PROXY (CLAVE)
-========================= */
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
 
-/* =========================
-   FORM
-========================= */
 const form = reactive({
   sku: '',
   internalCode: '',
@@ -68,9 +65,6 @@ const form = reactive({
   active: true,
 })
 
-/* =========================
-   SYNC EDIT MODE
-========================= */
 watch(
   () => props.model,
   v => {
@@ -79,9 +73,6 @@ watch(
   { immediate: true }
 )
 
-/* =========================
-   SUBMIT
-========================= */
 function submit() {
   emit('submit', { ...form })
   open.value = false

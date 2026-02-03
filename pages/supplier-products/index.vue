@@ -1,39 +1,50 @@
 <template>
   <div class="space-y-6">
-    <!-- =========================
-         HEADER
-    ========================== -->
-    <div class="flex items-center justify-between">
+    <!-- Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold">Proveedores por producto</h1>
         <p class="text-sm opacity-60">Relación comercial entre productos y proveedores</p>
       </div>
 
-      <ClientOnly>
-        <UiButton
-          v-if="auth.hasPermission('supplier_products:create')"
-          icon="plus"
-          variant="primary"
-          @click="openCreate"
-        >
-          Asignar proveedor
-        </UiButton>
-      </ClientOnly>
+      <div class="flex items-center gap-2">
+        <ClientOnly>
+          <UiButton
+            variant="outline"
+            size="sm"
+            icon="refresh-cw"
+            :disabled="store.loading"
+            @click="refresh"
+          >
+            Recargar
+          </UiButton>
+        </ClientOnly>
+
+        <ClientOnly>
+          <UiButton
+            v-if="auth.hasPermission('supplier_products:create')"
+            icon="plus"
+            variant="primary"
+            size="sm"
+            @click="openCreate"
+          >
+            Asignar proveedor
+          </UiButton>
+        </ClientOnly>
+      </div>
     </div>
 
-    <!-- =========================
-         TABLE
-    ========================== -->
+    <!-- Table -->
     <SupplierProductsTable
       :items="store.items"
       :loading="store.loading"
+      :has-more="store.hasMore"
       @edit="openEdit"
       @delete="remove"
+      @load-more="loadMore"
     />
 
-    <!-- =========================
-         DIALOG
-    ========================== -->
+    <!-- Dialog -->
     <ClientOnly>
       <SupplierProductDialog
         v-model="dialogOpen"
@@ -58,7 +69,8 @@ import type { SupplierProduct } from '~/types/supplier-product'
 
 definePageMeta({
   layout: 'default',
-  middleware: ['auth', ['permission', 'supplier_products:list']],
+  middleware: ['auth', 'permission'],
+  permission: 'supplier_products:list',
 })
 
 const store = useSupplierProductsStore()
@@ -69,7 +81,10 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const selected = ref<SupplierProduct | null>(null)
 
-onMounted(() => store.fetch())
+onMounted(async () => {
+  store.reset()
+  await store.fetch()
+})
 
 function openCreate() {
   dialogMode.value = 'create'
@@ -91,6 +106,15 @@ async function handleSubmit(payload: any) {
     await store.update(selected.value.id, payload)
     ui.showToast('success', 'Relación actualizada')
   }
+}
+
+function refresh() {
+  store.refreshLastQuery()
+  ui.showToast('success', 'Listado actualizado')
+}
+
+function loadMore() {
+  store.fetchMore(store.lastQuery)
 }
 
 async function remove(item: SupplierProduct) {

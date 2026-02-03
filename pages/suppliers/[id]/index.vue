@@ -12,7 +12,7 @@
             {{ supplier?.name || 'Proveedor' }}
           </h1>
           <p class="text-sm opacity-60">
-            {{ supplier?.legalName }}
+            {{ supplier?.legalName || '—' }}
           </p>
         </div>
 
@@ -36,7 +36,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
         <p class="text-xs opacity-60">RFC</p>
-        <p class="font-medium">{{ supplier?.rfc || '-' }}</p>
+        <p class="font-medium">{{ supplier?.rfc || '—' }}</p>
       </div>
 
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useSuppliersStore } from '~/stores/suppliers.store'
@@ -90,7 +90,8 @@ import type { SupplierProduct } from '~/types/supplier-product'
 
 definePageMeta({
   layout: 'default',
-  middleware: ['auth', ['permission', 'suppliers:read']],
+  middleware: ['auth', 'permission'],
+  permission: 'suppliers:read',
 })
 
 const route = useRoute()
@@ -105,7 +106,7 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const dialogModel = ref<Partial<SupplierProduct> | null>(null)
 
-const supplier = computed(() => suppliersStore.items.find(s => s.id === supplierId))
+const supplier = computed(() => suppliersStore.selected)
 
 const supplierProducts = computed(() =>
   supplierProductsStore.items.filter(i => i.supplierId === supplierId)
@@ -113,6 +114,10 @@ const supplierProducts = computed(() =>
 
 onMounted(async () => {
   await Promise.all([suppliersStore.get(supplierId), supplierProductsStore.fetch({ supplierId })])
+})
+
+onBeforeUnmount(() => {
+  suppliersStore.clearSelected()
 })
 
 function openAssignProduct() {
