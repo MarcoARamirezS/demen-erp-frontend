@@ -85,7 +85,7 @@ import { useSupplierProductsStore } from '~/stores/supplier-products.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
 
-import SupplierProductsTable from '~/components/supplier-products/SupplierProductsTable.vue'
+import SupplierProductsTable from '~/components/supplier-products/SupplierProductTable.vue'
 import SupplierProductDialog from '~/components/supplier-products/SupplierProductDialog.vue'
 
 import type { SupplierProduct } from '~/types/supplier-product'
