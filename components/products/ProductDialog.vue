@@ -6,7 +6,7 @@
       </h2>
     </header>
 
-    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
       <UiInput v-model="form.sku" label="SKU" />
       <UiInput v-model="form.internalCode" label="Código interno" />
 
@@ -39,13 +39,12 @@
 
 <script setup lang="ts">
 import { reactive, watch, computed } from 'vue'
-import type { Product } from '~/types/product'
 
-const props = defineProps<{
-  modelValue: boolean
-  mode: 'create' | 'edit'
-  model: Product | null
-}>()
+const props = defineProps({
+  modelValue: Boolean,
+  mode: String,
+  model: Object,
+})
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 
@@ -67,9 +66,7 @@ const form = reactive({
 
 watch(
   () => props.model,
-  v => {
-    if (v) Object.assign(form, v)
-  },
+  v => v && Object.assign(form, v),
   { immediate: true }
 )
 

@@ -67,6 +67,12 @@ export const sidebarMenu: SidebarMenuItem[] = [
         to: '/suppliers',
         permission: 'suppliers:list',
       },
+      {
+        label: 'Proveedor · Producto',
+        icon: 'link',
+        to: '/supplier-products',
+        permission: 'supplier_products:list',
+      },
     ],
   },
 

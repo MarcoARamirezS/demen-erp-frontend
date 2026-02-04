@@ -48,6 +48,28 @@
       </div>
     </div>
 
+    <div
+      v-if="suggestedSupplierProduct"
+      class="rounded-xl border border-success/30 bg-success/5 p-4"
+    >
+      <p class="text-xs opacity-70">Costo sugerido</p>
+
+      <p class="text-2xl font-bold text-success">
+        {{ suggestedSupplierProduct.currentPrice }}
+        {{ suggestedSupplierProduct.currency }}
+      </p>
+
+      <p class="text-xs opacity-60">
+        Proveedor:
+        <span class="font-medium">
+          {{ suggestedSupplierProduct.supplierId }}
+        </span>
+        <span v-if="suggestedSupplierProduct.preferred" class="badge badge-success ml-2">
+          Preferido
+        </span>
+      </p>
+    </div>
+
     <!-- =========================
          PROVEEDORES DEL PRODUCTO
     ========================== -->
@@ -87,6 +109,21 @@ import SupplierProductsTable from '~/components/supplier-products/SupplierProduc
 import SupplierProductDialog from '~/components/supplier-products/SupplierProductDialog.vue'
 
 import type { SupplierProduct } from '~/types/supplier-product'
+
+const suggestedSupplierProduct = computed(() => {
+  return suggestedCost(supplierProductsStore.items)
+})
+
+function suggestedCost(list: SupplierProduct[]) {
+  const active = list.filter(i => i.active)
+
+  if (!active.length) return null
+
+  const preferred = active.find(i => i.preferred)
+  if (preferred) return preferred
+
+  return [...active].sort((a, b) => a.currentPrice - b.currentPrice)[0]
+}
 
 definePageMeta({
   layout: 'default',

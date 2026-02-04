@@ -12,28 +12,30 @@
 
     <!-- CONTENT -->
     <div class="max-h-[calc(90vh-140px)] overflow-y-auto p-6 space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
         <!-- Proveedor -->
-        <UiSelectSearch
+        <UiSelect
           v-model="form.supplierId"
           label="Proveedor"
-          placeholder="Seleccionar proveedor"
-          :options="suppliers"
-          option-label="name"
-          option-value="id"
+          empty-text="No existen proveedores"
           :disabled="mode === 'edit' || !!lockSupplier"
-        />
+        >
+          <UiOption v-for="s in suppliers" :key="s.id" :value="s.id">
+            {{ s.name }}
+          </UiOption>
+        </UiSelect>
 
         <!-- Producto -->
-        <UiSelectSearch
+        <UiSelect
           v-model="form.productId"
           label="Producto"
-          placeholder="Seleccionar producto"
-          :options="products"
-          option-label="name"
-          option-value="id"
+          empty-text="No existen productos"
           :disabled="mode === 'edit' || !!lockProduct"
-        />
+        >
+          <UiOption v-for="p in products" :key="p.id" :value="p.id">
+            {{ p.name }}
+          </UiOption>
+        </UiSelect>
 
         <!-- SKU proveedor -->
         <UiInput
@@ -77,7 +79,7 @@
       class="sticky bottom-0 z-20 flex justify-end gap-2 border-t border-base-300 bg-base-100 px-6 py-4"
     >
       <UiButton variant="ghost" @click="open = false">Cancelar</UiButton>
-      <UiButton variant="primary" :disabled="!isValid" @click="submit">Guardar</UiButton>
+      <UiButton variant="primary" :disabled="!isValid" @click="submit"> Guardar </UiButton>
     </footer>
   </UiDialog>
 </template>
@@ -113,7 +115,7 @@ const productsStore = useProductsStore()
 const suppliers = computed<Supplier[]>(() => suppliersStore.items)
 const products = computed<Product[]>(() => productsStore.items)
 
-// 🔒 Si vienes de SupplierDetail o ProductDetail, bloquea el selector correspondiente
+// 🔒 locks por contexto
 const lockSupplier = computed(() => !!(props.model as any)?.supplierId && props.mode === 'create')
 const lockProduct = computed(() => !!(props.model as any)?.productId && props.mode === 'create')
 
@@ -121,7 +123,7 @@ const form = reactive({
   supplierId: '',
   productId: '',
   supplierSku: '',
-  currentPrice: '0', // string para evitar warning de UiInput
+  currentPrice: '0',
   currency: 'MXN' as 'MXN' | 'USD',
   leadTimeDays: '0',
   moq: '0',
@@ -139,7 +141,6 @@ watch(
   () => props.model,
   v => {
     if (!v) {
-      // reset
       Object.assign(form, {
         supplierId: '',
         productId: '',
@@ -155,9 +156,7 @@ watch(
       return
     }
 
-    // Deep clone para evitar mutaciones por referencia
     const data = JSON.parse(JSON.stringify(v))
-
     Object.assign(form, {
       supplierId: data.supplierId ?? '',
       productId: data.productId ?? '',
