@@ -13,6 +13,8 @@ export interface Product {
   category?: string
 
   active: boolean
+  avgCost?: number
+  lastCost?: number
 
   createdAt?: any
   updatedAt?: any

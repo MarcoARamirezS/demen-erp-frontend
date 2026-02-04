@@ -50,11 +50,17 @@ export const sidebarMenu: SidebarMenuItem[] = [
   /* =========================
    INVENTARIO
 ========================= */
+  /* =========================
+   INVENTARIO
+========================= */
   {
     label: 'Inventario',
-    icon: 'settings',
+    icon: 'cube',
     permission: 'products:list',
     children: [
+      /* =========================
+       CATÁLOGOS
+    ========================= */
       {
         label: 'Productos',
         icon: 'cube',
@@ -72,6 +78,22 @@ export const sidebarMenu: SidebarMenuItem[] = [
         icon: 'link',
         to: '/supplier-products',
         permission: 'supplier_products:list',
+      },
+
+      /* =========================
+       OPERACIÓN
+    ========================= */
+      {
+        label: 'Inventario',
+        icon: 'archive',
+        to: '/inventory',
+        permission: 'inventory:list',
+      },
+      {
+        label: 'Recepciones',
+        icon: 'download',
+        to: '/recepciones',
+        permission: 'recepciones:list',
       },
     ],
   },
