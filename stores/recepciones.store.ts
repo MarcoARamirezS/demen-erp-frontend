@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
 import type { Recepcion } from '~/types/recepcion'
-import { useApi } from '~/composables/useApi'
-import { useUi } from '~/composables/useUi'
 
 export const useRecepcionesStore = defineStore('recepciones', {
   state: () => ({
@@ -13,17 +11,21 @@ export const useRecepcionesStore = defineStore('recepciones', {
     async fetch() {
       this.loading = true
       try {
-        const { data } = await useApi().get('/recepciones')
-        this.items = data
+        const api = useApi
+        const res = await api('/recepciones')
+        this.items = res
       } finally {
         this.loading = false
       }
     },
 
     async create(payload: Omit<Recepcion, 'id' | 'createdAt'>) {
-      const ui = useUi()
-      await useApi().post('/recepciones', payload)
-      ui.showToast('Recepción registrada', 'success')
+      const api = useApi
+      await api('/recepciones', {
+        method: 'POST',
+        body: payload,
+      })
+
       await this.fetch()
     },
   },

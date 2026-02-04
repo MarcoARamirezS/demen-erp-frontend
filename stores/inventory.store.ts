@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
 import type { InventoryMovement, InventoryQuery } from '~/types/inventory-movement'
-import { useApi } from '~/composables/useApi'
-import { useUi } from '~/composables/useUi'
 
 export const useInventoryStore = defineStore('inventory', {
   state: () => ({
@@ -11,34 +9,42 @@ export const useInventoryStore = defineStore('inventory', {
   }),
 
   actions: {
+    /**
+     * Carga inicial y paginación
+     */
     async fetch(query: InventoryQuery = {}) {
       this.loading = true
       try {
-        const { data } = await useApi().get('/inventory', {
-          params: {
-            limit: query.limit ?? 20,
-            cursor: query.cursor,
-            productId: query.productId,
-          },
-        })
+        const api = useApi
 
-        this.items = query.cursor ? [...this.items, ...data.items] : data.items
-        this.cursor = data.nextCursor ?? null
+        const params: Record<string, any> = {
+          limit: query.limit ?? 20,
+        }
+
+        if (query.cursor) params.cursor = query.cursor
+        if (query.productId) params.productId = query.productId
+
+        const res = await api('/inventory', { params })
+
+        this.items = query.cursor ? [...this.items, ...res.items] : res.items
+        this.cursor = res.nextCursor ?? null
       } finally {
         this.loading = false
       }
     },
 
+    /**
+     * Crear movimiento de inventario
+     */
     async create(payload: Omit<InventoryMovement, 'id' | 'createdAt' | 'createdBy'>) {
-      const ui = useUi()
-      try {
-        await useApi().post('/inventory/movements', payload)
-        ui.showToast('Movimiento registrado', 'success')
-        await this.fetch({})
-      } catch (e: any) {
-        ui.showToast(e?.message ?? 'Error al registrar movimiento', 'error')
-        throw e
-      }
+      const api = useApi
+      await api('/inventory/movements', {
+        method: 'POST',
+        body: payload,
+      })
+
+      this.reset()
+      await this.fetch()
     },
 
     reset() {
