@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia'
-import type { Permission } from '~/types/permission'
-import { useApi } from '~/composables/useApi'
 
 export const usePermissionsStore = defineStore('permissions', {
   state: () => ({
-    items: [] as Permission[],
+    items: [] as any[],
     loading: false,
+    cursor: null as string | null,
   }),
 
   getters: {
@@ -15,9 +14,21 @@ export const usePermissionsStore = defineStore('permissions', {
   actions: {
     async fetch() {
       this.loading = true
+      this.items = []
+      this.cursor = null
+
       try {
-        const res = await useApi<{ items: Permission[] }>('/permissions?limit=100')
-        this.items = res.items
+        const api = useApi
+
+        do {
+          const params: Record<string, any> = {}
+          if (this.cursor) params.cursor = this.cursor
+
+          const res = await api('/permissions', { params })
+
+          this.items.push(...res.items)
+          this.cursor = res.nextCursor ?? null
+        } while (this.cursor)
       } finally {
         this.loading = false
       }

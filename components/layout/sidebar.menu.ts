@@ -50,12 +50,9 @@ export const sidebarMenu: SidebarMenuItem[] = [
   /* =========================
    INVENTARIO
 ========================= */
-  /* =========================
-   INVENTARIO
-========================= */
   {
     label: 'Inventario',
-    icon: 'cube',
+    icon: 'home',
     permission: 'products:list',
     children: [
       /* =========================

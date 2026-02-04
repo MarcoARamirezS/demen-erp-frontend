@@ -102,6 +102,16 @@ const icons: Record<string, string> = {
     'M7 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M14 21v-1a6 6 0 0 1 8 0v1',
   location:
     'M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z',
+  // Inventory / Catalogs
+  cube: 'M20 7l-8-4-8 4v10l8 4 8-4V7z M12 3v18 M4 7l8 4 8-4',
+
+  truck:
+    'M9 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M1 5h11v10h-1a3 3 0 0 0-6 0H3a2 2 0 0 1-2-2V5zm12 2h5l3 3v5h-1a3 3 0 0 0-6 0h-1V7z',
+
+  link: 'M10 14a5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 7l-1 1 M14 10a5 5 0 0 1 0 7l-2 2a5 5 0 0 1-7-7l1-1',
+
+  archive:
+    'M4 3h16a2 2 0 0 1 2 2v2H2V5a2 2 0 0 1 2-2zm-2 6h20v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm6 3h8',
 }
 
 const icon = computed(() => icons[props.name])

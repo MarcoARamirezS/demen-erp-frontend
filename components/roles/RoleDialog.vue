@@ -166,37 +166,55 @@ const activeTab = ref('')
    LABELS / ICONS
 ========================= */
 const resourceLabels: Record<string, string> = {
-  ventas: 'Ventas',
   users: 'Usuarios',
   roles: 'Roles',
-  reportes: 'Reportes',
-  proyectos: 'Proyectos',
   permissions: 'Permisos',
-  inventarios: 'Inventarios',
-  ingenieria: 'Ingeniería',
-  cxc: 'Cuentas por cobrar',
-  contabilidad: 'Contabilidad',
-  compras: 'Compras',
-  audit: 'Auditoría',
   clients: 'Clientes',
   client_addresses: 'Direcciones de clientes',
+
+  products: 'Productos',
+  suppliers: 'Proveedores',
+  supplier_products: 'Proveedor · Producto',
+
+  inventory: 'Inventario',
+  recepciones: 'Recepciones',
+
+  ventas: 'Ventas',
+  compras: 'Compras',
+  cxc: 'Cuentas por cobrar',
+  contabilidad: 'Contabilidad',
+
+  proyectos: 'Proyectos',
+  ingenieria: 'Ingeniería',
+
+  audit: 'Auditoría',
+  reportes: 'Reportes',
 }
 
 const resourceIcons: Record<string, string> = {
-  ventas: 'shopping-cart',
   users: 'users',
   roles: 'key',
-  reportes: 'chartBar',
-  proyectos: 'folder',
   permissions: 'shield',
-  inventarios: 'database',
-  ingenieria: 'settings',
-  cxc: 'credit-card',
-  contabilidad: 'calculator',
-  compras: 'truck',
-  audit: 'clipboard',
   clients: 'users',
   client_addresses: 'home',
+
+  products: 'cube',
+  suppliers: 'truck',
+  supplier_products: 'link',
+
+  inventory: 'archive',
+  recepciones: 'download',
+
+  ventas: 'shopping-cart',
+  compras: 'clipboard-list',
+  cxc: 'credit-card',
+  contabilidad: 'calculator',
+
+  proyectos: 'folder',
+  ingenieria: 'settings',
+
+  audit: 'clipboard',
+  reportes: 'chartBar',
 }
 
 const actionLabels: Record<string, string> = {
@@ -224,7 +242,11 @@ const permissionsByResource = computed(() => {
   return map
 })
 
-const filteredResources = computed(() => Object.keys(permissionsByResource.value))
+const filteredResources = computed(() =>
+  Object.keys(permissionsByResource.value).sort((a, b) =>
+    (resourceLabels[a] ?? a).localeCompare(resourceLabels[b] ?? b)
+  )
+)
 
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 

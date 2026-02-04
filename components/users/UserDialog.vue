@@ -123,22 +123,50 @@ watch(
   () => props.model,
   v => {
     form.value = v
-      ? { ...v, password: '' }
-      : { nombre: '', apaterno: '', usuario: '', password: '', activo: true, roleIds: [] }
+      ? {
+          nombre: v.nombre,
+          apaterno: v.apaterno,
+          amaterno: v.amaterno,
+          direccion: v.direccion,
+          telefono: v.telefono,
+          ciudad: v.ciudad,
+          estado: v.estado,
+          usuario: v.usuario,
+          activo: v.activo,
+          roleIds: [...(v.roleIds ?? [])],
+        }
+      : {
+          nombre: '',
+          apaterno: '',
+          usuario: '',
+          password: '',
+          activo: true,
+          roleIds: [],
+        }
   },
   { immediate: true }
 )
 
 const submit = () => {
   const ui = useUiStore()
+
   if (!form.value.nombre || !form.value.apaterno || !form.value.usuario) {
     ui.showToast('warning', 'Campos obligatorios')
     return
   }
+
   if (!form.value.roleIds?.length) {
     ui.showToast('warning', 'Selecciona al menos un rol')
     return
   }
-  emit('submit', form.value)
+
+  const payload = { ...form.value }
+
+  // 🔥 CLAVE: si password está vacío, NO se envía
+  if (!payload.password) {
+    delete payload.password
+  }
+
+  emit('submit', payload)
 }
 </script>
