@@ -13,6 +13,20 @@
       <UiInput v-model="form.name" label="Nombre" />
       <UiInput v-model="form.brand" label="Marca" />
 
+      <!-- 🔹 NUEVO: FAMILIA -->
+      <UiSelect v-model="form.familyId" label="Familia">
+        <UiOption v-for="f in families" :key="f.id" :value="f.id">
+          {{ f.name }}
+        </UiOption>
+      </UiSelect>
+
+      <!-- 🔹 NUEVO: CATEGORÍA DEPENDIENTE -->
+      <UiSelect v-model="form.categoryId" label="Categoría" :disabled="!form.familyId">
+        <UiOption v-for="c in categories" :key="c.id" :value="c.id">
+          {{ c.name }}
+        </UiOption>
+      </UiSelect>
+
       <UiSelect v-model="form.unit" label="Unidad">
         <UiOption value="m">m</UiOption>
         <UiOption value="pz">pz</UiOption>
@@ -20,7 +34,8 @@
         <UiOption value="lt">lt</UiOption>
       </UiSelect>
 
-      <UiInput v-model="form.category" label="Categoría" />
+      <!-- 🔹 EXISTENTE (lo dejamos) -->
+      <UiInput v-model="form.category" label="Categoría (texto)" />
 
       <UiInput
         v-model="form.description"
@@ -38,7 +53,9 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed } from 'vue'
+import { reactive, watch, computed, onMounted } from 'vue'
+import { useProductFamiliesStore } from '~/stores/productFamilies.store'
+import { useProductCategoriesStore } from '~/stores/productCategories.store'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -53,6 +70,12 @@ const open = computed({
   set: v => emit('update:modelValue', v),
 })
 
+const familiesStore = useProductFamiliesStore()
+const categoriesStore = useProductCategoriesStore()
+
+const families = computed(() => familiesStore.items)
+const categories = computed(() => categoriesStore.items)
+
 const form = reactive({
   sku: '',
   internalCode: '',
@@ -60,13 +83,46 @@ const form = reactive({
   description: '',
   brand: '',
   unit: 'pz',
+
+  // 🔹 NUEVO
+  familyId: '',
+  categoryId: '',
+
+  // 🔹 EXISTENTE
   category: '',
+
   active: true,
 })
 
+onMounted(async () => {
+  await familiesStore.fetch()
+
+  if (form.familyId) {
+    await categoriesStore.fetchByFamily(form.familyId)
+  }
+})
+
+watch(
+  () => form.familyId,
+  async familyId => {
+    form.categoryId = ''
+    if (familyId) {
+      await categoriesStore.fetchByFamily(familyId)
+    } else {
+      categoriesStore.clear()
+    }
+  }
+)
+
 watch(
   () => props.model,
-  v => v && Object.assign(form, v),
+  v => {
+    if (!v) return
+    Object.assign(form, v)
+    if (v.familyId) {
+      categoriesStore.fetchByFamily(v.familyId)
+    }
+  },
   { immediate: true }
 )
 

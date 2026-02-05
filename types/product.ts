@@ -10,7 +10,12 @@ export interface Product {
   brand?: string
   unit: 'm' | 'pz' | 'kg' | 'lt'
 
+  // 🔹 EXISTENTE (lo dejamos para compatibilidad visual)
   category?: string
+
+  // 🔹 NUEVO (relación real con backend)
+  familyId?: string
+  categoryId?: string
 
   active: boolean
   avgCost?: number

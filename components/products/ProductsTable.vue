@@ -14,7 +14,18 @@
           <td>
             <div class="font-medium">{{ p.name }}</div>
             <div class="text-xs opacity-60">{{ p.brand }}</div>
+
+            <!-- 🔹 FIX: Familia / Categoría -->
+            <div class="flex gap-1 mt-1">
+              <span v-if="p.familyId" class="badge badge-outline text-xs">
+                {{ p.familyId }}
+              </span>
+              <span v-if="p.categoryId" class="badge badge-ghost text-xs">
+                {{ p.categoryId }}
+              </span>
+            </div>
           </td>
+
           <td class="font-mono text-sm">{{ p.sku }}</td>
           <td class="text-sm uppercase">{{ p.unit }}</td>
           <td class="text-right space-x-2">
@@ -25,7 +36,9 @@
       </tbody>
     </table>
 
-    <!-- Mobile -->
+    <!-- =========================
+         MOBILE
+    ========================== -->
     <div class="md:hidden space-y-3">
       <div
         v-for="p in items"
@@ -33,7 +46,17 @@
         class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
         <div class="font-semibold">{{ p.name }}</div>
-        <div class="text-xs opacity-60 mb-2">{{ p.sku }}</div>
+        <div class="text-xs opacity-60 mb-1">{{ p.sku }}</div>
+
+        <!-- 🔹 FIX: Familia / Categoría (mobile) -->
+        <div class="flex flex-wrap gap-1 mb-2">
+          <span v-if="p.familyId" class="badge badge-outline text-xs">
+            {{ p.familyId }}
+          </span>
+          <span v-if="p.categoryId" class="badge badge-ghost text-xs">
+            {{ p.categoryId }}
+          </span>
+        </div>
 
         <div class="flex justify-end gap-2">
           <UiButton size="sm" variant="ghost" icon="edit" @click="$emit('edit', p)" />
