@@ -38,8 +38,17 @@
       </div>
 
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+        <p class="text-xs opacity-60">Familia</p>
+        <p class="font-medium">
+          {{ familyName(product?.familyId) || '—' }}
+        </p>
+      </div>
+
+      <div class="rounded-xl border border-base-300 bg-base-100 p-4">
         <p class="text-xs opacity-60">Categoría</p>
-        <p class="font-medium">{{ product?.category || '—' }}</p>
+        <p class="font-medium">
+          {{ categoryName(product?.categoryId) || '—' }}
+        </p>
       </div>
 
       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
@@ -109,6 +118,19 @@ import SupplierProductsTable from '~/components/supplier-products/SupplierProduc
 import SupplierProductDialog from '~/components/supplier-products/SupplierProductDialog.vue'
 
 import type { SupplierProduct } from '~/types/supplier-product'
+import { useProductFamiliesStore } from '~/stores/productFamilies.store'
+import { useProductCategoriesStore } from '~/stores/productCategories.store'
+
+const familiesStore = useProductFamiliesStore()
+const categoriesStore = useProductCategoriesStore()
+
+function familyName(id?: string) {
+  return familiesStore.items.find(f => f.id === id)?.name
+}
+
+function categoryName(id?: string) {
+  return categoriesStore.items.find(c => c.id === id)?.name
+}
 
 const suggestedSupplierProduct = computed(() => {
   return suggestedCost(supplierProductsStore.items)
