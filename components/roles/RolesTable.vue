@@ -67,11 +67,11 @@
           <span class="text-xs opacity-60"> {{ r.permissionCodes?.length ?? 0 }} permisos </span>
 
           <div class="flex gap-2">
-            <button class="btn btn-circle btn-sm btn-ghost text-primary" @click="$emit('edit', r)">
+            <button class="btn btn-circle btn-sm btn-ghost text-primary" @click="emit('edit', r)">
               <Icon name="edit" size="sm" />
             </button>
 
-            <button class="btn btn-circle btn-sm btn-ghost text-error" @click="$emit('delete', r)">
+            <button class="btn btn-circle btn-sm btn-ghost text-error" @click="emit('delete', r)">
               <Icon name="trash" size="sm" />
             </button>
           </div>
@@ -121,13 +121,11 @@
             </td>
 
             <td class="text-center">
-              <button class="btn btn-circle btn-sm btn-ghost" @click="$emit('edit', r)">
+              <button class="btn btn-circle btn-sm btn-ghost" @click="emit('edit', r)">
                 <Icon name="edit" size="sm" />
               </button>
-              <button
-                class="btn btn-circle btn-sm btn-ghost text-error"
-                @click="$emit('delete', r)"
-              >
+
+              <button class="btn btn-circle btn-sm btn-ghost text-error" @click="emit('delete', r)">
                 <Icon name="trash" size="sm" />
               </button>
             </td>
@@ -146,6 +144,7 @@
         <button class="btn join-item btn-sm" :disabled="currentPage === 1" @click="prevPage">
           «
         </button>
+
         <button
           v-for="p in visiblePages"
           :key="p"
@@ -155,6 +154,7 @@
         >
           {{ p }}
         </button>
+
         <button
           class="btn join-item btn-sm"
           :disabled="currentPage === totalPages"
@@ -170,6 +170,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { Role } from '~/types/role'
+import Icon from '~/components/ui/Icon.vue'
 
 /* =========================
    PROPS
@@ -179,7 +180,10 @@ const props = defineProps<{
   loading: boolean
 }>()
 
-defineEmits<{
+/* =========================
+   EMITS (FIX CRÍTICO)
+========================= */
+const emit = defineEmits<{
   (e: 'edit', role: Role): void
   (e: 'delete', role: Role): void
 }>()

@@ -1,31 +1,41 @@
 <script setup lang="ts">
 import Icon from '~/components/ui/Icon.vue'
+import SidebarItem from './SidebarItem.vue'
 
 defineEmits(['navigate'])
 
 const props = defineProps<{
-  label: string
-  icon?: string
-  items: {
-    label: string
-    to: string
-    icon?: string
-  }[]
+  item: any
+  hasPermission: (perm?: string) => boolean
 }>()
 
 const isOpen = ref(false)
 const toggle = () => (isOpen.value = !isOpen.value)
+
+const visibleChildren = computed(() =>
+  (props.item.children ?? []).filter((c: any) => props.hasPermission(c.permission))
+)
 </script>
 
 <template>
-  <div>
+  <!-- LINK -->
+  <SidebarItem
+    v-if="'to' in item && hasPermission(item.permission)"
+    :label="item.label"
+    :icon="item.icon"
+    :to="item.to"
+    @navigate="$emit('navigate')"
+  />
+
+  <!-- GROUP -->
+  <div v-else-if="visibleChildren.length">
     <button
       type="button"
       @click="toggle"
-      class="flex w-full items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-base-content/70 hover:bg-base-300 transition"
+      class="flex w-full items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-base-content/70 hover:bg-base-300"
     >
-      <Icon v-if="icon" :name="icon" />
-      <span class="flex-1 text-left">{{ label }}</span>
+      <Icon v-if="item.icon" :name="item.icon" />
+      <span class="flex-1 text-left">{{ item.label }}</span>
       <Icon :name="isOpen ? 'chevronUp' : 'chevronDown'" size="sm" />
     </button>
 
@@ -37,18 +47,14 @@ const toggle = () => (isOpen.value = !isOpen.value)
       leave-from-class="opacity-100 max-h-96"
       leave-to-class="opacity-0 max-h-0"
     >
-      <div v-show="isOpen" class="ml-6 mt-1 space-y-1 overflow-hidden">
-        <NuxtLink
-          v-for="item in items"
-          :key="item.to"
-          :to="item.to"
-          @click="$emit('navigate')"
-          class="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-base-content/60 hover:bg-base-300 hover:text-base-content transition"
-          active-class="bg-primary/10 text-primary font-medium"
-        >
-          <Icon v-if="item.icon" :name="item.icon" size="sm" />
-          <span>{{ item.label }}</span>
-        </NuxtLink>
+      <div v-show="isOpen" class="ml-4 mt-1 space-y-1">
+        <SidebarGroup
+          v-for="child in visibleChildren"
+          :key="child.label"
+          :item="child"
+          :has-permission="hasPermission"
+          @navigate="$emit('navigate')"
+        />
       </div>
     </transition>
   </div>

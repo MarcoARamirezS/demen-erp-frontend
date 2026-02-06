@@ -10,18 +10,20 @@
       <UiButton icon="plus" variant="primary" @click="openCreate"> Nuevo rol </UiButton>
     </div>
 
-    <!-- Tabla -->
-    <RolesTable
-      :roles="store.items"
-      :loading="store.loading"
-      @edit="openEdit"
-      @delete="confirmDelete"
-    />
+    <!-- Tabla (SSR SAFE) -->
+    <ClientOnly>
+      <RolesTable
+        :roles="store.items"
+        :loading="store.loading"
+        @edit="openEdit"
+        @delete="confirmDelete"
+      />
+    </ClientOnly>
 
-    <!-- Dialog (IMPORTANTE: v-if) -->
+    <!-- Dialog (SSR SAFE) -->
     <ClientOnly>
       <RoleDialog
-        v-show="dialogOpen"
+        v-if="dialogOpen"
         v-model="dialogOpen"
         :mode="dialogMode"
         :model="selected"
@@ -53,7 +55,9 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const selected = ref<Role | null>(null)
 
-onMounted(() => store.fetch())
+onMounted(() => {
+  store.fetch()
+})
 
 function openCreate() {
   dialogMode.value = 'create'
@@ -85,6 +89,7 @@ async function handleSubmit(payload: any) {
   } else if (selected.value) {
     await store.update(selected.value.id, payload)
   }
+
   dialogOpen.value = false
 }
 </script>

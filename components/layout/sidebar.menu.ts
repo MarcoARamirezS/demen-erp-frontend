@@ -12,7 +12,7 @@ export interface SidebarLink extends SidebarBase {
 }
 
 export interface SidebarGroup extends SidebarBase {
-  children: SidebarLink[]
+  children: SidebarMenuItem[]
 }
 
 export type SidebarMenuItem = SidebarLink | SidebarGroup
@@ -21,18 +21,12 @@ export type SidebarMenuItem = SidebarLink | SidebarGroup
    SIDEBAR MENU
 ========================= */
 export const sidebarMenu: SidebarMenuItem[] = [
-  /* =========================
-     DASHBOARD
-  ========================= */
   {
     label: 'Inicio',
     icon: 'home',
     to: '/',
   },
 
-  /* =========================
-     CLIENTES (DOMINIO)
-  ========================= */
   {
     label: 'Clientes',
     icon: 'users',
@@ -47,17 +41,11 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
-  /* =========================
-     INVENTARIO
-  ========================= */
   {
     label: 'Inventario',
     icon: 'home',
     permission: 'products:list',
     children: [
-      /* =========================
-         CATÁLOGOS OPERATIVOS
-      ========================= */
       {
         label: 'Productos',
         icon: 'cube',
@@ -76,10 +64,6 @@ export const sidebarMenu: SidebarMenuItem[] = [
         to: '/supplier-products',
         permission: 'supplier_products:list',
       },
-
-      /* =========================
-         OPERACIÓN
-      ========================= */
       {
         label: 'Inventario',
         icon: 'archive',
@@ -95,9 +79,6 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
-  /* =========================
-     CONFIGURACIÓN (CATÁLOGOS MAESTROS)
-  ========================= */
   {
     label: 'Configuración',
     icon: 'cog',
@@ -124,9 +105,6 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
-  /* =========================
-     SEGURIDAD (ADMIN)
-  ========================= */
   {
     label: 'Seguridad',
     icon: 'shield',
@@ -146,9 +124,6 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
-  /* =========================
-     AUDITORÍA
-  ========================= */
   {
     label: 'Auditoría',
     icon: 'clipboard',

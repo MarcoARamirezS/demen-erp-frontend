@@ -41,8 +41,8 @@
             "
             @click="activeTab = resource"
           >
-            <Icon :name="resourceIcons[resource]" size="sm" />
-            {{ resourceLabels[resource] }}
+            <Icon name="shield" size="sm" />
+            {{ resourceLabels[resource] ?? resource }}
 
             <span class="rounded-full bg-base-100 px-2 py-0.5 text-xs">
               {{ selectedCount(resource) }}/{{ permissionsByResource[resource]?.length ?? 0 }}
@@ -57,7 +57,7 @@
         >
           <div class="mb-3 flex justify-between items-center">
             <h4 class="font-semibold uppercase text-sm text-primary">
-              {{ resourceLabels[activeTab] }}
+              {{ resourceLabels[activeTab] ?? activeTab }}
             </h4>
 
             <UiButton size="xs" variant="ghost" type="button" @click="toggleAllActiveTab">
@@ -71,7 +71,7 @@
               :key="p.code"
               v-model="form.permissionCodes"
               :value="p.code"
-              :label="actionLabels[p.action]"
+              :label="actionLabels[p.action] ?? p.action"
             />
           </div>
         </div>
@@ -99,7 +99,6 @@
       ========================== -->
       <div class="flex justify-end gap-3 pt-4 border-t">
         <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
-
         <UiButton variant="primary" type="submit"> Guardar </UiButton>
       </div>
     </form>
@@ -147,7 +146,7 @@ const open = computed({
 })
 
 /* =========================
-   INIT GUARD (CRÍTICO)
+   INIT GUARD
 ========================= */
 const initialized = ref(false)
 
@@ -168,7 +167,7 @@ const search = ref('')
 const activeTab = ref('')
 
 /* =========================
-   LABELS / ICONS
+   LABELS
 ========================= */
 const resourceLabels: Record<string, string> = {
   users: 'Usuarios',
@@ -176,26 +175,25 @@ const resourceLabels: Record<string, string> = {
   permissions: 'Permisos',
   clients: 'Clientes',
   client_addresses: 'Direcciones de clientes',
-  products: 'Productos',
   suppliers: 'Proveedores',
   supplier_products: 'Proveedor · Producto',
+  products: 'Productos',
+  product_families: 'Familias de productos',
+  product_categories: 'Categorías de productos',
   inventory: 'Inventario',
   recepciones: 'Recepciones',
   audit: 'Auditoría',
-}
-
-const resourceIcons: Record<string, string> = {
-  users: 'users',
-  roles: 'key',
-  permissions: 'shield',
-  clients: 'users',
-  client_addresses: 'home',
-  products: 'cube',
-  suppliers: 'truck',
-  supplier_products: 'link',
-  inventory: 'archive',
-  recepciones: 'download',
-  audit: 'clipboard',
+  ventas: 'Ventas',
+  reportes: 'Reportes',
+  proyectos: 'Proyectos',
+  inventarios: 'Inventarios',
+  ingenieria: 'Ingeniería',
+  cxc: 'Cuentas por cobrar',
+  contabilidad: 'Contabilidad',
+  compras: 'Compras',
+  projects: 'Projects',
+  project_versions: 'Versiones de proyecto',
+  project_photos: 'Fotos de proyecto',
 }
 
 const actionLabels: Record<string, string> = {
@@ -204,15 +202,25 @@ const actionLabels: Record<string, string> = {
   list: 'Listar',
   update: 'Actualizar',
   delete: 'Eliminar',
+  set_current: 'Seleccionar vigente',
 }
 
 /* =========================
-   PERMISSIONS GROUPED
+   ✅ FIX REAL AQUÍ
+   USAR TODOS LOS PERMISOS,
+   NO activePermissions
+========================= */
+const safePermissions = computed(() =>
+  Array.isArray(permissionsStore.items) ? permissionsStore.items : []
+)
+
+/* =========================
+   GROUP BY RESOURCE
 ========================= */
 const permissionsByResource = computed(() => {
   const map: Record<string, any[]> = {}
 
-  for (const p of permissionsStore.activePermissions) {
+  for (const p of safePermissions.value) {
     const text = `${p.resource} ${p.action} ${p.code}`.toLowerCase()
     if (search.value && !text.includes(search.value.toLowerCase())) continue
 
@@ -232,25 +240,15 @@ const filteredResources = computed(() =>
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 
 /* =========================
-   STABILITY WATCHERS
+   WATCHERS
 ========================= */
-watch(filteredResources, resources => {
-  if (!resources.length) {
-    activeTab.value = ''
-    return
-  }
-  if (!resources.includes(activeTab.value)) {
-    activeTab.value = resources[0]
-  }
-})
-
 watch(
-  open,
-  async isOpen => {
-    if (!isOpen || initialized.value) return
+  () => permissionsStore.items,
+  perms => {
+    if (!open.value || initialized.value) return
+    if (!Array.isArray(perms) || !perms.length) return
 
-    await permissionsStore.fetch()
-    activeTab.value = filteredResources.value[0] ?? ''
+    activeTab.value = Object.keys(permissionsByResource.value)[0] ?? ''
     initialized.value = true
   },
   { immediate: true }
@@ -276,24 +274,23 @@ function selectedCount(resource: string) {
   )
 }
 
-function toggleAllActiveTab() {
-  const codes = activePermissions.value.map(p => p.code)
-  const selected = new Set(form.value.permissionCodes)
-  const allSelected = codes.every(c => selected.has(c))
-
-  codes.forEach(c => (allSelected ? selected.delete(c) : selected.add(c)))
-  form.value.permissionCodes = Array.from(selected)
+function toggleAllPermissions() {
+  const codes = safePermissions.value.map(p => p.code)
+  form.value.permissionCodes = form.value.permissionCodes?.length === codes.length ? [] : [...codes]
 }
 
-function toggleAllPermissions() {
-  const allCodes = permissionsStore.activePermissions.map(p => p.code)
-  form.value.permissionCodes =
-    form.value.permissionCodes.length === allCodes.length ? [] : [...allCodes]
+function toggleAllActiveTab() {
+  const codes = activePermissions.value.map(p => p.code)
+  const set = new Set(form.value.permissionCodes)
+  const allSelected = codes.every(c => set.has(c))
+
+  codes.forEach(c => (allSelected ? set.delete(c) : set.add(c)))
+  form.value.permissionCodes = Array.from(set)
 }
 
 function formatPermissionChip(code: string) {
-  const [res, act] = code.split(':')
-  return `${resourceLabels[res] ?? res} · ${actionLabels[act] ?? act}`
+  const [resource, action] = code.split(':')
+  return `${resourceLabels[resource] ?? resource} · ${actionLabels[action] ?? action}`
 }
 
 /* =========================
