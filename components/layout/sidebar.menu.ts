@@ -35,7 +35,7 @@ export const sidebarMenu: SidebarMenuItem[] = [
   ========================= */
   {
     label: 'Clientes',
-    icon: 'users', // entidad de negocio (NO usersGroup)
+    icon: 'users',
     permission: 'clients:list',
     children: [
       {
@@ -48,16 +48,16 @@ export const sidebarMenu: SidebarMenuItem[] = [
   },
 
   /* =========================
-   INVENTARIO
-========================= */
+     INVENTARIO
+  ========================= */
   {
     label: 'Inventario',
     icon: 'home',
     permission: 'products:list',
     children: [
       /* =========================
-       CATÁLOGOS
-    ========================= */
+         CATÁLOGOS OPERATIVOS
+      ========================= */
       {
         label: 'Productos',
         icon: 'cube',
@@ -78,8 +78,8 @@ export const sidebarMenu: SidebarMenuItem[] = [
       },
 
       /* =========================
-       OPERACIÓN
-    ========================= */
+         OPERACIÓN
+      ========================= */
       {
         label: 'Inventario',
         icon: 'archive',
@@ -91,6 +91,35 @@ export const sidebarMenu: SidebarMenuItem[] = [
         icon: 'download',
         to: '/recepciones',
         permission: 'recepciones:list',
+      },
+    ],
+  },
+
+  /* =========================
+     CONFIGURACIÓN (CATÁLOGOS MAESTROS)
+  ========================= */
+  {
+    label: 'Configuración',
+    icon: 'cog',
+    children: [
+      {
+        label: 'Catálogos',
+        icon: 'collection',
+        permission: 'product_families:list',
+        children: [
+          {
+            label: 'Familias de productos',
+            icon: 'layers',
+            to: '/settings/catalogos/familias',
+            permission: 'product_families:list',
+          },
+          {
+            label: 'Categorías de productos',
+            icon: 'tag',
+            to: '/settings/catalogos/categorias',
+            permission: 'product_categories:list',
+          },
+        ],
       },
     ],
   },
