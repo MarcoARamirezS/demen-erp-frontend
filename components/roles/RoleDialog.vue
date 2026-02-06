@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
@@ -147,6 +147,11 @@ const open = computed({
 })
 
 /* =========================
+   INIT GUARD (CRÍTICO)
+========================= */
+const initialized = ref(false)
+
+/* =========================
    FORM
 ========================= */
 const form = ref<Partial<CreateRoleDto>>({
@@ -171,24 +176,12 @@ const resourceLabels: Record<string, string> = {
   permissions: 'Permisos',
   clients: 'Clientes',
   client_addresses: 'Direcciones de clientes',
-
   products: 'Productos',
   suppliers: 'Proveedores',
   supplier_products: 'Proveedor · Producto',
-
   inventory: 'Inventario',
   recepciones: 'Recepciones',
-
-  ventas: 'Ventas',
-  compras: 'Compras',
-  cxc: 'Cuentas por cobrar',
-  contabilidad: 'Contabilidad',
-
-  proyectos: 'Proyectos',
-  ingenieria: 'Ingeniería',
-
   audit: 'Auditoría',
-  reportes: 'Reportes',
 }
 
 const resourceIcons: Record<string, string> = {
@@ -197,24 +190,12 @@ const resourceIcons: Record<string, string> = {
   permissions: 'shield',
   clients: 'users',
   client_addresses: 'home',
-
   products: 'cube',
   suppliers: 'truck',
   supplier_products: 'link',
-
   inventory: 'archive',
   recepciones: 'download',
-
-  ventas: 'shopping-cart',
-  compras: 'clipboard-list',
-  cxc: 'credit-card',
-  contabilidad: 'calculator',
-
-  proyectos: 'folder',
-  ingenieria: 'settings',
-
   audit: 'clipboard',
-  reportes: 'chartBar',
 }
 
 const actionLabels: Record<string, string> = {
@@ -251,6 +232,41 @@ const filteredResources = computed(() =>
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 
 /* =========================
+   STABILITY WATCHERS
+========================= */
+watch(filteredResources, resources => {
+  if (!resources.length) {
+    activeTab.value = ''
+    return
+  }
+  if (!resources.includes(activeTab.value)) {
+    activeTab.value = resources[0]
+  }
+})
+
+watch(
+  open,
+  async isOpen => {
+    if (!isOpen || initialized.value) return
+
+    await permissionsStore.fetch()
+    activeTab.value = filteredResources.value[0] ?? ''
+    initialized.value = true
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.model,
+  v => {
+    form.value = v
+      ? { ...v, permissionCodes: [...(v.permissionCodes ?? [])] }
+      : { name: '', description: '', permissionCodes: [], active: true }
+  },
+  { immediate: true }
+)
+
+/* =========================
    HELPERS
 ========================= */
 function selectedCount(resource: string) {
@@ -277,29 +293,8 @@ function toggleAllPermissions() {
 
 function formatPermissionChip(code: string) {
   const [res, act] = code.split(':')
-  return `${resourceLabels[res]} · ${actionLabels[act]}`
+  return `${resourceLabels[res] ?? res} · ${actionLabels[act] ?? act}`
 }
-
-/* =========================
-   LIFECYCLE
-========================= */
-onMounted(async () => {
-  if (!permissionsStore.items.length) {
-    await permissionsStore.fetch()
-  }
-
-  activeTab.value = filteredResources.value[0] ?? ''
-})
-
-watch(
-  () => props.model,
-  v => {
-    form.value = v
-      ? { ...v, permissionCodes: [...(v.permissionCodes ?? [])] }
-      : { name: '', description: '', permissionCodes: [], active: true }
-  },
-  { immediate: true }
-)
 
 /* =========================
    SUBMIT

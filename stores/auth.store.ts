@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
+import { useApi } from '~/composables/useApi'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,
-    permissions: [],
+    user: null as null | { id: string },
+    permissions: [] as string[],
     loading: false,
     initialized: false,
   }),
@@ -15,37 +16,32 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async login(payload: { usuario: string; password: string }) {
-      await useApi('/auth/login', {
-        method: 'POST',
-        body: payload,
-      })
+      this.loading = true
+      try {
+        await useApi('/auth/login', {
+          method: 'POST',
+          body: payload,
+        })
 
-      await this.fetchMe()
-      console.log('@@@ isAuthenticaded => ', this.isAuthenticated)
-      if (this.isAuthenticated) {
-        navigateTo('/')
+        await this.fetchMe()
+      } finally {
+        this.loading = false
       }
     },
 
     async fetchMe() {
       try {
-        this.loading = true
-
         const res = await useApi<any>('/auth/me')
 
-        // 🔑 AJUSTE CLAVE
-        this.user = {
-          id: res.id,
-        }
+        this.user = { id: res.id }
         this.permissions = res.permissions ?? []
       } catch (e: any) {
-        if (e?.code === 401 || e?.status === 401) {
+        if (e?.status === 401) {
           await this.logout(false)
         } else {
-          console.error('[fetchMe] non-auth error', e)
+          console.error('[auth.fetchMe]', e)
         }
       } finally {
-        this.loading = false
         this.initialized = true
       }
     },
@@ -53,15 +49,13 @@ export const useAuthStore = defineStore('auth', {
     async logout(redirect = true) {
       try {
         await useApi('/auth/logout', { method: 'POST' })
-      } catch (e) {
-        // ⚠️ Ignorar errores de logout (sesión ya inválida)
-        console.warn('[auth] logout skipped', e)
-      } finally {
-        this.user = null
-        this.permissions = []
-        this.initialized = true
-        if (redirect) navigateTo('/login')
-      }
+      } catch (_) {}
+
+      this.user = null
+      this.permissions = []
+      this.initialized = true
+
+      if (redirect) navigateTo('/login')
     },
   },
 })

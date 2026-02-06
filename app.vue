@@ -10,3 +10,25 @@
     <NuxtPage />
   </NuxtLayout>
 </template>
+
+<script setup lang="ts">
+import { watch } from 'vue'
+import { useAuthStore } from '~/stores/auth.store'
+import { usePermissionsStore } from '~/stores/permissions.store'
+import { useRolesStore } from '~/stores/roles.store'
+
+const auth = useAuthStore()
+const permissions = usePermissionsStore()
+const roles = useRolesStore()
+
+watch(
+  () => auth.isAuthenticated,
+  async isAuth => {
+    if (!isAuth) return
+
+    // 🧠 BOOTSTRAP ÚNICO
+    await Promise.all([permissions.fetch(), roles.fetch()])
+  },
+  { immediate: true }
+)
+</script>

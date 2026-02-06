@@ -21,7 +21,7 @@
     <!-- Dialog (IMPORTANTE: v-if) -->
     <ClientOnly>
       <RoleDialog
-        v-if="dialogOpen"
+        v-show="dialogOpen"
         v-model="dialogOpen"
         :mode="dialogMode"
         :model="selected"
