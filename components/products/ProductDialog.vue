@@ -20,46 +20,44 @@
       <UiInput v-model="form.brand" label="Marca" />
 
       <!-- =========================
-           FAMILIA + QUICK CREATE
+           FAMILIA + QUICK CREATE (FIX)
       ========================== -->
-      <div>
+      <div class="space-y-1">
         <UiSelect v-model="form.familyId" label="Familia">
           <UiOption v-for="f in families" :key="f.id" :value="f.id">
             {{ f.name }}
           </UiOption>
-
-          <template #footer>
-            <button
-              type="button"
-              class="btn btn-xs btn-ghost w-full justify-start"
-              @click="openCreateFamily"
-            >
-              ➕ Crear nueva familia
-            </button>
-          </template>
         </UiSelect>
+
+        <!-- ✅ FIX: botón fuera del UiSelect -->
+        <button
+          type="button"
+          class="btn btn-xs btn-ghost w-full justify-start"
+          @click="openCreateFamily"
+        >
+          ➕ Crear nueva familia
+        </button>
       </div>
 
       <!-- =========================
-           CATEGORÍA + QUICK CREATE
+           CATEGORÍA + QUICK CREATE (FIX)
       ========================== -->
-      <div>
+      <div class="space-y-1">
         <UiSelect v-model="form.categoryId" label="Categoría" :disabled="!form.familyId">
           <UiOption v-for="c in categories" :key="c.id" :value="c.id">
             {{ c.name }}
           </UiOption>
-
-          <template #footer>
-            <button
-              type="button"
-              class="btn btn-xs btn-ghost w-full justify-start"
-              :disabled="!form.familyId"
-              @click="openCreateCategory"
-            >
-              ➕ Crear nueva categoría
-            </button>
-          </template>
         </UiSelect>
+
+        <!-- ✅ FIX: botón fuera del UiSelect -->
+        <button
+          type="button"
+          class="btn btn-xs btn-ghost w-full justify-start"
+          :disabled="!form.familyId"
+          @click="openCreateCategory"
+        >
+          ➕ Crear nueva categoría
+        </button>
       </div>
 
       <UiSelect v-model="form.unit" label="Unidad">
@@ -195,7 +193,7 @@ watch(
 )
 
 /* =========================
-   QUICK CREATE HANDLERS
+   QUICK CREATE HANDLERS (FIX)
 ========================= */
 function openCreateFamily() {
   familyDialogOpen.value = true
@@ -208,12 +206,22 @@ function openCreateCategory() {
 
 async function handleFamilyCreated(payload: any) {
   const family = await familiesStore.create(payload)
+
   await familiesStore.fetch()
+
+  // ✅ FIX: limpiar categorías antes de asignar familia
+  categoriesStore.clear()
+
   form.familyId = family.id
 }
 
 async function handleCategoryCreated(payload: any) {
-  const category = await categoriesStore.create(payload)
+  // ✅ FIX: forzar relación con la familia actual
+  const category = await categoriesStore.create({
+    ...payload,
+    familyId: form.familyId,
+  })
+
   await categoriesStore.fetchByFamily(form.familyId)
   form.categoryId = category.id
 }
