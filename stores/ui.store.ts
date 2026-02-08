@@ -1,8 +1,8 @@
-import { defineStore } from "pinia"
+import { defineStore } from 'pinia'
 
 export interface ToastItem {
   id: string
-  type: "success" | "error" | "warning" | "info"
+  type: 'success' | 'error' | 'warning' | 'info'
   message: string
 }
 
@@ -15,30 +15,33 @@ export interface ConfirmState {
   onConfirm?: () => void
 }
 
-export const useUiStore = defineStore("ui", {
+export const useUiStore = defineStore('ui', {
   state: () => ({
-    // Toast
+    /* ---------------- Toast ---------------- */
     toasts: [] as ToastItem[],
 
-    // Loader
-    loading: false,
+    /* ---------------- Loader ---------------- */
+    loadingCount: 0,
 
-    // Confirm dialog
+    /* ---------------- Confirm ---------------- */
     confirm: {
       visible: false,
-      title: "",
-      message: "",
-      confirmText: "Confirmar",
-      cancelText: "Cancelar",
+      title: '',
+      message: '',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
       onConfirm: undefined,
     } as ConfirmState,
   }),
 
+  getters: {
+    loading: state => state.loadingCount > 0,
+  },
+
   actions: {
     /* ---------------- Toast ---------------- */
-    showToast(type: ToastItem["type"], message: string) {
+    showToast(type: ToastItem['type'], message: string) {
       const id = crypto.randomUUID()
-
       this.toasts.push({ id, type, message })
 
       setTimeout(() => {
@@ -50,21 +53,23 @@ export const useUiStore = defineStore("ui", {
       this.toasts = this.toasts.filter(t => t.id !== id)
     },
 
-    /* ---------------- Loader ---------------- */
+    /* ---------------- Loader (SAFE) ---------------- */
     showLoading() {
-      this.loading = true
+      this.loadingCount++
     },
 
     hideLoading() {
-      this.loading = false
+      if (this.loadingCount > 0) {
+        this.loadingCount--
+      }
     },
 
     /* ---------------- Confirm ---------------- */
-    openConfirm(payload: Omit<ConfirmState, "visible">) {
+    openConfirm(payload: Omit<ConfirmState, 'visible'>) {
       this.confirm = {
         visible: true,
-        confirmText: "Confirmar",
-        cancelText: "Cancelar",
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
         ...payload,
       }
     },
