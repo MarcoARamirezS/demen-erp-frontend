@@ -1,55 +1,136 @@
 <template>
-  <div class="animate-fadeIn rounded-xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <table class="table w-full hidden md:table">
-      <thead class="bg-base-200 text-xs uppercase">
-        <tr>
-          <th>Producto</th>
-          <th>SKU</th>
-          <th>Unidad</th>
-          <th class="text-right">Acciones</th>
-        </tr>
-      </thead>
+  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
+    <!-- =========================
+         DESKTOP TABLE (md+)
+    ========================== -->
+    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
+      <table class="table w-full text-sm">
+        <thead class="bg-base-200 text-xs uppercase">
+          <tr>
+            <th class="min-w-[280px]">Producto</th>
+            <th class="min-w-[160px]">SKU</th>
+            <th class="min-w-[120px]">Unidad</th>
+            <th class="w-[120px] text-center">Acciones</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        <tr v-for="p in items" :key="p.id" class="hover">
-          <td>
-            <div class="font-medium">{{ p.name }}</div>
-            <div class="text-xs opacity-60">{{ p.brand }}</div>
+        <!-- Loading -->
+        <tbody v-if="loading">
+          <tr>
+            <td colspan="4" class="p-10 text-center opacity-70">
+              <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
+              Cargando productos…
+            </td>
+          </tr>
+        </tbody>
 
-            <!-- 🔹 FAMILY / CATEGORY BADGES -->
-            <div class="flex gap-1 mt-1">
-              <span v-if="familyName(p.familyId)" class="badge badge-outline text-xs">
-                {{ familyName(p.familyId) }}
-              </span>
+        <!-- Rows -->
+        <tbody v-else-if="items.length">
+          <tr v-for="p in items" :key="p.id" class="hover:bg-base-200/40 transition">
+            <!-- Producto -->
+            <td>
+              <div class="font-semibold truncate max-w-[420px]" :title="p.name">
+                {{ p.name }}
+              </div>
 
-              <span v-if="categoryName(p.categoryId)" class="badge badge-ghost text-xs">
-                {{ categoryName(p.categoryId) }}
-              </span>
-            </div>
-          </td>
+              <div class="text-xs opacity-60 truncate max-w-[420px]">
+                {{ p.brand || '—' }}
+              </div>
 
-          <td class="font-mono text-sm">{{ p.sku }}</td>
-          <td class="text-sm uppercase">{{ p.unit }}</td>
+              <!-- Family / Category -->
+              <div class="flex flex-wrap gap-1 mt-1">
+                <span v-if="familyName(p.familyId)" class="badge badge-outline text-xs">
+                  {{ familyName(p.familyId) }}
+                </span>
 
-          <td class="text-right space-x-2">
-            <UiButton size="sm" variant="ghost" icon="edit" @click="$emit('edit', p)" />
-            <UiButton size="sm" variant="ghost" icon="trash" @click="$emit('delete', p)" />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+                <span v-if="categoryName(p.categoryId)" class="badge badge-ghost text-xs">
+                  {{ categoryName(p.categoryId) }}
+                </span>
+              </div>
+            </td>
 
-    <!-- Mobile -->
+            <!-- SKU -->
+            <td class="font-mono text-xs truncate max-w-[240px]" :title="p.sku">
+              {{ p.sku }}
+            </td>
+
+            <!-- Unidad -->
+            <td class="uppercase text-sm">
+              {{ p.unit }}
+            </td>
+
+            <!-- Acciones -->
+            <td class="text-center">
+              <div class="flex items-center justify-center gap-1">
+                <div class="tooltip" data-tip="Editar">
+                  <button
+                    class="btn btn-circle btn-sm btn-ghost text-primary"
+                    @click="$emit('edit', p)"
+                  >
+                    <Icon name="edit" size="sm" />
+                  </button>
+                </div>
+
+                <div class="tooltip" data-tip="Eliminar">
+                  <button
+                    class="btn btn-circle btn-sm btn-ghost text-error"
+                    @click="$emit('delete', p)"
+                  >
+                    <Icon name="trash" size="sm" />
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+
+        <!-- Empty -->
+        <tbody v-else>
+          <tr>
+            <td colspan="4" class="p-10 text-center opacity-70">No hay productos registrados</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- =========================
+         MOBILE CARDS (<md)
+    ========================== -->
     <div class="md:hidden space-y-3">
+      <!-- Loading -->
       <div
+        v-if="loading"
+        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm flex items-center justify-center gap-2"
+      >
+        <span class="loading loading-spinner loading-sm"></span>
+        <span class="text-sm opacity-70">Cargando productos…</span>
+      </div>
+
+      <!-- Empty -->
+      <div
+        v-else-if="!items.length"
+        class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
+      >
+        No hay productos registrados
+      </div>
+
+      <!-- Cards -->
+      <div
+        v-else
         v-for="p in items"
         :key="p.id"
-        class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
+        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
       >
-        <div class="font-semibold">{{ p.name }}</div>
-        <div class="text-xs opacity-60">{{ p.sku }}</div>
+        <!-- Header -->
+        <div class="font-semibold truncate">
+          {{ p.name }}
+        </div>
 
-        <div class="flex gap-1 mt-2">
+        <div class="text-xs opacity-60 mt-1 truncate">
+          {{ p.sku }}
+        </div>
+
+        <div class="mt-2 flex flex-wrap gap-1">
           <span v-if="familyName(p.familyId)" class="badge badge-outline text-xs">
             {{ familyName(p.familyId) }}
           </span>
@@ -59,14 +140,30 @@
           </span>
         </div>
 
-        <div class="flex justify-end gap-2 mt-3">
-          <UiButton size="sm" variant="ghost" icon="edit" @click="$emit('edit', p)" />
-          <UiButton size="sm" variant="ghost" icon="trash" @click="$emit('delete', p)" />
+        <div class="mt-2 text-sm">
+          <span class="opacity-60">Unidad:</span>
+          {{ p.unit }}
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-4 flex gap-2">
+          <button class="btn btn-sm btn-outline flex-1" @click="$emit('edit', p)">
+            <Icon name="edit" size="sm" />
+            Editar
+          </button>
+
+          <button class="btn btn-sm btn-outline btn-error flex-1" @click="$emit('delete', p)">
+            <Icon name="trash" size="sm" />
+            Eliminar
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="mt-4 flex justify-center" v-if="hasMore">
+    <!-- =========================
+         LOAD MORE
+    ========================== -->
+    <div v-if="hasMore" class="mt-4 flex justify-center">
       <UiButton size="sm" variant="outline" :loading="loading" @click="$emit('load-more')">
         Cargar más
       </UiButton>

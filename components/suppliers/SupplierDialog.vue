@@ -3,20 +3,22 @@
     <!-- =========================
          HEADER (STICKY)
     ========================== -->
-    <header
-      class="sticky top-0 z-20 flex items-center justify-between border-b border-base-300 bg-gradient-to-r from-base-200 to-base-100 px-6 py-4"
+    <div
+      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
     >
       <h2 class="text-lg font-semibold">
         {{ mode === 'create' ? 'Nuevo proveedor' : 'Editar proveedor' }}
       </h2>
 
-      <UiButton icon="x" variant="ghost" size="sm" @click="open = false" />
-    </header>
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
 
     <!-- =========================
          CONTENT (SCROLL)
     ========================== -->
-    <div class="max-h-[calc(90vh-140px)] overflow-y-auto p-6 space-y-8">
+    <div class="px-6 py-5 overflow-auto space-y-8" style="max-height: calc(90vh - 160px)">
       <!-- ===== DATOS GENERALES ===== -->
       <section>
         <h3 class="text-sm font-semibold mb-4">Datos generales</h3>
@@ -54,7 +56,7 @@
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-semibold">Contactos</h3>
 
-          <UiButton size="sm" variant="outline" icon="plus" @click="addContact">
+          <UiButton size="sm" variant="outline" icon="plus" type="button" @click="addContact">
             Agregar contacto
           </UiButton>
         </div>
@@ -76,7 +78,7 @@
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-semibold">Cuentas bancarias</h3>
 
-          <UiButton size="sm" variant="outline" icon="plus" @click="addBankAccount">
+          <UiButton size="sm" variant="outline" icon="plus" type="button" @click="addBankAccount">
             Agregar cuenta bancaria
           </UiButton>
         </div>
@@ -86,22 +88,15 @@
           :key="i"
           class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 items-end"
         >
-          <!-- Banco -->
           <UiInput v-model="b.bankName" label="Banco" />
-
-          <!-- Titular -->
           <UiInput v-model="b.accountHolder" label="Titular" />
-
-          <!-- Cuenta -->
           <UiInput v-model="b.accountNumber" label="Cuenta" />
 
-          <!-- Moneda -->
           <UiSelect v-model="b.currency" label="Moneda">
             <UiOption value="MXN">MXN</UiOption>
             <UiOption value="USD">USD</UiOption>
           </UiSelect>
 
-          <!-- CLABE (ocupa 2 columnas) -->
           <UiInput v-model="b.clabe" label="CLABE" class="md:col-span-2" />
         </div>
       </section>
@@ -115,13 +110,13 @@
     <!-- =========================
          FOOTER (STICKY)
     ========================== -->
-    <footer
-      class="sticky bottom-0 z-20 flex justify-end gap-2 border-t border-base-300 bg-base-100 px-6 py-4"
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
     >
-      <UiButton variant="ghost" @click="open = false"> Cancelar </UiButton>
+      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
 
       <UiButton variant="primary" @click="submit"> Guardar </UiButton>
-    </footer>
+    </div>
   </UiDialog>
 </template>
 

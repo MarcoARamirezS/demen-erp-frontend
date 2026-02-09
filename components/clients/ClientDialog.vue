@@ -113,65 +113,83 @@ function submit() {
 </script>
 
 <template>
-  <UiDialog
-    v-model="open"
-    size="lg"
-    :title="mode === 'create' ? 'Nuevo cliente' : 'Editar cliente'"
-  >
-    <form class="space-y-4" @submit.prevent="submit">
-      <!-- =========================
-           DATOS GENERALES
-      ========================== -->
-      <UiInput v-model="form.razonSocial" label="Razón social *" />
+  <UiDialog v-model="open" size="lg" hide-header hide-close>
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+    >
+      <h2 class="font-semibold text-lg">
+        {{ mode === 'create' ? 'Nuevo cliente' : 'Editar cliente' }}
+      </h2>
 
-      <UiInput v-model="form.nombreComercial" label="Nombre comercial" />
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
 
-      <UiInput v-model="form.rfc" label="RFC" placeholder="XAXX010101000" />
-      <p class="text-xs text-base-content/50">RFC genérico permitido para pruebas en México</p>
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
+      <form class="space-y-4" @submit.prevent="submit">
+        <!-- =========================
+             DATOS GENERALES
+        ========================== -->
+        <UiInput v-model="form.razonSocial" label="Razón social *" />
 
-      <UiInput v-model="form.email" label="Email" />
+        <UiInput v-model="form.nombreComercial" label="Nombre comercial" />
 
-      <!-- TIPO -->
-      <div>
-        <label class="label text-sm">
-          <span class="label-text">Tipo de cliente</span>
-        </label>
+        <UiInput v-model="form.rfc" label="RFC" placeholder="XAXX010101000" />
+        <p class="text-xs text-base-content/50">RFC genérico permitido para pruebas en México</p>
 
-        <select v-model="form.tipo" class="select select-bordered w-full">
-          <option value="empresa">Empresa</option>
-          <option value="persona">Persona física</option>
-        </select>
-      </div>
+        <UiInput v-model="form.email" label="Email" />
 
-      <!-- =========================
-           TELÉFONO
-      ========================== -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <!-- País -->
+        <!-- TIPO -->
         <div>
           <label class="label text-sm">
-            <span class="label-text">País</span>
+            <span class="label-text">Tipo de cliente</span>
           </label>
 
-          <select v-model="countryCode" class="select select-bordered w-full h-[42px]">
-            <option value="+52">🇲🇽 México (+52)</option>
+          <select v-model="form.tipo" class="select select-bordered w-full">
+            <option value="empresa">Empresa</option>
+            <option value="persona">Persona física</option>
           </select>
         </div>
 
-        <!-- Teléfono -->
-        <div class="md:col-span-2">
-          <UiInput v-model="form.telefono" label="Teléfono" placeholder="10 dígitos" />
+        <!-- =========================
+             TELÉFONO
+        ========================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <!-- País -->
+          <div>
+            <label class="label text-sm">
+              <span class="label-text">País</span>
+            </label>
+
+            <select v-model="countryCode" class="select select-bordered w-full h-[42px]">
+              <option value="+52">🇲🇽 México (+52)</option>
+            </select>
+          </div>
+
+          <!-- Teléfono -->
+          <div class="md:col-span-2">
+            <UiInput v-model="form.telefono" label="Teléfono" placeholder="10 dígitos" />
+          </div>
         </div>
-      </div>
+      </form>
+    </div>
 
-      <!-- =========================
-           ACTIONS
-      ========================== -->
-      <div class="flex justify-end gap-3 pt-4 border-t">
-        <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
+    >
+      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
 
-        <UiButton variant="primary" type="submit"> Guardar </UiButton>
-      </div>
-    </form>
+      <UiButton variant="primary" type="submit" @click="submit"> Guardar </UiButton>
+    </div>
   </UiDialog>
 </template>

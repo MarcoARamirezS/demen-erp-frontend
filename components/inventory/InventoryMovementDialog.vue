@@ -45,12 +45,24 @@ watch(open, v => {
 </script>
 
 <template>
-  <UiDialog v-model="open" size="md" hide-close>
-    <header class="sticky top-0 bg-base-200 px-6 py-4 font-semibold">
-      Movimiento de Inventario
-    </header>
+  <UiDialog v-model="open" size="md" hide-header hide-close>
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+    >
+      <h2 class="font-semibold text-lg">Movimiento de inventario</h2>
 
-    <div class="p-6 space-y-4">
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
+
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 space-y-4 overflow-auto" style="max-height: calc(90vh - 160px)">
       <!-- PRODUCTO -->
       <UiSelect v-model="form.productId" label="Producto" empty-text="No hay productos">
         <UiOption v-for="p in productsStore.items" :key="p.id" :value="p.id">
@@ -73,9 +85,15 @@ watch(open, v => {
       <UiInput v-model="form.reason" label="Motivo" type="textarea" />
     </div>
 
-    <footer class="sticky bottom-0 bg-base-200 px-6 py-4 flex justify-end gap-2">
-      <UiButton outline @click="open = false">Cancelar</UiButton>
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
+    >
+      <UiButton variant="outline" type="button" @click="open = false"> Cancelar </UiButton>
+
       <UiButton :disabled="!form.productId" @click="submit"> Guardar </UiButton>
-    </footer>
+    </div>
   </UiDialog>
 </template>

@@ -1,6 +1,24 @@
 <template>
-  <UiDialog v-model="open" size="xl" :title="mode === 'create' ? 'Crear rol' : 'Editar rol'">
-    <form class="space-y-6" @submit.prevent="submit">
+  <UiDialog v-model="open" size="xl" hide-header hide-close>
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+    >
+      <h2 class="text-lg font-semibold">
+        {{ mode === 'create' ? 'Crear rol' : 'Editar rol' }}
+      </h2>
+
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
+
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 space-y-6 overflow-auto" style="max-height: calc(90vh - 160px)">
       <!-- =========================
            DATOS BÁSICOS
       ========================== -->
@@ -65,7 +83,7 @@
             </UiButton>
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <UiCheckbox
               v-for="p in activePermissions"
               :key="p.code"
@@ -93,15 +111,18 @@
           </span>
         </div>
       </section>
+    </div>
 
-      <!-- =========================
-           ACCIONES
-      ========================== -->
-      <div class="flex justify-end gap-3 pt-4 border-t">
-        <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
-        <UiButton variant="primary" type="submit"> Guardar </UiButton>
-      </div>
-    </form>
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
+    >
+      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+
+      <UiButton variant="primary" type="button" @click="submit"> Guardar </UiButton>
+    </div>
   </UiDialog>
 </template>
 

@@ -1,89 +1,122 @@
 <template>
-  <UiDialog
-    v-model="open"
-    size="xl"
-    :title="mode === 'create' ? 'Crear usuario' : 'Editar usuario'"
-  >
-    <form class="space-y-8" @submit.prevent="submit">
-      <!-- HEADER -->
-      <div class="flex flex-col gap-4 rounded-lg bg-base-200/60 p-4 sm:flex-row">
-        <div class="rounded-full bg-primary/10 p-3">
-          <Icon name="user" />
-        </div>
-        <div>
-          <h2 class="font-semibold text-lg">
-            {{ mode === 'create' ? 'Nuevo usuario' : 'Editar usuario' }}
-          </h2>
-          <p class="text-sm opacity-60">Administración de accesos y roles</p>
-        </div>
+  <UiDialog v-model="open" size="xl" hide-close>
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-start gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+    >
+      <div class="rounded-full bg-primary/10 p-3 shrink-0">
+        <Icon name="user" />
       </div>
 
-      <!-- DATOS PERSONALES -->
-      <section class="space-y-3">
-        <h3 class="font-semibold flex items-center gap-2">
-          <Icon name="user" size="sm" /> Datos personales
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <UiInput v-model="form.nombre" label="Nombre *" />
-          <UiInput v-model="form.apaterno" label="Apellido paterno *" />
-          <UiInput v-model="form.amaterno" label="Apellido materno" />
-        </div>
-      </section>
-
-      <!-- CONTACTO -->
-      <section class="space-y-3">
-        <h3 class="font-semibold flex items-center gap-2">
-          <Icon name="home" size="sm" /> Contacto
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput v-model="form.telefono" label="Teléfono" />
-          <UiInput v-model="form.direccion" label="Dirección" />
-          <UiInput v-model="form.ciudad" label="Ciudad" />
-          <UiInput v-model="form.estado" label="Estado" />
-        </div>
-      </section>
-
-      <!-- ACCESO -->
-      <section class="space-y-3">
-        <h3 class="font-semibold flex items-center gap-2"><Icon name="lock" size="sm" /> Acceso</h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <UiInput v-model="form.usuario" label="Usuario *" />
-          <UiInput
-            v-if="mode === 'create'"
-            v-model="form.password"
-            label="Contraseña *"
-            type="password"
-          />
-          <UiToggle v-model="form.activo" label="Usuario activo" />
-        </div>
-      </section>
-
-      <!-- ROLES -->
-      <section class="space-y-3">
-        <h3 class="font-semibold flex items-center gap-2"><Icon name="key" size="sm" /> Roles *</h3>
-
-        <div class="flex flex-wrap gap-3 max-h-48 overflow-y-auto rounded-lg border p-3">
-          <UiCheckbox
-            v-for="r in rolesStore.activeRoles"
-            :key="r.id"
-            v-model="form.roleIds"
-            :value="r.id"
-            :label="r.name"
-          />
-        </div>
-      </section>
-
-      <!-- FOOTER -->
-      <div class="flex flex-col-reverse gap-3 pt-6 border-t sm:flex-row sm:justify-end">
-        <UiButton variant="ghost" class="w-full sm:w-auto" @click="open = false">
-          Cancelar
-        </UiButton>
-        <UiButton variant="primary" class="w-full sm:w-auto" type="submit"> Guardar </UiButton>
+      <div class="min-w-0 flex-1">
+        <h2 class="font-semibold text-lg truncate">
+          {{ mode === 'create' ? 'Nuevo usuario' : 'Editar usuario' }}
+        </h2>
+        <p class="text-xs opacity-60 truncate">Administración de accesos y roles</p>
       </div>
-    </form>
+
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
+
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
+      <form class="space-y-8" @submit.prevent="submit">
+        <!-- =========================
+             DATOS PERSONALES
+        ========================== -->
+        <section class="space-y-3">
+          <h3 class="font-semibold flex items-center gap-2">
+            <Icon name="user" size="sm" />
+            Datos personales
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <UiInput v-model="form.nombre" label="Nombre *" />
+            <UiInput v-model="form.apaterno" label="Apellido paterno *" />
+            <UiInput v-model="form.amaterno" label="Apellido materno" />
+          </div>
+        </section>
+
+        <!-- =========================
+             CONTACTO
+        ========================== -->
+        <section class="space-y-3">
+          <h3 class="font-semibold flex items-center gap-2">
+            <Icon name="home" size="sm" />
+            Contacto
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UiInput v-model="form.telefono" label="Teléfono" />
+            <UiInput v-model="form.direccion" label="Dirección" />
+            <UiInput v-model="form.ciudad" label="Ciudad" />
+            <UiInput v-model="form.estado" label="Estado" />
+          </div>
+        </section>
+
+        <!-- =========================
+             ACCESO
+        ========================== -->
+        <section class="space-y-3">
+          <h3 class="font-semibold flex items-center gap-2">
+            <Icon name="lock" size="sm" />
+            Acceso
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <UiInput v-model="form.usuario" label="Usuario *" />
+
+            <UiInput
+              v-if="mode === 'create'"
+              v-model="form.password"
+              label="Contraseña *"
+              type="password"
+            />
+
+            <UiToggle v-model="form.activo" label="Usuario activo" />
+          </div>
+        </section>
+
+        <!-- =========================
+             ROLES
+        ========================== -->
+        <section class="space-y-3">
+          <h3 class="font-semibold flex items-center gap-2">
+            <Icon name="key" size="sm" />
+            Roles *
+          </h3>
+
+          <div
+            class="flex flex-wrap gap-3 max-h-48 overflow-y-auto rounded-xl border border-base-300 bg-base-100 p-3"
+          >
+            <UiCheckbox
+              v-for="r in rolesStore.activeRoles"
+              :key="r.id"
+              v-model="form.roleIds"
+              :value="r.id"
+              :label="r.name"
+            />
+          </div>
+        </section>
+      </form>
+    </div>
+
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
+    >
+      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+
+      <UiButton variant="primary" type="submit" @click="submit"> Guardar </UiButton>
+    </div>
   </UiDialog>
 </template>
 

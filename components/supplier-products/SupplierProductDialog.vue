@@ -1,17 +1,24 @@
 <template>
   <UiDialog v-model="open" size="xl" hide-close>
-    <!-- HEADER -->
-    <header
-      class="sticky top-0 z-20 flex items-center justify-between border-b border-base-300 bg-base-100 px-6 py-4"
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
     >
       <h2 class="text-lg font-semibold">
         {{ mode === 'create' ? 'Asignar proveedor a producto' : 'Editar proveedor del producto' }}
       </h2>
-      <UiButton icon="x" variant="ghost" size="sm" @click="open = false" />
-    </header>
 
-    <!-- CONTENT -->
-    <div class="max-h-[calc(90vh-140px)] overflow-y-auto p-6 space-y-6">
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
+
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 overflow-auto space-y-6" style="max-height: calc(90vh - 160px)">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
         <!-- Proveedor -->
         <UiSelect
@@ -74,13 +81,16 @@
       </div>
     </div>
 
-    <!-- FOOTER -->
-    <footer
-      class="sticky bottom-0 z-20 flex justify-end gap-2 border-t border-base-300 bg-base-100 px-6 py-4"
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
     >
-      <UiButton variant="ghost" @click="open = false">Cancelar</UiButton>
+      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+
       <UiButton variant="primary" :disabled="!isValid" @click="submit"> Guardar </UiButton>
-    </footer>
+    </div>
   </UiDialog>
 </template>
 

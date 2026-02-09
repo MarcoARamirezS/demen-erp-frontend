@@ -1,70 +1,96 @@
 <template>
-  <UiDialog v-model="open" size="xl" title="Detalle de auditoría">
-    <!-- LOADING -->
-    <div v-if="loading" class="p-6 text-center opacity-70">Cargando detalle...</div>
-
-    <!-- CONTENT -->
-    <div v-else-if="model" class="space-y-6">
-      <!-- HEADER -->
-      <div class="flex items-start gap-4 rounded-lg bg-base-200/60 p-4">
-        <div class="rounded-full bg-primary/10 p-3">
-          <Icon name="shield" />
-        </div>
-
-        <div class="min-w-0">
-          <h2 class="font-semibold text-lg truncate">{{ model.resource }} · {{ model.action }}</h2>
-          <p class="text-sm opacity-60">{{ formatDateTime(model.createdAt) }} · {{ model.id }}</p>
-        </div>
+  <UiDialog v-model="open" size="xl" :hide-close="true">
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-start gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+    >
+      <div class="rounded-full bg-primary/10 p-3 shrink-0">
+        <Icon name="shield" />
       </div>
 
-      <!-- GRID -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <!-- ACTOR -->
-        <div class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-1">
-          <div class="text-xs uppercase opacity-60">Actor</div>
-
-          <div v-if="actorNombre" class="font-medium">
-            {{ actorNombre }}
-          </div>
-
-          <div v-if="actorUsuario" class="text-sm opacity-70">@{{ actorUsuario }}</div>
-
-          <div v-if="actorId" class="text-xs opacity-50 break-all">ID: {{ actorId }}</div>
-
-          <div v-if="!actorNombre && !actorUsuario" class="text-sm opacity-60 italic">Sistema</div>
-        </div>
-
-        <!-- RESOURCE ID -->
-        <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-          <div class="text-xs uppercase opacity-60 mb-1">Recurso ID</div>
-          <div class="font-medium break-all">
-            {{ model.resourceId || '—' }}
-          </div>
-        </div>
+      <div class="min-w-0 flex-1">
+        <h2 class="font-semibold text-lg truncate">{{ model?.resource }} · {{ model?.action }}</h2>
+        <p class="text-xs opacity-60 truncate">
+          {{ model ? formatDateTime(model.createdAt) : '' }}
+          <span v-if="model?.id" class="font-mono"> · {{ model.id }}</span>
+        </p>
       </div>
 
-      <!-- META -->
-      <section class="space-y-2">
-        <h3 class="font-semibold text-primary flex items-center gap-2">
-          <Icon name="code" size="sm" />
-          Meta (JSON)
-        </h3>
-
-        <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-          <pre class="text-xs whitespace-pre-wrap break-words"
-            >{{ prettyMeta }}
-          </pre>
-        </div>
-      </section>
-
-      <!-- ACTIONS -->
-      <div class="flex justify-end pt-4 border-t">
-        <UiButton variant="ghost" @click="open = false"> Cerrar </UiButton>
-      </div>
+      <!-- Close -->
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
     </div>
 
-    <!-- EMPTY -->
-    <div v-else class="p-6 text-center opacity-70">No hay información para mostrar.</div>
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
+      <!-- LOADING -->
+      <div v-if="loading" class="py-10 text-center opacity-70">
+        <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
+        Cargando detalle…
+      </div>
+
+      <!-- CONTENT -->
+      <div v-else-if="model" class="space-y-6">
+        <!-- GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- ACTOR -->
+          <div class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-1">
+            <div class="text-xs uppercase opacity-60">Actor</div>
+
+            <div v-if="actorNombre" class="font-medium">
+              {{ actorNombre }}
+            </div>
+
+            <div v-if="actorUsuario" class="text-sm opacity-70">@{{ actorUsuario }}</div>
+
+            <div v-if="actorId" class="text-xs opacity-50 break-all">ID: {{ actorId }}</div>
+
+            <div v-if="!actorNombre && !actorUsuario" class="text-sm opacity-60 italic">
+              Sistema
+            </div>
+          </div>
+
+          <!-- RESOURCE ID -->
+          <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+            <div class="text-xs uppercase opacity-60 mb-1">Recurso ID</div>
+            <div class="font-medium break-all">
+              {{ model.resourceId || '—' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- META -->
+        <section class="space-y-2">
+          <h3 class="font-semibold text-primary flex items-center gap-2">
+            <Icon name="code" size="sm" />
+            Meta (JSON)
+          </h3>
+
+          <div class="rounded-xl border border-base-300 bg-base-100 p-4 overflow-auto">
+            <pre class="text-xs whitespace-pre-wrap break-words"
+              >{{ prettyMeta }}
+            </pre>
+          </div>
+        </section>
+      </div>
+
+      <!-- EMPTY -->
+      <div v-else class="py-10 text-center opacity-70">No hay información para mostrar.</div>
+    </div>
+
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-base-300 bg-base-200 px-6 py-4"
+    >
+      <UiButton variant="outline" @click="open = false"> Cerrar </UiButton>
+    </div>
   </UiDialog>
 </template>
 

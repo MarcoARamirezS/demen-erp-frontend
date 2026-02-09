@@ -72,27 +72,49 @@ function submit() {
 </script>
 
 <template>
-  <UiDialog
-    v-model="open"
-    size="lg"
-    :title="mode === 'create' ? 'Nueva dirección' : 'Editar dirección'"
-  >
-    <form class="space-y-4" @submit.prevent="submit">
-      <UiInput
-        v-model="form.nombre"
-        label="Nombre de la dirección *"
-        placeholder="Sucursal Centro"
-      />
+  <UiDialog v-model="open" size="lg" hide-header hide-close>
+    <!-- =========================
+         HEADER (STICKY)
+    ========================== -->
+    <div
+      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+    >
+      <h2 class="font-semibold text-lg">
+        {{ mode === 'create' ? 'Nueva dirección' : 'Editar dirección' }}
+      </h2>
 
-      <UiInput v-model="form.calle" label="Calle *" />
-      <UiInput v-model="form.ciudad" label="Ciudad *" />
-      <UiInput v-model="form.estado" label="Estado *" />
-      <UiInput v-model="form.pais" label="País" />
+      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+        <Icon name="x" />
+      </button>
+    </div>
 
-      <div class="flex justify-end gap-3 pt-4 border-t">
-        <UiButton variant="ghost" type="button" @click="open = false">Cancelar</UiButton>
-        <UiButton variant="primary" type="submit">Guardar</UiButton>
-      </div>
-    </form>
+    <!-- =========================
+         CONTENT (SCROLL)
+    ========================== -->
+    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
+      <form class="space-y-4" @submit.prevent="submit">
+        <UiInput
+          v-model="form.nombre"
+          label="Nombre de la dirección *"
+          placeholder="Sucursal Centro"
+        />
+
+        <UiInput v-model="form.calle" label="Calle *" />
+        <UiInput v-model="form.ciudad" label="Ciudad *" />
+        <UiInput v-model="form.estado" label="Estado *" />
+        <UiInput v-model="form.pais" label="País" />
+      </form>
+    </div>
+
+    <!-- =========================
+         FOOTER (STICKY)
+    ========================== -->
+    <div
+      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
+    >
+      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+
+      <UiButton variant="primary" type="submit" @click="submit"> Guardar </UiButton>
+    </div>
   </UiDialog>
 </template>

@@ -10,11 +10,15 @@ const props = withDefaults(
     title?: string
     size?: UiDialogSize
     closeOnBackdrop?: boolean
+    hideHeader?: boolean
+    hideClose?: boolean
   }>(),
   {
     title: '',
     size: 'lg',
     closeOnBackdrop: true,
+    hideHeader: false,
+    hideClose: false,
   }
 )
 
@@ -52,12 +56,10 @@ watch(
   { immediate: true }
 )
 
-// Cuando el usuario cierra con ESC o el close() nativo
 const onCloseNative = () => {
   if (props.modelValue) emit('update:modelValue', false)
 }
 
-// click backdrop
 const onBackdropClick = (e: MouseEvent) => {
   if (!props.closeOnBackdrop) return
   if (e.target === dlg.value) close()
@@ -67,19 +69,38 @@ const onBackdropClick = (e: MouseEvent) => {
 <template>
   <dialog ref="dlg" class="modal" @close="onCloseNative" @click="onBackdropClick">
     <div class="modal-box w-11/12 p-0" :class="sizeClass">
-      <!-- Header -->
-      <div class="flex items-center justify-between gap-3 border-b border-base-300 px-5 py-4">
-        <div class="min-w-0">
-          <h3 class="truncate text-base font-semibold">
-            {{ title }}
-          </h3>
-        </div>
+      <!-- =========================
+           HEADER (DEFAULT)
+      ========================== -->
+      <div
+        v-if="!hideHeader"
+        class="flex items-center justify-between gap-3 border-b border-base-300 bg-base-200 px-5 py-4"
+      >
+        <h3 class="truncate text-base font-semibold">
+          {{ title }}
+        </h3>
 
-        <button class="btn btn-ghost btn-sm" type="button" @click="close">✕</button>
+        <button
+          v-if="!hideClose"
+          class="btn btn-circle btn-sm btn-ghost"
+          type="button"
+          @click="close"
+        >
+          ✕
+        </button>
       </div>
 
-      <!-- Body -->
-      <div class="px-5 py-5">
+      <!-- =========================
+           BODY (NO PADDING FOR ADVANCED)
+      ========================== -->
+      <div v-if="$slots.header || $slots.footer" class="p-0">
+        <slot />
+      </div>
+
+      <!-- =========================
+           BODY (SIMPLE)
+      ========================== -->
+      <div v-else class="px-5 py-5">
         <slot />
       </div>
     </div>
