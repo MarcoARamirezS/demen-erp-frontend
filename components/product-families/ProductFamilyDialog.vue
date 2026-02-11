@@ -18,8 +18,11 @@
     <!-- =========================
          CONTENT (SCROLL)
     ========================== -->
-    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
+    <div class="px-6 py-5 overflow-auto space-y-4" style="max-height: calc(90vh - 160px)">
       <UiInput v-model="form.name" label="Nombre de la familia" autofocus />
+
+      <!-- 🔥 NUEVO CAMPO CODE -->
+      <UiInput v-model="form.code" label="Código" placeholder="Ej: ELECTRONICA" />
     </div>
 
     <!-- =========================
@@ -53,20 +56,58 @@ const open = computed({
 
 const form = reactive({
   name: '',
+  code: '',
 })
 
+/* =========================
+   🔥 AUTOGENERAR CÓDIGO
+   Solo en modo create
+========================= */
+watch(
+  () => form.name,
+  val => {
+    if (props.mode === 'create') {
+      form.code =
+        val
+          ?.toUpperCase()
+          .replace(/\s+/g, '_')
+          .replace(/[^A-Z0-9_]/g, '')
+          .substring(0, 20) || ''
+    }
+  }
+)
+
+/* =========================
+   EDIT MODE
+========================= */
 watch(
   () => props.model,
   v => {
-    if (v) Object.assign(form, v)
-    else form.name = ''
+    if (v) {
+      Object.assign(form, {
+        name: v.name ?? '',
+        code: v.code ?? '',
+      })
+    } else {
+      form.name = ''
+      form.code = ''
+    }
   },
   { immediate: true }
 )
 
+/* =========================
+   SUBMIT
+========================= */
 function submit() {
   if (!form.name.trim()) return
-  emit('submit', { ...form })
+  if (!form.code.trim()) return
+
+  emit('submit', {
+    name: form.name.trim(),
+    code: form.code.trim().toUpperCase(),
+  })
+
   open.value = false
 }
 </script>

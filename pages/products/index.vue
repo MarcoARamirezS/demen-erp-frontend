@@ -160,12 +160,11 @@ function confirmDelete(item: Product) {
   })
 }
 
-async function handleSubmit(payload: any) {
-  if (dialogMode.value === 'create') {
-    await store.create(payload)
-  } else if (selected.value) {
-    await store.update(selected.value.id, payload)
-  }
+async function handleSubmit() {
   dialogOpen.value = false
+  ui.showToast(
+    'success',
+    dialogMode.value === 'create' ? 'Producto creado' : 'Producto actualizado'
+  )
 }
 </script>

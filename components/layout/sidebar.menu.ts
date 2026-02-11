@@ -24,7 +24,7 @@ export const sidebarMenu: SidebarMenuItem[] = [
   {
     label: 'Inicio',
     icon: 'home',
-    to: '/',
+    to: '/dashboard',
   },
 
   {

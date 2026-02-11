@@ -21,6 +21,7 @@ export const useProductsStore = defineStore('products', {
       if (!this.hasMore || this.loading) return
 
       this.loading = true
+
       const res = await useApi<any>('/products', {
         query: { limit, cursor: this.cursor },
       })
@@ -31,14 +32,22 @@ export const useProductsStore = defineStore('products', {
       this.loading = false
     },
 
+    /* =========================
+       CREATE
+    ========================= */
     async create(payload: CreateProductDto) {
       const product = await useApi<Product>('/products', {
         method: 'POST',
         body: payload,
       })
+
       this.items.unshift(product)
+      return product // 🔥 IMPORTANTE
     },
 
+    /* =========================
+       UPDATE
+    ========================= */
     async update(id: string, payload: Partial<CreateProductDto>) {
       const updated = await useApi<Product>(`/products/${id}`, {
         method: 'PATCH',
@@ -47,6 +56,31 @@ export const useProductsStore = defineStore('products', {
 
       const idx = this.items.findIndex(i => i.id === id)
       if (idx !== -1) this.items[idx] = updated
+
+      return updated // 🔥 IMPORTANTE
+    },
+
+    /* =========================
+       UPLOAD IMAGES
+    ========================= */
+    async uploadImages(id: string, files: File[]) {
+      const fd = new FormData()
+      files.forEach(f => fd.append('images', f))
+
+      const updated = await useApi<Product>(`/products/${id}/images`, {
+        method: 'POST',
+        body: fd,
+      })
+
+      // 🔥 actualizar local state
+      const idx = this.items.findIndex(i => i.id === id)
+      if (idx !== -1) this.items[idx] = updated
+
+      if (this.selected?.id === id) {
+        this.selected = updated
+      }
+
+      return updated
     },
 
     async remove(id: string) {
@@ -56,6 +90,7 @@ export const useProductsStore = defineStore('products', {
 
     async get(id: string) {
       this.selected = await useApi<Product>(`/products/${id}`)
+      return this.selected
     },
 
     clearSelected() {

@@ -26,6 +26,9 @@
       </UiSelect>
 
       <UiInput v-model="form.name" label="Nombre de la categoría" />
+
+      <!-- 🔥 NUEVO CAMPO CODE -->
+      <UiInput v-model="form.code" label="Código" placeholder="Ej: ACCESORIOS" />
     </div>
 
     <!-- =========================
@@ -64,6 +67,7 @@ const families = computed(() => familiesStore.items)
 
 const form = reactive({
   name: '',
+  code: '',
   familyId: '',
 })
 
@@ -77,21 +81,58 @@ onMounted(async () => {
   }
 })
 
+/* =========================
+   🔥 AUTOGENERAR CÓDIGO
+   Solo en modo create
+========================= */
+watch(
+  () => form.name,
+  val => {
+    if (props.mode === 'create') {
+      form.code =
+        val
+          ?.toUpperCase()
+          .replace(/\s+/g, '_')
+          .replace(/[^A-Z0-9_]/g, '')
+          .substring(0, 20) || ''
+    }
+  }
+)
+
+/* =========================
+   EDIT MODE
+========================= */
 watch(
   () => props.model,
   v => {
-    if (v) Object.assign(form, v)
-    else {
+    if (v) {
+      Object.assign(form, {
+        name: v.name ?? '',
+        code: v.code ?? '',
+        familyId: v.familyId ?? props.familyId ?? '',
+      })
+    } else {
       form.name = ''
+      form.code = ''
       form.familyId = props.familyId || ''
     }
   },
   { immediate: true }
 )
 
+/* =========================
+   SUBMIT
+========================= */
 function submit() {
   if (!form.name.trim() || !form.familyId) return
-  emit('submit', { ...form })
+  if (!form.code.trim()) return
+
+  emit('submit', {
+    name: form.name.trim(),
+    code: form.code.trim().toUpperCase(),
+    familyId: form.familyId,
+  })
+
   open.value = false
 }
 </script>

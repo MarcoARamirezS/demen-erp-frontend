@@ -57,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
       this.permissions = []
       this.initialized = true
 
-      if (redirect) navigateTo('/login')
+      if (redirect) navigateTo('/')
     },
   },
 })
