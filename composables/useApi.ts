@@ -12,6 +12,7 @@ export function useApi<T>(
 ): Promise<T> {
   const ui = useUiStore()
   const auth = useAuthStore()
+  const config = useRuntimeConfig()
 
   if (!url.startsWith('/')) {
     throw new Error('[useApi] URL inválida')
@@ -25,10 +26,15 @@ export function useApi<T>(
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
   /* =========================
+     🔥 BASE URL DINÁMICA
+  ========================= */
+  const baseUrl = config.public.apiBaseUrl
+
+  let finalUrl = `${baseUrl}${url}`
+
+  /* =========================
      🔥 BUILD QUERY STRING
   ========================= */
-  let finalUrl = `http://localhost:4000/api${url}`
-
   if (options.query) {
     const params = new URLSearchParams()
 
@@ -51,7 +57,7 @@ export function useApi<T>(
   /* =========================
      🔥 IMPORTANTE
      JAMÁS setear Content-Type
-     si es FormData (browser agrega boundary)
+     si es FormData
   ========================= */
   if (!isFormData && options.body) {
     headers['Content-Type'] = 'application/json'
