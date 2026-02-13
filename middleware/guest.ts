@@ -7,6 +7,6 @@ export default defineNuxtRouteMiddleware(() => {
   // ⚠️ SOLO usar el estado actual
   // NO forzar fetchMe en login
   if (auth.isAuthenticated) {
-    return navigateTo('/')
+    return navigateTo('/dashboard')
   }
 })

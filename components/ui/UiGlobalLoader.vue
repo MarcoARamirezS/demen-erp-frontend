@@ -1,7 +1,7 @@
 <template>
   <transition name="fade">
     <div
-      v-if="ui.loading"
+      v-if="mounted && ui.loading"
       class="fixed inset-0 z-[9999] bg-base-100/80 flex items-center justify-center"
     >
       <div class="flex flex-col items-center gap-4">
@@ -15,6 +15,12 @@
 <script setup lang="ts">
 import { useUiStore } from '~/stores/ui.store'
 const ui = useUiStore()
+
+const mounted = ref(false)
+
+onMounted(() => {
+  mounted.value = true
+})
 </script>
 
 <style scoped>
