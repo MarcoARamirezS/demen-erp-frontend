@@ -19,11 +19,10 @@ export function useApi<T>(
 
   ui.showLoading()
 
-  const isFormData =
-    process.client &&
-    options.body &&
-    typeof FormData !== 'undefined' &&
-    options.body instanceof FormData
+  /* =========================
+     🔥 FIX DEFINITIVO FORMDATA
+  ========================= */
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
   /* =========================
      🔥 BUILD QUERY STRING
@@ -39,14 +38,22 @@ export function useApi<T>(
       }
     })
 
-    finalUrl += `?${params.toString()}`
+    const queryString = params.toString()
+    if (queryString) {
+      finalUrl += `?${queryString}`
+    }
   }
 
   const headers: Record<string, string> = {
     ...(options.headers || {}),
   }
 
-  if (!isFormData) {
+  /* =========================
+     🔥 IMPORTANTE
+     JAMÁS setear Content-Type
+     si es FormData (browser agrega boundary)
+  ========================= */
+  if (!isFormData && options.body) {
     headers['Content-Type'] = 'application/json'
   }
 

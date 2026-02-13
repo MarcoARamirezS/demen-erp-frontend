@@ -83,6 +83,7 @@
           </label>
 
           <input
+            :key="fileInputKey"
             type="file"
             multiple
             accept="image/*"
@@ -90,7 +91,7 @@
             @change="onSelectImages"
           />
 
-          <!-- (Opcional) imágenes ya guardadas del producto -->
+          <!-- Imágenes existentes -->
           <div v-if="existingImages.length" class="mt-4">
             <div class="text-xs opacity-70 mb-2">Imágenes actuales</div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -107,17 +108,26 @@
             </div>
           </div>
 
-          <!-- previews de nuevas imágenes seleccionadas -->
+          <!-- NUEVAS PREVIEWS -->
           <div v-if="previews.length" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             <div
               v-for="(img, i) in previews"
               :key="i"
-              class="relative rounded-xl border border-base-300 overflow-hidden"
+              class="relative rounded-xl border border-base-300 overflow-hidden group"
             >
               <img :src="img" class="object-cover h-32 w-full" />
+
               <span v-if="i === 0" class="badge badge-primary absolute top-2 left-2">
                 Principal
               </span>
+
+              <button
+                type="button"
+                class="btn btn-xs btn-circle btn-error absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition"
+                @click="removeImage(i)"
+              >
+                ✕
+              </button>
             </div>
           </div>
 
@@ -141,7 +151,6 @@
       </UiButton>
     </div>
 
-    <!-- QUICK CREATE -->
     <ClientOnly>
       <ProductFamilyDialog
         v-if="familyDialogOpen"
@@ -165,24 +174,9 @@
 import { reactive, watch, computed, onMounted, ref } from 'vue'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
-import { useProductsStore } from '~/stores/products.store' // <-- AJUSTA si tu store se llama distinto
-
-import ProductFamilyDialog from '~/components/product-families/ProductFamilyDialog.vue'
-import ProductCategoryDialog from '~/components/product-categories/ProductCategoryDialog.vue'
+import { useProductsStore } from '~/stores/products.store'
 
 type Mode = 'create' | 'edit'
-
-type ProductImage = {
-  publicId: string
-  url: string
-  secureUrl?: string
-  width?: number
-  height?: number
-  format?: string
-  bytes?: number
-  isMain?: boolean
-  order?: number
-}
 
 const props = defineProps<{
   modelValue: boolean
@@ -190,10 +184,7 @@ const props = defineProps<{
   model?: any
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (e: 'submit', saved?: any): void
-}>()
+const emit = defineEmits(['update:modelValue', 'submit'])
 
 const open = computed({
   get: () => props.modelValue,
@@ -201,7 +192,7 @@ const open = computed({
 })
 
 /* =========================
-   API + STORES
+   STORES
 ========================= */
 const productsStore = useProductsStore()
 const familiesStore = useProductFamiliesStore()
@@ -211,49 +202,7 @@ const families = computed(() => familiesStore.items)
 const categories = computed(() => categoriesStore.items)
 
 /* =========================
-   FORM
-========================= */
-const form = reactive({
-  partNumber: '',
-  internalCode: '',
-  name: '',
-  description: '',
-  brand: '',
-  unit: 'pz',
-  familyId: '',
-  categoryId: '',
-})
-
-/* =========================
-   IMAGES (NEW SELECTION)
-========================= */
-const selectedImages = ref<File[]>([])
-const previews = ref<string[]>([])
-const saving = ref(false)
-
-const existingImages = computed<ProductImage[]>(() => {
-  const imgs = (props.model?.images ?? []) as ProductImage[]
-  return Array.isArray(imgs) ? imgs : []
-})
-
-const uploadHint = computed(() => {
-  if (!selectedImages.value.length) return ''
-  return `Se subirán ${selectedImages.value.length} imagen(es) al guardar.`
-})
-
-function onSelectImages(e: Event) {
-  const files = (e.target as HTMLInputElement).files
-  if (!files) return
-
-  // limpiar previews anteriores (evitar leaks)
-  previews.value.forEach(url => URL.revokeObjectURL(url))
-
-  selectedImages.value = Array.from(files)
-  previews.value = selectedImages.value.map(f => URL.createObjectURL(f))
-}
-
-/* =========================
-   QUICK CREATE
+   QUICK CREATE (🔥 FALTABA)
 ========================= */
 const familyDialogOpen = ref(false)
 const categoryDialogOpen = ref(false)
@@ -270,8 +219,6 @@ function openCreateCategory() {
 async function handleFamilyCreated(payload: any) {
   const family = await familiesStore.create(payload)
   await familiesStore.fetch()
-
-  categoriesStore.clear()
   form.familyId = family.id
 }
 
@@ -280,64 +227,65 @@ async function handleCategoryCreated(payload: any) {
     ...payload,
     familyId: form.familyId,
   })
-
   await categoriesStore.fetchByFamily(form.familyId)
   form.categoryId = category.id
 }
 
 /* =========================
-   LIFECYCLE
+   FORM
 ========================= */
-onMounted(async () => {
-  await familiesStore.fetch()
-  if (form.familyId) await categoriesStore.fetchByFamily(form.familyId)
+const form = reactive({
+  partNumber: '',
+  internalCode: '',
+  name: '',
+  description: '',
+  brand: '',
+  unit: 'pz',
+  familyId: '',
+  categoryId: '',
 })
 
-watch(
-  () => form.familyId,
-  async familyId => {
-    form.categoryId = ''
-    if (familyId) await categoriesStore.fetchByFamily(familyId)
-    else categoriesStore.clear()
-  }
-)
+/* =========================
+   IMAGES
+========================= */
+const selectedImages = ref<File[]>([])
+const previews = ref<string[]>([])
+const saving = ref(false)
+const fileInputKey = ref(0)
 
-watch(
-  () => props.model,
-  async v => {
-    if (!v) return
+/* 🔥 EXISTING IMAGES */
+const existingImages = computed(() => {
+  const imgs = props.model?.images ?? []
+  return Array.isArray(imgs) ? imgs : []
+})
 
-    // 1️⃣ Asignar primero campos simples
-    form.partNumber = v.partNumber ?? ''
-    form.internalCode = v.internalCode ?? ''
-    form.name = v.name ?? ''
-    form.description = v.description ?? ''
-    form.brand = v.brand ?? ''
-    form.unit = v.unit ?? 'pz'
-    form.familyId = v.familyId ?? ''
+/* 🔥 UPLOAD HINT (FALTABA) */
+const uploadHint = computed(() => {
+  if (!selectedImages.value.length) return ''
+  return `Se subirán ${selectedImages.value.length} imagen(es) al guardar.`
+})
 
-    // 2️⃣ Cargar categorías si existe familia
-    if (v.familyId) {
-      await categoriesStore.fetchByFamily(v.familyId)
-    } else {
-      categoriesStore.clear()
-    }
+function onSelectImages(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = input.files
+  if (!files || !files.length) return
 
-    // 3️⃣ Ahora sí asignar categoría (cuando ya existen opciones)
-    form.categoryId = v.categoryId ?? ''
+  const newFiles = Array.from(files)
 
-    clearSelectedImages()
-  },
-  { immediate: true }
-)
+  selectedImages.value = [...selectedImages.value, ...newFiles]
 
-watch(
-  () => open.value,
-  v => {
-    // al cerrar, limpiar selección y previews
-    if (!v) clearSelectedImages()
-  }
-)
+  newFiles.forEach(file => {
+    previews.value.push(URL.createObjectURL(file))
+  })
+
+  fileInputKey.value++
+}
+
+function removeImage(index: number) {
+  URL.revokeObjectURL(previews.value[index])
+  selectedImages.value.splice(index, 1)
+  previews.value.splice(index, 1)
+}
 
 function clearSelectedImages() {
   previews.value.forEach(url => URL.revokeObjectURL(url))
@@ -346,7 +294,7 @@ function clearSelectedImages() {
 }
 
 /* =========================
-   SUBMIT (ONE SINGLE VERSION)
+   SUBMIT
 ========================= */
 async function submit() {
   if (saving.value) return
@@ -362,7 +310,6 @@ async function submit() {
       saved = await productsStore.update(props.model.id, { ...form })
     }
 
-    // 🔥 Subir imágenes si existen
     if (selectedImages.value.length) {
       await productsStore.uploadImages(saved.id, selectedImages.value)
     }

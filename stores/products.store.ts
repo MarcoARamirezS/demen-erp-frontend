@@ -42,7 +42,7 @@ export const useProductsStore = defineStore('products', {
       })
 
       this.items.unshift(product)
-      return product // 🔥 IMPORTANTE
+      return product
     },
 
     /* =========================
@@ -57,7 +57,7 @@ export const useProductsStore = defineStore('products', {
       const idx = this.items.findIndex(i => i.id === id)
       if (idx !== -1) this.items[idx] = updated
 
-      return updated // 🔥 IMPORTANTE
+      return updated
     },
 
     /* =========================
@@ -65,14 +65,22 @@ export const useProductsStore = defineStore('products', {
     ========================= */
     async uploadImages(id: string, files: File[]) {
       const fd = new FormData()
-      files.forEach(f => fd.append('images', f))
+
+      files.forEach(f => {
+        fd.append('images', f)
+      })
+
+      // 🔥 DEBUG PARA ASEGURAR MULTIPLES ARCHIVOS
+      console.log('FILES TO SEND =>', files.length)
+      for (const pair of fd.entries()) {
+        console.log('FORMDATA ENTRY =>', pair[0], pair[1])
+      }
 
       const updated = await useApi<Product>(`/products/${id}/images`, {
         method: 'POST',
         body: fd,
       })
 
-      // 🔥 actualizar local state
       const idx = this.items.findIndex(i => i.id === id)
       if (idx !== -1) this.items[idx] = updated
 
