@@ -27,6 +27,9 @@ export const sidebarMenu: SidebarMenuItem[] = [
     to: '/dashboard',
   },
 
+  // =====================
+  // CLIENTES
+  // =====================
   {
     label: 'Clientes',
     icon: 'users',
@@ -41,6 +44,26 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
+  // =====================
+  // PROYECTOS
+  // =====================
+  {
+    label: 'Proyectos',
+    icon: 'shield',
+    permission: 'projects:list',
+    children: [
+      {
+        label: 'Listado',
+        icon: 'clipboardList',
+        to: '/projects',
+        permission: 'projects:list',
+      },
+    ],
+  },
+
+  // =====================
+  // INVENTARIO
+  // =====================
   {
     label: 'Inventario',
     icon: 'home',
@@ -79,6 +102,9 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
+  // =====================
+  // CONFIGURACIÓN
+  // =====================
   {
     label: 'Configuración',
     icon: 'cog',
@@ -105,6 +131,9 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
+  // =====================
+  // SEGURIDAD
+  // =====================
   {
     label: 'Seguridad',
     icon: 'shield',
@@ -124,6 +153,9 @@ export const sidebarMenu: SidebarMenuItem[] = [
     ],
   },
 
+  // =====================
+  // AUDITORÍA
+  // =====================
   {
     label: 'Auditoría',
     icon: 'clipboard',
