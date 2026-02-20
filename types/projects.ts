@@ -1,3 +1,11 @@
+export interface ProjectImage {
+  publicId: string
+  url: string
+  secureUrl: string
+  isMain: boolean
+  uploadedAt: any
+}
+
 export type ProjectStatus =
   | 'AUTH_PENDING'
   | 'AUTHORIZED'
@@ -24,6 +32,8 @@ export interface Project {
   statusHistory?: any[]
 
   isActive: boolean
+
+  images?: ProjectImage[] // 🔥 NUEVO
 
   createdAt?: any
   updatedAt?: any

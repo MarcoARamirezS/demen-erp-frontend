@@ -6,7 +6,7 @@ defineProps<{
   loading: boolean
 }>()
 
-const emit = defineEmits(['edit', 'delete', 'changeStatus'])
+defineEmits(['edit', 'delete', 'changeStatus'])
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -33,8 +33,10 @@ const statusColor = (status: string) => {
     <table v-else class="table w-full">
       <thead class="bg-base-200 uppercase text-xs">
         <tr>
+          <th>Imagen</th>
+          <!-- 🔥 NUEVA COLUMNA -->
           <th>Número</th>
-          <th>Cliente</th>
+          <th>Cliente / Sucursal</th>
           <th>Fecha</th>
           <th>Estado</th>
           <th></th>
@@ -43,16 +45,50 @@ const statusColor = (status: string) => {
 
       <tbody>
         <tr v-for="p in items" :key="p.id" class="hover:bg-base-200/40">
-          <td>{{ p.projectNumber }}</td>
-          <td>{{ p.clientId }}</td>
-          <td>{{ p.fecha }}</td>
+          <!-- 🔥 IMAGEN -->
+          <td>
+            <div class="w-12 h-12">
+              <img
+                v-if="p.images?.length"
+                :src="p.images[0].secureUrl"
+                class="w-12 h-12 rounded-xl object-cover border border-base-300"
+                alt="Imagen proyecto"
+              />
+              <div
+                v-else
+                class="w-12 h-12 rounded-xl bg-base-200 border border-base-300 flex items-center justify-center text-xs opacity-50"
+              >
+                —
+              </div>
+            </div>
+          </td>
+
+          <td class="font-medium">
+            {{ p.projectNumber }}
+          </td>
+
+          <td>
+            <div class="font-medium">
+              {{ p.client?.name ?? '—' }}
+            </div>
+            <div class="text-xs opacity-60">
+              {{ p.branch?.name ?? '—' }}
+            </div>
+          </td>
+
+          <td>
+            {{ p.fecha }}
+          </td>
+
           <td>
             <span class="badge badge-outline" :class="statusColor(p.status)">
               {{ p.status }}
             </span>
           </td>
+
           <td class="flex gap-2 justify-end">
             <button class="btn btn-sm btn-ghost" @click="$emit('edit', p)">Editar</button>
+
             <button class="btn btn-sm btn-error" @click="$emit('delete', p.id)">Eliminar</button>
           </td>
         </tr>

@@ -118,5 +118,24 @@ export const useProjectsStore = defineStore('projects', {
     clearSelected() {
       this.selected = null
     },
+
+    /* =========================
+    UPLOAD IMAGES
+    ========================= */
+    async uploadImages(id: string, files: File[]) {
+      const form = new FormData()
+
+      files.forEach(file => {
+        form.append('images', file)
+      })
+
+      await useApi(`/projects/${id}/images`, {
+        method: 'POST',
+        body: form,
+      })
+
+      // refrescar proyecto actualizado
+      await this.get(id)
+    },
   },
 })
