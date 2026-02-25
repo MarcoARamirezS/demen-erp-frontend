@@ -1,50 +1,30 @@
 <template>
   <div class="form-control w-full">
-    <!-- Label -->
     <label v-if="label" class="label">
       <span class="label-text">{{ label }}</span>
     </label>
 
     <select
       class="select select-bordered w-full"
-      :value="modelValue"
-      :disabled="disabled || isEmpty"
+      :value="modelValue ?? ''"
+      :disabled="disabled"
       @change="onChange"
     >
-      <!-- Empty state -->
-      <option v-if="isEmpty" value="" disabled>
-        {{ emptyText }}
-      </option>
-
-      <!-- Options -->
-      <slot v-else />
+      <slot />
     </select>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, useSlots } from 'vue'
-
 const props = defineProps<{
-  modelValue: string | number
+  modelValue: string | number | null
   label?: string
   disabled?: boolean
-  emptyText?: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: string): void
+  (e: 'update:modelValue', v: string | number): void
 }>()
-
-const slots = useSlots()
-
-/**
- * Detecta si NO hay UiOption
- */
-const isEmpty = computed(() => {
-  const nodes = slots.default?.() ?? []
-  return nodes.length === 0
-})
 
 function onChange(e: Event) {
   const target = e.target as HTMLSelectElement

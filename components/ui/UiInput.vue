@@ -15,7 +15,7 @@
 
       <!-- INPUT -->
       <input
-        v-bind="$attrs"
+        v-bind="filteredAttrs"
         :type="type"
         :value="modelValue"
         :placeholder="placeholder"
@@ -23,7 +23,11 @@
         :disabled="disabled"
         :readonly="readonly || disabled"
         class="input input-bordered w-full transition"
-        :class="[icon ? 'pl-10' : '', disabled ? 'bg-base-200 cursor-not-allowed opacity-80' : '']"
+        :class="[
+          sizeClass,
+          icon ? 'pl-10' : '',
+          disabled ? 'bg-base-200 cursor-not-allowed opacity-80' : '',
+        ]"
         @input="onInput"
       />
     </div>
@@ -31,7 +35,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed, useAttrs } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
+
+const attrs = useAttrs()
 
 const props = defineProps({
   modelValue: [String, Number],
@@ -40,6 +47,12 @@ const props = defineProps({
   placeholder: String,
   icon: String,
   autocomplete: String,
+
+  /* 🔥 FIX: ahora size es prop controlada */
+  size: {
+    type: String,
+    default: 'md', // xs | sm | md | lg
+  },
 
   /* 🔥 FIXES IMPORTANTES */
   disabled: {
@@ -53,6 +66,26 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+
+/* 🔥 SSR SAFE: remover size de attrs para que no llegue al input nativo */
+const filteredAttrs = computed(() => {
+  const { size, ...rest } = attrs
+  return rest
+})
+
+/* 🔥 Convertir size a clases DaisyUI */
+const sizeClass = computed(() => {
+  switch (props.size) {
+    case 'xs':
+      return 'input-xs'
+    case 'sm':
+      return 'input-sm'
+    case 'lg':
+      return 'input-lg'
+    default:
+      return 'input-md'
+  }
+})
 
 function onInput(event: Event) {
   if (props.disabled) return
