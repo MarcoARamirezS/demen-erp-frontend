@@ -6,7 +6,7 @@ defineProps<{
   loading: boolean
 }>()
 
-defineEmits(['edit', 'delete', 'changeStatus'])
+defineEmits(['edit', 'delete', 'changeStatus', 'requirements'])
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -20,6 +20,8 @@ const statusColor = (status: string) => {
       return 'badge-success'
     case 'NOT_ASSIGNED':
       return 'badge-error'
+    case 'IN_QUOTATION':
+      return 'badge-accent'
     default:
       return 'badge-ghost'
   }
@@ -34,7 +36,6 @@ const statusColor = (status: string) => {
       <thead class="bg-base-200 uppercase text-xs">
         <tr>
           <th>Imagen</th>
-          <!-- 🔥 NUEVA COLUMNA -->
           <th>Número</th>
           <th>Cliente / Sucursal</th>
           <th>Fecha</th>
@@ -45,22 +46,14 @@ const statusColor = (status: string) => {
 
       <tbody>
         <tr v-for="p in items" :key="p.id" class="hover:bg-base-200/40">
-          <!-- 🔥 IMAGEN -->
-          <td>
-            <div class="w-12 h-12">
-              <img
-                v-if="p.images?.length"
-                :src="p.images[0].secureUrl"
-                class="w-12 h-12 rounded-xl object-cover border border-base-300"
-                alt="Imagen proyecto"
-              />
-              <div
-                v-else
-                class="w-12 h-12 rounded-xl bg-base-200 border border-base-300 flex items-center justify-center text-xs opacity-50"
-              >
-                —
-              </div>
-            </div>
+          <!-- IMAGEN -->
+          <td class="w-20">
+            <img
+              v-if="p.images?.length"
+              :src="p.images[0].secureUrl"
+              class="w-12 h-12 rounded-xl object-cover border border-base-300"
+            />
+            <div v-else class="w-12 h-12 rounded-xl border border-base-300 bg-base-200/40" />
           </td>
 
           <td class="font-medium">
@@ -88,6 +81,11 @@ const statusColor = (status: string) => {
 
           <td class="flex gap-2 justify-end">
             <button class="btn btn-sm btn-ghost" @click="$emit('edit', p)">Editar</button>
+
+            <!-- ✅ LEVANTAMIENTO -->
+            <button class="btn btn-sm btn-accent" @click="$emit('requirements', p)">
+              Levantamiento
+            </button>
 
             <button class="btn btn-sm btn-error" @click="$emit('delete', p.id)">Eliminar</button>
           </td>

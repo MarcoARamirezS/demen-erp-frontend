@@ -51,6 +51,7 @@ onMounted(() => {
       "
       @delete="store.remove"
       @changeStatus="store.changeStatus"
+      @requirements="p => $router.push(`/projects/${p.id}/requirements`)"
     />
 
     <ClientOnly>
