@@ -17,6 +17,7 @@
     <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
         <UiInput v-model="form.partNumber" label="Número de parte" />
+
         <UiInput
           v-model="form.internalCode"
           label="Código interno"
@@ -91,9 +92,10 @@
             @change="onSelectImages"
           />
 
-          <!-- Imágenes existentes -->
+          <!-- EXISTENTES -->
           <div v-if="existingImages.length" class="mt-4">
             <div class="text-xs opacity-70 mb-2">Imágenes actuales</div>
+
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div
                 v-for="img in existingImages"
@@ -101,6 +103,7 @@
                 class="relative rounded-xl border border-base-300 overflow-hidden"
               >
                 <img :src="img.secureUrl || img.url" class="object-cover h-32 w-full" />
+
                 <span v-if="img.isMain" class="badge badge-primary absolute top-2 left-2">
                   Principal
                 </span>
@@ -108,7 +111,7 @@
             </div>
           </div>
 
-          <!-- NUEVAS PREVIEWS -->
+          <!-- NUEVAS -->
           <div v-if="previews.length" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             <div
               v-for="(img, i) in previews"
@@ -171,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed, onMounted, ref } from 'vue'
+import { reactive, watch, computed, ref, onMounted } from 'vue'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
 import { useProductsStore } from '~/stores/products.store'
@@ -191,9 +194,6 @@ const open = computed({
   set: v => emit('update:modelValue', v),
 })
 
-/* =========================
-   STORES
-========================= */
 const productsStore = useProductsStore()
 const familiesStore = useProductFamiliesStore()
 const categoriesStore = useProductCategoriesStore()
@@ -201,8 +201,14 @@ const categoriesStore = useProductCategoriesStore()
 const families = computed(() => familiesStore.items)
 const categories = computed(() => categoriesStore.items)
 
+onMounted(async () => {
+  if (!familiesStore.items.length) {
+    await familiesStore.fetch()
+  }
+})
+
 /* =========================
-   QUICK CREATE (🔥 FALTABA)
+   QUICK CREATE
 ========================= */
 const familyDialogOpen = ref(false)
 const categoryDialogOpen = ref(false)
@@ -245,6 +251,60 @@ const form = reactive({
   categoryId: '',
 })
 
+function resetForm() {
+  Object.assign(form, {
+    partNumber: '',
+    internalCode: '',
+    name: '',
+    description: '',
+    brand: '',
+    unit: 'pz',
+    familyId: '',
+    categoryId: '',
+  })
+}
+
+/* =========================
+   WATCH MODEL (FIX PRINCIPAL)
+========================= */
+watch(
+  () => props.model,
+  async v => {
+    if (!v) {
+      resetForm()
+      return
+    }
+
+    if (v.familyId) {
+      await categoriesStore.fetchByFamily(v.familyId)
+    }
+
+    Object.assign(form, {
+      partNumber: v.partNumber ?? '',
+      internalCode: v.internalCode ?? '',
+      name: v.name ?? '',
+      description: v.description ?? '',
+      brand: v.brand ?? '',
+      unit: v.unit ?? 'pz',
+      familyId: v.familyId ?? '',
+      categoryId: v.categoryId ?? '',
+    })
+  },
+  { immediate: true }
+)
+
+/* =========================
+   WATCH MODE
+========================= */
+watch(
+  () => props.mode,
+  m => {
+    if (m === 'create') {
+      resetForm()
+    }
+  }
+)
+
 /* =========================
    IMAGES
 ========================= */
@@ -253,13 +313,11 @@ const previews = ref<string[]>([])
 const saving = ref(false)
 const fileInputKey = ref(0)
 
-/* 🔥 EXISTING IMAGES */
 const existingImages = computed(() => {
   const imgs = props.model?.images ?? []
   return Array.isArray(imgs) ? imgs : []
 })
 
-/* 🔥 UPLOAD HINT (FALTABA) */
 const uploadHint = computed(() => {
   if (!selectedImages.value.length) return ''
   return `Se subirán ${selectedImages.value.length} imagen(es) al guardar.`
@@ -271,7 +329,6 @@ function onSelectImages(e: Event) {
   if (!files || !files.length) return
 
   const newFiles = Array.from(files)
-
   selectedImages.value = [...selectedImages.value, ...newFiles]
 
   newFiles.forEach(file => {
@@ -285,12 +342,6 @@ function removeImage(index: number) {
   URL.revokeObjectURL(previews.value[index])
   selectedImages.value.splice(index, 1)
   previews.value.splice(index, 1)
-}
-
-function clearSelectedImages() {
-  previews.value.forEach(url => URL.revokeObjectURL(url))
-  previews.value = []
-  selectedImages.value = []
 }
 
 /* =========================

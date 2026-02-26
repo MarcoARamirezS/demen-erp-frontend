@@ -112,6 +112,47 @@ const icons: Record<string, string> = {
 
   archive:
     'M4 3h16a2 2 0 0 1 2 2v2H2V5a2 2 0 0 1 2-2zm-2 6h20v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm6 3h8',
+  /* =========================
+     CLIENT STATUS / ACTIONS
+  ========================== */
+  power: 'M12 3v9m6.36-6.36a9 9 0 1 1-12.72 0',
+  checkCircle:
+    'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm-1-5l-4-4 1.5-1.5L11 14l5.5-5.5L18 10l-7 7z',
+  xCircle: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm-3-7l6-6m0 6l-6-6',
+  ban: 'M18 6L6 18M6 6l12 12',
+  toggleOn: 'M4 12a8 8 0 0 1 16 0 8 8 0 0 1-16 0zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  toggleOff: 'M4 12a8 8 0 0 0 16 0 8 8 0 0 0-16 0zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z',
+
+  /* =========================
+     ERP / BUSINESS
+  ========================== */
+  cash: 'M3 10h18M3 14h18M5 6h14v12H5V6z',
+  creditCard: 'M3 6h18v12H3V6zm0 4h18',
+  building: 'M3 21h18M9 21V9h6v12M5 9h14',
+  factory: 'M3 21h18M3 10l6-4v4l6-4v14H3V10z',
+  briefcase: 'M3 7h18v13H3V7zm6-4h6v4H9V3z',
+
+  /* =========================
+     NAVIGATION EXTRA
+  ========================== */
+  arrowRight: 'M5 12h14m-6-6l6 6-6 6',
+  arrowLeft: 'M19 12H5m6-6l-6 6 6 6',
+  arrowUp: 'M12 19V5m-6 6l6-6 6 6',
+  arrowDown: 'M12 5v14m6-6l-6 6-6-6',
+
+  /* =========================
+     UI / COMMON EXTRA
+  ========================== */
+  logout: 'M16 17l5-5-5-5M21 12H9m4 9H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8',
+  login: 'M8 7l-5 5 5 5M3 12h12m-4-9h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8',
+  star: 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
+  heart: 'M12 21s-6-4.35-9-8.5C-1 6 4 2 8 6c2-4 9-4 11 2-3 4.15-9 8.5-9 8.5z',
+  bookmark: 'M6 2h12v20l-6-4-6 4V2z',
+  printer: 'M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5h20v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z',
+  folder: 'M3 7h5l2 2h11v11H3V7z',
+  folderOpen: 'M3 7h5l2 2h11l-2 9H5L3 7z',
+  clipboardList: 'M9 2h6v2h3v18H6V4h3V2zm0 6h6m-6 4h6m-6 4h6',
+  globe: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 0v20m-8-10h16',
 }
 
 const icon = computed(() => icons[props.name])
