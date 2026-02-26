@@ -1,8 +1,6 @@
 <template>
   <UiDialog v-model="open" size="xl" hide-close>
-    <!-- =========================
-         HEADER (STICKY)
-    ========================== -->
+    <!-- HEADER -->
     <div
       class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
     >
@@ -15,51 +13,100 @@
       </button>
     </div>
 
-    <!-- =========================
-         CONTENT (SCROLL)
-    ========================== -->
+    <!-- CONTENT -->
     <div class="px-6 py-5 overflow-auto space-y-6" style="max-height: calc(90vh - 160px)">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+        <!-- PROVEEDOR -->
         <UiSelect
           v-model="form.supplierId"
           label="Proveedor"
+          placeholder="Selecciona un proveedor"
           empty-text="No existen proveedores"
           :disabled="mode === 'edit' || !!lockSupplier"
-        >
-          <UiOption v-for="s in suppliers" :key="s.id" :value="s.id">
-            {{ s.name }}
-          </UiOption>
-        </UiSelect>
+          :options="
+            suppliers.map(s => ({
+              label: s.name,
+              value: s.id,
+              image: s.image,
+            }))
+          "
+        />
 
+        <!-- PRODUCTO -->
         <UiSelect
           v-model="form.productId"
           label="Producto"
+          placeholder="Selecciona un producto"
           empty-text="No existen productos"
           :disabled="mode === 'edit' || !!lockProduct"
-        >
-          <UiOption v-for="p in products" :key="p.id" :value="p.id">
-            {{ p.name }}
-          </UiOption>
-        </UiSelect>
+          :options="
+            products.map(p => ({
+              label: p.name,
+              value: p.id,
+              image: p.image,
+            }))
+          "
+        />
 
+        <!-- SKU -->
         <UiInput
           v-model="form.supplierSku"
           label="SKU del proveedor"
-          placeholder="SKU interno del proveedor"
+          placeholder="Se generará automáticamente si lo dejas vacío"
         />
 
-        <UiInput v-model="form.currentPrice" label="Precio" type="number" min="0" />
+        <UiInput
+          v-model="form.currentPrice"
+          label="Precio"
+          type="number"
+          min="0"
+          placeholder="0.00"
+        />
 
-        <UiSelect v-model="form.currency" label="Moneda">
-          <UiOption value="MXN">MXN</UiOption>
-          <UiOption value="USD">USD</UiOption>
-        </UiSelect>
+        <UiSelect
+          v-model="form.currency"
+          label="Moneda"
+          :options="[
+            { label: 'MXN – Peso mexicano', value: 'MXN' },
+            { label: 'USD – Dólar americano', value: 'USD' },
+          ]"
+        />
 
-        <UiInput v-model="form.leadTimeDays" label="Lead time (días)" type="number" min="0" />
+        <UiInput
+          v-model="form.leadTimeDays"
+          label="Lead time (días)"
+          type="number"
+          min="0"
+          placeholder="Días estimados de entrega"
+        />
 
-        <UiInput v-model="form.moq" label="MOQ" type="number" min="0" />
+        <!-- MOQ -->
+        <div>
+          <UiInput
+            v-model="form.moq"
+            label="MOQ"
+            type="number"
+            min="0"
+            placeholder="Cantidad mínima por pedido"
+          />
+          <p class="text-xs text-base-content/60 mt-1">
+            Cantidad mínima que debes comprar al proveedor.
+          </p>
+        </div>
 
-        <UiInput v-model="form.packSize" label="Tamaño de paquete" type="number" min="0" />
+        <!-- PACK SIZE -->
+        <div>
+          <UiInput
+            v-model="form.packSize"
+            label="Tamaño de paquete"
+            type="number"
+            min="0"
+            placeholder="Unidades por caja o empaque"
+          />
+          <p class="text-xs text-base-content/60 mt-1">
+            Número de piezas que vienen en cada caja o empaque.
+          </p>
+        </div>
 
         <UiToggle
           v-model="form.preferred"
@@ -71,13 +118,12 @@
       </div>
     </div>
 
-    <!-- =========================
-         FOOTER (STICKY)
-    ========================== -->
+    <!-- FOOTER -->
     <div
       class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
     >
       <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+
       <UiButton variant="primary" :disabled="!isValid" @click="submit"> Guardar </UiButton>
     </div>
   </UiDialog>
@@ -103,10 +149,7 @@ const props = defineProps<{
   model: SupplierProduct | Partial<SupplierProduct> | null
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (e: 'submit', payload: any): void
-}>()
+const emit = defineEmits(['update:modelValue', 'submit'])
 
 const open = computed({
   get: () => props.modelValue,
@@ -122,6 +165,8 @@ const products = computed<Product[]>(() => productsStore.items)
 const lockSupplier = computed(() => !!(props.model as any)?.supplierId && props.mode === 'create')
 const lockProduct = computed(() => !!(props.model as any)?.productId && props.mode === 'create')
 
+/* ========================= FORM ========================== */
+
 const form = reactive({
   supplierId: '',
   productId: '',
@@ -135,15 +180,49 @@ const form = reactive({
   notes: '',
 })
 
+/* ========================= SKU AUTO ========================== */
+
+function short(text: string) {
+  return text
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .substring(0, 3)
+    .toUpperCase()
+}
+
+function random3() {
+  return Math.floor(100 + Math.random() * 900)
+}
+
+/* 🔥 GENERAR SKU CUANDO CAMBIAN PROVEEDOR O PRODUCTO */
+watch(
+  () => [form.supplierId, form.productId],
+  ([supId, prodId]) => {
+    if (props.mode !== 'create') return
+    if (form.supplierSku) return
+    if (!supId || !prodId) return
+
+    const supplier = suppliers.value.find(s => s.id === supId)
+    const product = products.value.find(p => p.id === prodId)
+    if (!supplier || !product) return
+
+    const sup = short(supplier.code ?? supplier.name)
+    const prod = short(product.code ?? product.name)
+
+    form.supplierSku = `${sup}-${prod}-${random3()}`
+  }
+)
+
+/* ========================= LOAD DATA ========================== */
+
 onMounted(async () => {
   if (!suppliersStore.items.length) await suppliersStore.fetch()
   if (!productsStore.items.length) await productsStore.fetch()
 })
 
 watch(
-  () => props.model,
-  v => {
-    if (!v) {
+  () => [props.model, props.mode],
+  ([model, mode]) => {
+    if (mode === 'create') {
       Object.assign(form, {
         supplierId: '',
         productId: '',
@@ -159,27 +238,33 @@ watch(
       return
     }
 
-    const data = JSON.parse(JSON.stringify(v))
-    Object.assign(form, {
-      supplierId: data.supplierId ?? '',
-      productId: data.productId ?? '',
-      supplierSku: data.supplierSku ?? '',
-      currentPrice: String(data.currentPrice ?? 0),
-      currency: data.currency ?? 'MXN',
-      leadTimeDays: String(data.leadTimeDays ?? 0),
-      moq: String(data.moq ?? 0),
-      packSize: String(data.packSize ?? 0),
-      preferred: !!data.preferred,
-      notes: data.notes ?? '',
-    })
+    if (mode === 'edit' && model) {
+      const data = JSON.parse(JSON.stringify(model))
+      Object.assign(form, {
+        supplierId: data.supplierId ?? '',
+        productId: data.productId ?? '',
+        supplierSku: data.supplierSku ?? '',
+        currentPrice: String(data.currentPrice ?? 0),
+        currency: data.currency ?? 'MXN',
+        leadTimeDays: String(data.leadTimeDays ?? 0),
+        moq: String(data.moq ?? 0),
+        packSize: String(data.packSize ?? 0),
+        preferred: !!data.preferred,
+        notes: data.notes ?? '',
+      })
+    }
   },
   { immediate: true }
 )
+
+/* ========================= VALIDATION ========================== */
 
 const isValid = computed(() => {
   const price = Number(form.currentPrice)
   return !!form.supplierId && !!form.productId && !Number.isNaN(price) && price >= 0
 })
+
+/* ========================= SUBMIT ========================== */
 
 async function submit() {
   const payload = {
@@ -196,27 +281,10 @@ async function submit() {
   }
 
   try {
-    // 1️⃣ Guardar relación proveedor-producto
     emit('submit', payload)
-
-    // 2️⃣ Crear histórico de precio automáticamente (solo si edit o create)
-    if (props.mode === 'edit' && props.model?.id) {
-      await pricesStore.create({
-        supplierProductId: props.model.id,
-        price: Number(form.currentPrice),
-        currency: form.currency,
-        effectiveDate: Date.now(),
-        notes: form.notes || undefined,
-      })
-    }
-
     open.value = false
   } catch (e: any) {
-    if (e?.status === 409) {
-      ui.showToast('warning', 'Ya existe un precio para esta fecha')
-    } else {
-      ui.showToast('error', 'Error al guardar')
-    }
+    ui.showToast('error', 'Error al guardar')
   }
 }
 </script>
