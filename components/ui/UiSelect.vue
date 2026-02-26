@@ -35,7 +35,7 @@
       class="absolute z-50 mt-1 w-full bg-base-100 border border-base-300 rounded-box shadow-lg max-h-64 overflow-auto"
     >
       <div
-        v-for="opt in options"
+        v-for="opt in safeOptions"
         :key="opt.value"
         class="px-3 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-3"
         @click="select(opt)"
@@ -47,7 +47,7 @@
         <span v-if="modelValue === opt.value" class="ml-auto text-primary"> ✔ </span>
       </div>
 
-      <div v-if="!options.length && emptyText" class="px-3 py-2 text-base-content/60">
+      <div v-if="!safeOptions.length && emptyText" class="px-3 py-2 text-base-content/60">
         {{ emptyText }}
       </div>
     </div>
@@ -63,14 +63,20 @@ type Option = {
   image?: string
 }
 
-const props = defineProps<{
-  modelValue: string | number | null
-  label?: string
-  disabled?: boolean
-  placeholder?: string
-  emptyText?: string
-  options: Option[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: string | number | null
+    label?: string
+    disabled?: boolean
+    placeholder?: string
+    emptyText?: string
+    options?: Option[]
+  }>(),
+  {
+    modelValue: null,
+    options: () => [], // 🔥 SSR SAFE
+  }
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: string | number): void
@@ -89,9 +95,20 @@ function select(opt: Option) {
   open.value = false
 }
 
-const selectedOption = computed(() => props.options.find(o => o.value === props.modelValue))
+/* =========================
+   🔐 SSR SAFE COMPUTEDS
+========================= */
 
-// 🔵 Cerrar al hacer click fuera
+const safeOptions = computed<Option[]>(() => (Array.isArray(props.options) ? props.options : []))
+
+const selectedOption = computed<Option | undefined>(() =>
+  safeOptions.value.find(o => o.value === props.modelValue)
+)
+
+/* =========================
+   Click Outside (client only)
+========================= */
+
 function handleClickOutside(event: MouseEvent) {
   if (!wrapper.value) return
   if (!wrapper.value.contains(event.target as Node)) {
@@ -100,10 +117,14 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  if (process.client) {
+    document.addEventListener('click', handleClickOutside)
+  }
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
+  if (process.client) {
+    document.removeEventListener('click', handleClickOutside)
+  }
 })
 </script>
