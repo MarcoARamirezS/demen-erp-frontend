@@ -64,5 +64,23 @@ export const useClientsStore = defineStore('clients', {
         body: payload,
       })
     },
+
+    async toggleActive(id: string, activo: boolean) {
+      const updated = await useApi<Client>(`/clients/${id}`, {
+        method: 'PATCH',
+        body: { activo },
+      })
+
+      const idx = this.items.findIndex(c => c.id === id)
+      if (idx !== -1) {
+        this.items[idx] = updated
+      }
+
+      if (this.selected?.id === id) {
+        this.selected = updated
+      }
+
+      return updated
+    },
   },
 })

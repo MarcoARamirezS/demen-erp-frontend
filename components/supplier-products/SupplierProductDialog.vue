@@ -20,7 +20,6 @@
     ========================== -->
     <div class="px-6 py-5 overflow-auto space-y-6" style="max-height: calc(90vh - 160px)">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-        <!-- Proveedor -->
         <UiSelect
           v-model="form.supplierId"
           label="Proveedor"
@@ -32,7 +31,6 @@
           </UiOption>
         </UiSelect>
 
-        <!-- Producto -->
         <UiSelect
           v-model="form.productId"
           label="Producto"
@@ -44,39 +42,31 @@
           </UiOption>
         </UiSelect>
 
-        <!-- SKU proveedor -->
         <UiInput
           v-model="form.supplierSku"
           label="SKU del proveedor"
           placeholder="SKU interno del proveedor"
         />
 
-        <!-- Precio -->
         <UiInput v-model="form.currentPrice" label="Precio" type="number" min="0" />
 
-        <!-- Moneda -->
         <UiSelect v-model="form.currency" label="Moneda">
           <UiOption value="MXN">MXN</UiOption>
           <UiOption value="USD">USD</UiOption>
         </UiSelect>
 
-        <!-- Lead time -->
         <UiInput v-model="form.leadTimeDays" label="Lead time (días)" type="number" min="0" />
 
-        <!-- MOQ -->
         <UiInput v-model="form.moq" label="MOQ" type="number" min="0" />
 
-        <!-- Pack size -->
         <UiInput v-model="form.packSize" label="Tamaño de paquete" type="number" min="0" />
 
-        <!-- Preferido -->
         <UiToggle
           v-model="form.preferred"
           label="Proveedor preferido para este producto"
           class="md:col-span-2"
         />
 
-        <!-- Notas -->
         <UiInput v-model="form.notes" label="Notas" type="textarea" class="md:col-span-2" />
       </div>
     </div>
@@ -88,7 +78,6 @@
       class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
     >
       <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
-
       <UiButton variant="primary" :disabled="!isValid" @click="submit"> Guardar </UiButton>
     </div>
   </UiDialog>
@@ -102,6 +91,11 @@ import type { Product } from '~/types/product'
 
 import { useSuppliersStore } from '~/stores/suppliers.store'
 import { useProductsStore } from '~/stores/products.store'
+import { useSupplierProductPricesStore } from '~/stores/supplier-product-prices.store'
+import { useUiStore } from '~/stores/ui.store'
+
+const ui = useUiStore()
+const pricesStore = useSupplierProductPricesStore()
 
 const props = defineProps<{
   modelValue: boolean
@@ -125,7 +119,6 @@ const productsStore = useProductsStore()
 const suppliers = computed<Supplier[]>(() => suppliersStore.items)
 const products = computed<Product[]>(() => productsStore.items)
 
-// 🔒 locks por contexto
 const lockSupplier = computed(() => !!(props.model as any)?.supplierId && props.mode === 'create')
 const lockProduct = computed(() => !!(props.model as any)?.productId && props.mode === 'create')
 
@@ -188,8 +181,8 @@ const isValid = computed(() => {
   return !!form.supplierId && !!form.productId && !Number.isNaN(price) && price >= 0
 })
 
-function submit() {
-  emit('submit', {
+async function submit() {
+  const payload = {
     supplierId: form.supplierId,
     productId: form.productId,
     supplierSku: form.supplierSku || undefined,
@@ -200,7 +193,30 @@ function submit() {
     packSize: Number(form.packSize),
     preferred: !!form.preferred,
     notes: form.notes || undefined,
-  })
-  open.value = false
+  }
+
+  try {
+    // 1️⃣ Guardar relación proveedor-producto
+    emit('submit', payload)
+
+    // 2️⃣ Crear histórico de precio automáticamente (solo si edit o create)
+    if (props.mode === 'edit' && props.model?.id) {
+      await pricesStore.create({
+        supplierProductId: props.model.id,
+        price: Number(form.currentPrice),
+        currency: form.currency,
+        effectiveDate: Date.now(),
+        notes: form.notes || undefined,
+      })
+    }
+
+    open.value = false
+  } catch (e: any) {
+    if (e?.status === 409) {
+      ui.showToast('warning', 'Ya existe un precio para esta fecha')
+    } else {
+      ui.showToast('error', 'Error al guardar')
+    }
+  }
 }
 </script>

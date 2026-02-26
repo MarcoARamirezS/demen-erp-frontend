@@ -2,7 +2,9 @@
 import { computed, ref, watch } from 'vue'
 import { useClientsStore } from '~/stores/clients.store'
 import Icon from '~/components/ui/Icon.vue'
+import { useUiStore } from '~/stores/ui.store'
 
+const ui = useUiStore()
 const clientsStore = useClientsStore()
 
 /* =======================
@@ -72,6 +74,23 @@ watch([search, itemsPerPage], () => {
 ======================= */
 function goToClient(id: string) {
   navigateTo(`/clients/${id}`)
+}
+
+async function toggleClient(client: any) {
+  console.log('Toggling client', client.id, 'Current status:', client.activo)
+  const newStatus = !client.activo
+
+  if (client.activo) {
+    const ok = await ui.confirm({
+      title: 'Desactivar cliente',
+      message: `¿Seguro que deseas desactivar a "${client.razonSocial}"?`,
+      confirmText: 'Desactivar',
+    })
+
+    if (!ok) return
+  }
+
+  await clientsStore.toggleActive(client.id, newStatus)
 }
 
 function resetFilters() {
@@ -200,13 +219,30 @@ function resetFilters() {
             </td>
 
             <td class="text-center">
-              <div class="tooltip tooltip-left" data-tip="Ver cliente">
-                <button
-                  class="btn btn-circle btn-sm btn-ghost text-primary"
-                  @click="goToClient(c.id)"
+              <div class="flex items-center justify-center gap-1">
+                <!-- VER -->
+                <div class="tooltip tooltip-left" data-tip="Ver cliente">
+                  <button
+                    class="btn btn-circle btn-sm btn-ghost text-primary"
+                    @click="goToClient(c.id)"
+                  >
+                    <Icon name="eye" size="sm" />
+                  </button>
+                </div>
+
+                <!-- ACTIVAR / DESACTIVAR -->
+                <div
+                  class="tooltip tooltip-left"
+                  :data-tip="c.activo ? 'Desactivar cliente' : 'Activar cliente'"
                 >
-                  <Icon name="eye" size="sm" />
-                </button>
+                  <button
+                    class="btn btn-circle btn-sm btn-ghost"
+                    :class="c.activo ? 'text-warning' : 'text-success'"
+                    @click="toggleClient(c)"
+                  >
+                    <Icon :name="c.activo ? 'power' : 'checkCircle'" size="sm" />
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
@@ -269,10 +305,19 @@ function resetFilters() {
           </span>
         </div>
 
-        <div class="mt-4">
-          <button class="btn btn-sm btn-outline w-full" @click="goToClient(c.id)">
+        <div class="flex gap-2 mt-4">
+          <button class="btn btn-sm btn-outline flex-1" @click="goToClient(c.id)">
             <Icon name="eye" size="sm" />
             Ver cliente
+          </button>
+
+          <button
+            class="btn btn-sm flex-1"
+            :class="c.activo ? 'btn-warning' : 'btn-success'"
+            @click="toggleClient(c)"
+          >
+            <Icon :name="c.activo ? 'power' : 'checkCircle'" size="sm" />
+            {{ c.activo ? 'Desactivar' : 'Activar' }}
           </button>
         </div>
       </div>

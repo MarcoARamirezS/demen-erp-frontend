@@ -69,7 +69,7 @@ async function save(payload: any) {
 
   <AddressDialog
     v-model="showDialog"
-    :client-id="clientId"
+    :cliente-id="clientId"
     :existing-addresses="addressesStore.items"
     :model="selected"
     :mode="selected ? 'edit' : 'create'"

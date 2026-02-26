@@ -17,14 +17,10 @@ export interface ConfirmState {
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
-    /* ---------------- Toast ---------------- */
-    toasts: [] as ToastItem[],
-
-    /* ---------------- Loader ---------------- */
+    toasts: [],
     loadingCount: 0,
 
-    /* ---------------- Confirm ---------------- */
-    confirm: {
+    confirmState: {
       visible: false,
       title: '',
       message: '',
@@ -32,6 +28,8 @@ export const useUiStore = defineStore('ui', {
       cancelText: 'Cancelar',
       onConfirm: undefined,
     } as ConfirmState,
+
+    _confirmResolve: undefined as ((v: boolean) => void) | undefined,
   }),
 
   getters: {
@@ -64,19 +62,37 @@ export const useUiStore = defineStore('ui', {
       }
     },
 
-    /* ---------------- Confirm ---------------- */
-    openConfirm(payload: Omit<ConfirmState, 'visible'>) {
-      this.confirm = {
-        visible: true,
-        confirmText: 'Confirmar',
-        cancelText: 'Cancelar',
-        ...payload,
-      }
+    /* ---------------- Confirm (FIXED) ---------------- */
+    async confirm(payload: Omit<ConfirmState, 'visible' | 'onConfirm'>) {
+      return new Promise<boolean>(resolve => {
+        this._confirmResolve = resolve
+
+        this.confirmState.visible = true
+        this.confirmState.title = payload.title
+        this.confirmState.message = payload.message
+        this.confirmState.confirmText = payload.confirmText ?? 'Confirmar'
+        this.confirmState.cancelText = payload.cancelText ?? 'Cancelar'
+
+        this.confirmState.onConfirm = () => {
+          if (this._confirmResolve) {
+            this._confirmResolve(true)
+            this._confirmResolve = undefined
+          }
+
+          this.confirmState.visible = false
+          this.confirmState.onConfirm = undefined
+        }
+      })
     },
 
     closeConfirm() {
-      this.confirm.visible = false
-      this.confirm.onConfirm = undefined
+      if (this._confirmResolve) {
+        this._confirmResolve(false)
+        this._confirmResolve = undefined
+      }
+
+      this.confirmState.visible = false
+      this.confirmState.onConfirm = undefined
     },
   },
 })

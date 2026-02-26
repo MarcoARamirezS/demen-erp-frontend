@@ -1,32 +1,39 @@
 <template>
-  <dialog class="modal" :open="confirm.visible">
+  <dialog v-if="confirm.visible" class="modal modal-open">
     <div class="modal-box">
       <h3 class="font-semibold text-lg mb-2">
         {{ confirm.title }}
       </h3>
+
       <p class="mb-6">{{ confirm.message }}</p>
 
       <div class="flex justify-end gap-3">
-        <UiButton variant="ghost" @click="ui.closeConfirm">
-          Cancelar
+        <UiButton variant="ghost" @click="ui.closeConfirm()">
+          {{ confirm.cancelText || 'Cancelar' }}
         </UiButton>
+
         <UiButton variant="primary" @click="confirmAction">
-          Confirmar
+          {{ confirm.confirmText || 'Confirmar' }}
         </UiButton>
       </div>
     </div>
   </dialog>
 </template>
 
-<script setup>
-import { useUiStore } from "~/stores/ui.store"
-import UiButton from "./UiButton.vue"
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useUiStore } from '~/stores/ui.store'
+import UiButton from './UiButton.vue'
 
 const ui = useUiStore()
-const confirm = computed(() => ui.confirm)
+const confirm = computed(() => ui.confirmState)
+
+// 🔥 Esto limpia estado si quedó colgado al recargar
+onMounted(() => {
+  ui.closeConfirm()
+})
 
 const confirmAction = () => {
   confirm.value.onConfirm?.()
-  ui.closeConfirm()
 }
 </script>

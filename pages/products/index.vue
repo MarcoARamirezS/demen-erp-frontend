@@ -29,10 +29,8 @@
           </UiOption>
         </UiSelect>
 
-        <!-- LIMPIAR -->
         <UiButton size="sm" variant="outline" @click="clearFilters"> Limpiar </UiButton>
 
-        <!-- NUEVO -->
         <ClientOnly>
           <UiButton
             v-if="auth.hasPermission('products:create')"
@@ -69,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useProductsStore } from '~/stores/products.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
@@ -78,12 +76,6 @@ import { useProductCategoriesStore } from '~/stores/productCategories.store'
 
 import ProductsTable from '~/components/products/ProductsTable.vue'
 import ProductDialog from '~/components/products/ProductDialog.vue'
-const familiesStore = useProductFamiliesStore()
-const categoriesStore = useProductCategoriesStore()
-
-const selectedFamilyId = ref<string>('')
-const selectedCategoryId = ref<string>('')
-
 import type { Product } from '~/types/product'
 
 definePageMeta({
@@ -95,6 +87,11 @@ definePageMeta({
 const store = useProductsStore()
 const auth = useAuthStore()
 const ui = useUiStore()
+const familiesStore = useProductFamiliesStore()
+const categoriesStore = useProductCategoriesStore()
+
+const selectedFamilyId = ref('')
+const selectedCategoryId = ref('')
 
 const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
@@ -116,12 +113,8 @@ watch(selectedFamilyId, async id => {
 
 const filteredItems = computed(() => {
   return store.items.filter(p => {
-    if (selectedFamilyId.value && p.familyId !== selectedFamilyId.value) {
-      return false
-    }
-    if (selectedCategoryId.value && p.categoryId !== selectedCategoryId.value) {
-      return false
-    }
+    if (selectedFamilyId.value && p.familyId !== selectedFamilyId.value) return false
+    if (selectedCategoryId.value && p.categoryId !== selectedCategoryId.value) return false
     return true
   })
 })
@@ -144,20 +137,20 @@ function openCreate() {
 
 function openEdit(item: Product) {
   dialogMode.value = 'edit'
-  selected.value = item
+  selected.value = JSON.parse(JSON.stringify(item))
   dialogOpen.value = true
 }
 
-function confirmDelete(item: Product) {
-  ui.confirm({
+async function confirmDelete(item: Product) {
+  const ok = await ui.confirm({
     title: 'Eliminar producto',
     message: `¿Eliminar el producto "${item.name}"?`,
-    variant: 'danger',
-    onConfirm: async () => {
-      await store.remove(item.id)
-      ui.showToast('success', 'Producto eliminado')
-    },
   })
+
+  if (!ok) return
+
+  await store.remove(item.id)
+  ui.showToast('success', 'Producto eliminado')
 }
 
 async function handleSubmit() {

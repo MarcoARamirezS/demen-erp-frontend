@@ -25,12 +25,12 @@ export const useAuthStore = defineStore('auth', {
 
         await this.fetchMe()
       } catch (e) {
-        // el toast ya se muestra globalmente
         throw e
       } finally {
         this.loading = false
       }
     },
+
     async fetchMe() {
       try {
         const res = await useApi<any>('/auth/me')

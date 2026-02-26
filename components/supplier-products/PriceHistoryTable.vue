@@ -31,11 +31,16 @@
         <tbody v-else>
           <tr v-for="h in items" :key="h.id" class="hover:bg-base-200/40 transition">
             <td class="text-xs whitespace-nowrap">
-              {{ new Date(h.validFrom).toLocaleDateString() }}
+              {{ h.effectiveDateISO ? new Date(h.effectiveDateISO).toLocaleDateString() : '-' }}
             </td>
 
             <td class="font-mono">
-              {{ h.price }}
+              {{
+                new Intl.NumberFormat('es-MX', {
+                  style: 'currency',
+                  currency: h.currency || 'MXN',
+                }).format(h.price)
+              }}
             </td>
 
             <td>
@@ -68,13 +73,20 @@
         <div class="flex items-center justify-between gap-3">
           <div class="text-xs opacity-70">Desde</div>
           <div class="text-xs font-medium">
-            {{ new Date(h.validFrom).toLocaleDateString() }}
+            {{ h.effectiveDateISO ? new Date(h.effectiveDateISO).toLocaleDateString() : '-' }}
           </div>
         </div>
 
         <div class="mt-3 rounded-xl border border-base-300 bg-base-200/30 p-3">
           <div class="text-xs opacity-60">Precio</div>
-          <div class="font-mono text-sm mt-1">{{ h.price }} {{ h.currency }}</div>
+          <div class="font-mono text-sm mt-1">
+            {{
+              new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: h.currency || 'MXN',
+              }).format(h.price)
+            }}
+          </div>
         </div>
       </div>
     </div>
