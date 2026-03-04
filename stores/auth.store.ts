@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', {
     permissions: [] as string[],
     loading: false,
     initialized: false,
+    isLoggingOut: false, // 🔥 NUEVO
   }),
 
   getters: {
@@ -49,13 +50,19 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout(redirect = true) {
+      this.isLoggingOut = true
+
       try {
         await useApi('/auth/logout', { method: 'POST' })
-      } catch (_) {}
+      } catch (_) {
+        // ignorar error
+      }
 
       this.user = null
       this.permissions = []
       this.initialized = true
+
+      this.isLoggingOut = false
 
       if (redirect) navigateTo('/')
     },

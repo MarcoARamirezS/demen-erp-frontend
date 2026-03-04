@@ -85,11 +85,17 @@ export function useApi<T>(
       const status = error?.statusCode
       const message = error?.data?.message || error?.message || 'Error inesperado del servidor'
 
-      ui.showToast('error', message)
+      // 🔥 No mostrar toast si es 401 durante logout
+      if (!(status === 401 && auth.isLoggingOut)) {
+        ui.showToast('error', message)
+      }
 
       if (status === 401 && process.client) {
-        auth.logout()
-        navigateTo('/')
+        // 🔥 Si ya estamos haciendo logout, no hacer nada
+        if (!auth.isLoggingOut) {
+          auth.logout()
+          navigateTo('/')
+        }
       }
 
       return Promise.reject({

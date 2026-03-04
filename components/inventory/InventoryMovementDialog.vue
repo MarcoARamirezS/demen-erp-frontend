@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useProductsStore } from '~/stores/products.store'
 
 const open = defineModel<boolean>()
@@ -7,6 +7,19 @@ const open = defineModel<boolean>()
 const emit = defineEmits<{
   (e: 'submit', payload: any): void
 }>()
+
+const productOptions = computed(() =>
+  productsStore.items.map(p => ({
+    label: `${p.sku ?? ''} · ${p.name}${p.brand ? ' — ' + p.brand : ''}`,
+    value: p.id,
+  }))
+)
+
+const typeOptions = [
+  { label: 'Entrada', value: 'IN' },
+  { label: 'Salida', value: 'OUT' },
+  { label: 'Ajuste', value: 'ADJUST' },
+]
 
 const productsStore = useProductsStore()
 
@@ -19,7 +32,7 @@ const form = ref({
 
 onMounted(async () => {
   if (!productsStore.items.length) {
-    await productsStore.fetch({ limit: 100 })
+    await productsStore.fetch(100)
   }
 })
 
@@ -64,19 +77,15 @@ watch(open, v => {
     ========================== -->
     <div class="px-6 py-5 space-y-4 overflow-auto" style="max-height: calc(90vh - 160px)">
       <!-- PRODUCTO -->
-      <UiSelect v-model="form.productId" label="Producto" empty-text="No hay productos">
-        <UiOption v-for="p in productsStore.items" :key="p.id" :value="p.id">
-          {{ p.sku }} · {{ p.name }}
-          <span v-if="p.brand" class="opacity-60"> — {{ p.brand }} </span>
-        </UiOption>
-      </UiSelect>
+      <UiSelect
+        v-model="form.productId"
+        label="Producto"
+        :options="productOptions"
+        empty-text="No hay productos"
+      />
 
       <!-- TIPO -->
-      <UiSelect v-model="form.type" label="Tipo">
-        <UiOption value="IN">Entrada</UiOption>
-        <UiOption value="OUT">Salida</UiOption>
-        <UiOption value="ADJUST">Ajuste</UiOption>
-      </UiSelect>
+      <UiSelect v-model="form.type" label="Tipo" :options="typeOptions" />
 
       <!-- CANTIDAD -->
       <UiInput v-model="form.quantity" type="number" label="Cantidad" />

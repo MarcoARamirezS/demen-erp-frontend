@@ -30,11 +30,12 @@
 
         <!-- FAMILIA -->
         <div class="space-y-1">
-          <UiSelect v-model="form.familyId" label="Familia">
-            <UiOption v-for="f in families" :key="f.id" :value="f.id">
-              {{ f.name }}
-            </UiOption>
-          </UiSelect>
+          <UiSelect
+            v-model="form.familyId"
+            label="Familia"
+            :options="familyOptions"
+            placeholder="Selecciona una familia"
+          />
 
           <button
             type="button"
@@ -47,11 +48,13 @@
 
         <!-- CATEGORÍA -->
         <div class="space-y-1">
-          <UiSelect v-model="form.categoryId" label="Categoría" :disabled="!form.familyId">
-            <UiOption v-for="c in categories" :key="c.id" :value="c.id">
-              {{ c.name }}
-            </UiOption>
-          </UiSelect>
+          <UiSelect
+            v-model="form.categoryId"
+            label="Categoría"
+            :options="categoryOptions"
+            :disabled="!form.familyId"
+            placeholder="Selecciona una categoría"
+          />
 
           <button
             type="button"
@@ -63,12 +66,7 @@
           </button>
         </div>
 
-        <UiSelect v-model="form.unit" label="Unidad">
-          <UiOption value="m">m</UiOption>
-          <UiOption value="pz">pz</UiOption>
-          <UiOption value="kg">kg</UiOption>
-          <UiOption value="lt">lt</UiOption>
-        </UiSelect>
+        <UiSelect v-model="form.unit" label="Unidad" :options="unitOptions" />
 
         <UiInput
           v-model="form.description"
@@ -200,6 +198,31 @@ const categoriesStore = useProductCategoriesStore()
 
 const families = computed(() => familiesStore.items)
 const categories = computed(() => categoriesStore.items)
+
+/* =========================
+   SELECT OPTIONS (NEW API)
+========================= */
+
+const familyOptions = computed(() =>
+  families.value.map(f => ({
+    label: f.name,
+    value: f.id,
+  }))
+)
+
+const categoryOptions = computed(() =>
+  categories.value.map(c => ({
+    label: c.name,
+    value: c.id,
+  }))
+)
+
+const unitOptions = [
+  { label: 'm', value: 'm' },
+  { label: 'pz', value: 'pz' },
+  { label: 'kg', value: 'kg' },
+  { label: 'lt', value: 'lt' },
+]
 
 onMounted(async () => {
   if (!familiesStore.items.length) {

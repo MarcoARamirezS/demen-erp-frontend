@@ -12,6 +12,38 @@ defineEmits<{
   (e: 'load-more'): void
 }>()
 
+/* =========================
+   FORMAT DATE (Firestore Safe)
+========================= */
+function formatDate(date: any) {
+  if (!date) return '—'
+
+  // Caso Firestore Timestamp plano (_seconds)
+  if (date._seconds) {
+    const d = new Date(date._seconds * 1000)
+    return d.toLocaleString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  // Caso Timestamp con toDate()
+  if (typeof date?.toDate === 'function') {
+    return date.toDate().toLocaleString('es-MX')
+  }
+
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+
+  return d.toLocaleString('es-MX')
+}
+
+/* =========================
+   TYPE BADGE
+========================= */
 const typeBadge = (type: string) => {
   if (type === 'IN') return 'badge-success'
   if (type === 'OUT') return 'badge-error'
@@ -26,7 +58,7 @@ const typeBadge = (type: string) => {
     ========================== -->
     <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
       <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase">
+        <thead class="bg-base-200 text-xs uppercase tracking-wide">
           <tr>
             <th class="min-w-[140px]">Tipo</th>
             <th class="min-w-[260px]">Producto</th>
@@ -48,27 +80,43 @@ const typeBadge = (type: string) => {
 
         <!-- Rows -->
         <tbody v-else-if="items.length">
-          <tr v-for="m in items" :key="m.id" class="hover:bg-base-200/40 transition">
+          <tr
+            v-for="m in items"
+            :key="m.id"
+            class="border-b border-base-200 hover:bg-base-200/30 transition"
+          >
+            <!-- Tipo -->
             <td>
-              <span class="badge badge-outline" :class="typeBadge(m.type)">
+              <span class="badge gap-1 badge-outline" :class="typeBadge(m.type)">
+                <Icon :name="m.type === 'IN' ? 'arrow-down' : 'arrow-up'" class="w-3 h-3" />
                 {{ m.type }}
               </span>
             </td>
 
-            <td class="font-mono text-xs truncate max-w-[360px]" :title="m.productId">
-              {{ m.productId }}
+            <!-- Producto -->
+            <td>
+              <div class="flex flex-col">
+                <span class="font-medium truncate">
+                  {{ m.product?.name || m.productId }}
+                </span>
+              </div>
             </td>
 
-            <td class="font-semibold">
-              {{ m.quantity }}
+            <!-- Cantidad -->
+            <td>
+              <span class="font-bold" :class="m.type === 'OUT' ? 'text-error' : 'text-success'">
+                {{ m.type === 'OUT' ? '-' : '+' }}{{ m.quantity }}
+              </span>
             </td>
 
+            <!-- Motivo -->
             <td class="truncate max-w-[320px]" :title="m.reason">
               {{ m.reason || '—' }}
             </td>
 
+            <!-- Fecha -->
             <td class="text-xs opacity-70 whitespace-nowrap">
-              {{ new Date(m.createdAt?.toDate?.() ?? m.createdAt).toLocaleString() }}
+              {{ formatDate(m.createdAt) }}
             </td>
           </tr>
         </tbody>
@@ -110,16 +158,17 @@ const typeBadge = (type: string) => {
         v-else
         v-for="m in items"
         :key="m.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
+        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
         <!-- Header -->
         <div class="flex items-start justify-between gap-3">
-          <span class="badge badge-outline" :class="typeBadge(m.type)">
+          <span class="badge gap-1 badge-outline" :class="typeBadge(m.type)">
+            <Icon :name="m.type === 'IN' ? 'arrow-down' : 'arrow-up'" class="w-3 h-3" />
             {{ m.type }}
           </span>
 
           <div class="text-xs opacity-60">
-            {{ new Date(m.createdAt?.toDate?.() ?? m.createdAt).toLocaleString() }}
+            {{ formatDate(m.createdAt) }}
           </div>
         </div>
 
@@ -128,13 +177,18 @@ const typeBadge = (type: string) => {
           <div>
             <span class="opacity-60">Producto:</span>
             <div class="font-mono text-xs break-all mt-1">
-              {{ m.productId }}
+              {{ m.product?.name || m.productId }}
             </div>
           </div>
 
-          <div>
+          <div class="flex justify-between items-center">
             <span class="opacity-60">Cantidad:</span>
-            <span class="font-semibold ml-1">{{ m.quantity }}</span>
+            <span
+              class="text-lg font-bold"
+              :class="m.type === 'OUT' ? 'text-error' : 'text-success'"
+            >
+              {{ m.type === 'OUT' ? '-' : '+' }}{{ m.quantity }}
+            </span>
           </div>
 
           <div v-if="m.reason">
