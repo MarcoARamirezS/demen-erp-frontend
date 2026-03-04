@@ -17,6 +17,20 @@ const open = computed({
   set: v => emit('update:modelValue', v),
 })
 
+const clientOptions = computed(() =>
+  clientsStore.items.map(c => ({
+    label: c.razonSocial || c.nombreComercial,
+    value: c.id,
+  }))
+)
+
+const branchOptions = computed(() =>
+  addressesStore.items.map(a => ({
+    label: a.nombre,
+    value: a.id,
+  }))
+)
+
 const projectsStore = useProjectsStore()
 const clientsStore = useClientsStore()
 const addressesStore = useClientAddressesStore()
@@ -46,7 +60,7 @@ const form = ref({
 
 watch(
   () => props.model,
-  val => {
+  async val => {
     if (val) {
       form.value = {
         clientId: val.clientId ?? '',
@@ -56,6 +70,23 @@ watch(
         personaAQuienVisita: val.personaAQuienVisita ?? '',
         fecha: val.fecha ?? '',
       }
+
+      // 🔥 Si estamos editando y ya hay cliente, cargar sucursales
+      if (val.clientId) {
+        await addressesStore.fetchByClient(val.clientId)
+      }
+    } else {
+      // 🔄 Reset limpio cuando es nuevo proyecto
+      form.value = {
+        clientId: '',
+        branchId: '',
+        plantaCliente: '',
+        objetivoFuncionalCliente: '',
+        personaAQuienVisita: '',
+        fecha: '',
+      }
+
+      addressesStore.items = []
     }
   },
   { immediate: true }
@@ -120,20 +151,21 @@ async function save() {
     <!-- CONTENT -->
     <div class="px-6 py-5 overflow-auto space-y-5" style="max-height: calc(90vh - 160px)">
       <!-- CLIENTE -->
-      <UiSelect v-model="form.clientId" label="Cliente">
-        <option value="" disabled>Selecciona un cliente</option>
-        <option v-for="c in clientsStore.items" :key="c.id" :value="c.id">
-          {{ c.razonSocial || c.nombreComercial }}
-        </option>
-      </UiSelect>
+      <UiSelect
+        v-model="form.clientId"
+        label="Cliente"
+        :options="clientOptions"
+        placeholder="Selecciona un cliente"
+      />
 
       <!-- SUCURSAL -->
-      <UiSelect v-model="form.branchId" label="Sucursal" :disabled="!form.clientId">
-        <option value="" disabled>Selecciona una sucursal</option>
-        <option v-for="a in addressesStore.items" :key="a.id" :value="a.id">
-          {{ a.nombre }}
-        </option>
-      </UiSelect>
+      <UiSelect
+        v-model="form.branchId"
+        label="Sucursal"
+        :options="branchOptions"
+        :disabled="!form.clientId"
+        placeholder="Selecciona una sucursal"
+      />
 
       <UiInput v-model="form.plantaCliente" label="Planta Cliente" />
       <UiInput v-model="form.objetivoFuncionalCliente" label="Objetivo Funcional" />
