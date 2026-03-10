@@ -98,7 +98,7 @@
         <div>
           <UiInput
             v-model="form.packSize"
-            label="Tamaño de paquete"
+            label="Numero de Piezas"
             type="number"
             min="0"
             placeholder="Unidades por caja o empaque"
