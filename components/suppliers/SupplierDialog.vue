@@ -63,10 +63,11 @@
             :error="errors.paymentTermsDays"
           />
 
-          <UiSelect v-model="form.defaultCurrency" label="Moneda por defecto">
-            <UiOption value="MXN">MXN – Peso mexicano</UiOption>
-            <UiOption value="USD">USD – Dólar americano</UiOption>
-          </UiSelect>
+          <UiSelect
+            v-model="form.defaultCurrency"
+            label="Moneda por defecto"
+            :options="currencyOptions"
+          />
         </div>
       </section>
 
@@ -116,10 +117,7 @@
           <UiInput v-model="b.accountHolder" label="Titular" placeholder="Nombre del titular" />
           <UiInput v-model="b.accountNumber" label="Cuenta" placeholder="1234567890" />
 
-          <UiSelect v-model="b.currency" label="Moneda">
-            <UiOption value="MXN">MXN</UiOption>
-            <UiOption value="USD">USD</UiOption>
-          </UiSelect>
+          <UiSelect v-model="b.currency" label="Moneda" :options="bankCurrencyOptions" />
 
           <UiInput
             v-model="b.clabe"
@@ -200,6 +198,21 @@ function getDefaultForm() {
 }
 
 const form = reactive<any>(getDefaultForm())
+
+/* =========================
+   SELECT OPTIONS
+========================= */
+
+const currencyOptions = [
+  { label: 'MXN – Peso mexicano', value: 'MXN' },
+  { label: 'USD – Dólar americano', value: 'USD' },
+]
+
+const bankCurrencyOptions = [
+  { label: 'MXN', value: 'MXN' },
+  { label: 'USD', value: 'USD' },
+]
+
 const errors = reactive<Record<string, string>>({})
 
 watch(
