@@ -18,22 +18,12 @@ const itemsPerPage = ref(10)
    FETCH
 ======================= */
 clientsStore.reset()
-clientsStore.fetch(itemsPerPage.value)
+clientsStore.fetch(itemsPerPage.value, search.value)
 
 /* =======================
    FILTERED
 ======================= */
-const filtered = computed(() => {
-  const term = search.value.toLowerCase()
-
-  return clientsStore.items.filter(
-    c =>
-      !term ||
-      c.razonSocial.toLowerCase().includes(term) ||
-      c.nombreComercial?.toLowerCase().includes(term) ||
-      c.rfc?.toLowerCase().includes(term)
-  )
-})
+const filtered = computed(() => clientsStore.items)
 
 /* =======================
    PAGINATION
@@ -65,8 +55,16 @@ const prevPage = () => setPage(currentPage.value - 1)
 /* =======================
    WATCH
 ======================= */
-watch([search, itemsPerPage], () => {
+watch(search, async () => {
   currentPage.value = 1
+  clientsStore.reset()
+  await clientsStore.fetch(itemsPerPage.value, search.value)
+})
+
+watch(itemsPerPage, async () => {
+  currentPage.value = 1
+  clientsStore.reset()
+  await clientsStore.fetch(itemsPerPage.value, search.value)
 })
 
 /* =======================
@@ -93,9 +91,11 @@ async function toggleClient(client: any) {
   await clientsStore.toggleActive(client.id, newStatus)
 }
 
-function resetFilters() {
+async function resetFilters() {
   search.value = ''
   currentPage.value = 1
+  clientsStore.reset()
+  await clientsStore.fetch(itemsPerPage.value)
 }
 </script>
 
@@ -220,7 +220,6 @@ function resetFilters() {
 
             <td class="text-center">
               <div class="flex items-center justify-center gap-1">
-                <!-- VER -->
                 <div class="tooltip tooltip-left" data-tip="Ver cliente">
                   <button
                     class="btn btn-circle btn-sm btn-ghost text-primary"
@@ -230,7 +229,6 @@ function resetFilters() {
                   </button>
                 </div>
 
-                <!-- ACTIVAR / DESACTIVAR -->
                 <div
                   class="tooltip tooltip-left"
                   :data-tip="c.activo ? 'Desactivar cliente' : 'Activar cliente'"
@@ -263,7 +261,6 @@ function resetFilters() {
          MOBILE CARDS (<md)
     ========================== -->
     <div class="md:hidden space-y-3">
-      <!-- Loading -->
       <div
         v-if="clientsStore.loading"
         class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm flex items-center justify-center gap-2"
@@ -272,7 +269,6 @@ function resetFilters() {
         <span class="text-sm opacity-70">Cargando clientes…</span>
       </div>
 
-      <!-- Empty -->
       <div
         v-else-if="!paginated.length"
         class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
@@ -280,7 +276,6 @@ function resetFilters() {
         No hay resultados
       </div>
 
-      <!-- Cards -->
       <div
         v-else
         v-for="c in paginated"
@@ -328,8 +323,11 @@ function resetFilters() {
     ========================== -->
     <div class="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <p class="text-xs opacity-70">
-        Mostrando <span class="font-medium">{{ startIndex + 1 }}</span
-        >–<span class="font-medium">{{ endIndex }}</span> de
+        Mostrando <span class="font-medium">{{ startIndex + 1 }}</span> –<span
+          class="font-medium"
+          >{{ endIndex }}</span
+        >
+        de
         <span class="font-medium">{{ filtered.length }}</span>
       </p>
 
