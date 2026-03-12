@@ -36,9 +36,14 @@ async function handleSubmit(payload: CreateClientDto) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // esperar a que auth termine bootstrap
+  while (!auth.initialized) {
+    await new Promise(resolve => setTimeout(resolve, 10))
+  }
+
   clients.reset()
-  clients.fetch(10)
+  await clients.fetch(10)
 })
 </script>
 

@@ -34,13 +34,16 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchMe() {
       try {
-        const res = await useApi<any>('/auth/me')
+        const res = await useApi<any>('/auth/me', {
+          silent: true,
+        })
 
         this.user = { id: res.id }
         this.permissions = res.permissions ?? []
       } catch (e: any) {
-        if (e?.status === 401) {
-          await this.logout(false)
+        if (e?.statusCode === 401) {
+          this.user = null
+          this.permissions = []
         } else {
           console.error('[auth.fetchMe]', e)
         }
@@ -50,13 +53,13 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout(redirect = true) {
+      if (this.isLoggingOut) return
+
       this.isLoggingOut = true
 
       try {
         await useApi('/auth/logout', { method: 'POST' })
-      } catch (_) {
-        // ignorar error
-      }
+      } catch (_) {}
 
       this.user = null
       this.permissions = []
@@ -64,7 +67,7 @@ export const useAuthStore = defineStore('auth', {
 
       this.isLoggingOut = false
 
-      if (redirect) navigateTo('/')
+      if (redirect) return navigateTo('/')
     },
   },
 })

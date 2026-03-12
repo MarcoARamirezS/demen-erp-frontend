@@ -19,11 +19,12 @@
          CONTENT (SCROLL)
     ========================== -->
     <div class="px-6 py-5 space-y-4 overflow-auto" style="max-height: calc(90vh - 160px)">
-      <UiSelect v-model="form.familyId" label="Familia">
-        <UiOption v-for="f in families" :key="f.id" :value="f.id">
-          {{ f.name }}
-        </UiOption>
-      </UiSelect>
+      <UiSelect
+        v-model="form.familyId"
+        label="Familia"
+        placeholder="Seleccionar familia"
+        :options="familyOptions"
+      />
 
       <UiInput v-model="form.name" label="Nombre de la categoría" />
 
@@ -63,7 +64,17 @@ const open = computed({
 })
 
 const familiesStore = useProductFamiliesStore()
+
 const families = computed(() => familiesStore.items)
+
+console.log('familiesStore', familiesStore.items)
+
+const familyOptions = computed(() => {
+  return families.value.map(f => ({
+    label: f.name,
+    value: f.id,
+  }))
+})
 
 const form = reactive({
   name: '',
@@ -75,7 +86,7 @@ onMounted(async () => {
   if (!familiesStore.items.length) {
     await familiesStore.fetch()
   }
-
+  console.log('families', families.value)
   if (props.familyId) {
     form.familyId = props.familyId
   }

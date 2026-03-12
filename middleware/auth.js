@@ -1,13 +1,9 @@
-// middleware/auth.ts
-export default defineNuxtRouteMiddleware(async () => {
-  // ⛔ Evitar auth en SSR (cookies no disponibles)
+export default defineNuxtRouteMiddleware(() => {
   if (process.server) return
 
   const auth = useAuthStore()
 
-  if (!auth.initialized) {
-    await auth.fetchMe()
-  }
+  if (!auth.initialized) return
 
   if (!auth.isAuthenticated) {
     return navigateTo('/')

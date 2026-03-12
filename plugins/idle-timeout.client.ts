@@ -17,7 +17,7 @@ export default defineNuxtPlugin(() => {
     localStorage.setItem('forceLogout', Date.now().toString())
 
     ui.showToast('warning', 'Sesión cerrada por inactividad')
-    navigateTo('/login')
+    navigateTo('/')
   }
 
   function resetTimer() {

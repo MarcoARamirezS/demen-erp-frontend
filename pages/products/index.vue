@@ -1,35 +1,19 @@
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Productos</h1>
-        <p class="text-sm opacity-60">Catálogo general de productos</p>
-      </div>
+    <!-- =====================================================
+     HEADER
+===================================================== -->
+    <!-- =====================================================
+     HEADER
+===================================================== -->
+    <div class="space-y-4">
+      <!-- Title -->
+      <div class="flex items-start justify-between">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Productos</h1>
 
-      <div class="flex flex-wrap gap-2 items-center">
-        <!-- FAMILIA -->
-        <UiSelect v-model="selectedFamilyId" size="sm" class="min-w-[180px]">
-          <UiOption value="">Todas las familias</UiOption>
-          <UiOption v-for="f in familiesStore.items" :key="f.id" :value="f.id">
-            {{ f.name }}
-          </UiOption>
-        </UiSelect>
-
-        <!-- CATEGORÍA -->
-        <UiSelect
-          v-model="selectedCategoryId"
-          size="sm"
-          class="min-w-[180px]"
-          :disabled="!selectedFamilyId"
-        >
-          <UiOption value="">Todas las categorías</UiOption>
-          <UiOption v-for="c in categoriesStore.items" :key="c.id" :value="c.id">
-            {{ c.name }}
-          </UiOption>
-        </UiSelect>
-
-        <UiButton size="sm" variant="outline" @click="clearFilters"> Limpiar </UiButton>
+          <p class="text-sm opacity-60 mt-1">Catálogo general de productos</p>
+        </div>
 
         <ClientOnly>
           <UiButton
@@ -39,9 +23,64 @@
             size="sm"
             @click="openCreate"
           >
-            Nuevo
+            Nuevo producto
           </UiButton>
         </ClientOnly>
+      </div>
+
+      <!-- Filters -->
+      <div
+        class="flex flex-col lg:flex-row lg:items-end gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+      >
+        <!-- Search -->
+        <div class="w-full lg:w-[40%]">
+          <label class="text-xs opacity-70 block mb-1"> Buscar </label>
+
+          <UiInput
+            v-model="search"
+            size="sm"
+            placeholder="Producto, número de parte o marca..."
+            class="w-full"
+          >
+            <template #prefix>
+              <Icon name="search" size="sm" />
+            </template>
+          </UiInput>
+        </div>
+
+        <!-- Family -->
+        <div class="w-full lg:w-[25%]">
+          <label class="text-xs opacity-70 block mb-1"> Familia </label>
+
+          <UiSelect
+            v-model="selectedFamilyId"
+            size="sm"
+            class="w-full"
+            placeholder="Todas las familias"
+            :options="familyOptions"
+          />
+        </div>
+
+        <!-- Category -->
+        <div class="w-full lg:w-[25%]">
+          <label class="text-xs opacity-70 block mb-1"> Categoría </label>
+
+          <UiSelect
+            v-model="selectedCategoryId"
+            size="sm"
+            class="w-full"
+            :disabled="!selectedFamilyId"
+            placeholder="Todas las categorías"
+            :options="categoryOptions"
+          />
+        </div>
+
+        <!-- Clear -->
+        <div class="w-full lg:w-[10%] flex items-end">
+          <UiButton size="sm" variant="outline" class="w-full" @click="clearFilters">
+            Limpiar
+          </UiButton>
+        </div>
       </div>
     </div>
 
@@ -73,6 +112,7 @@ import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
+import { useDebounceFn } from '@vueuse/core'
 
 import ProductsTable from '~/components/products/ProductsTable.vue'
 import ProductDialog from '~/components/products/ProductDialog.vue'
@@ -83,6 +123,31 @@ definePageMeta({
   middleware: ['auth', 'permission'],
   permission: 'products:list',
 })
+
+const search = ref('')
+
+const runSearch = useDebounceFn(async (v: string) => {
+  store.setSearch(v)
+  await store.fetch()
+}, 400)
+
+watch(search, runSearch)
+
+const familyOptions = computed(() => [
+  { label: 'Todas las familias', value: '' },
+  ...familiesStore.items.map(f => ({
+    label: f.name,
+    value: f.id,
+  })),
+])
+
+const categoryOptions = computed(() => [
+  { label: 'Todas las categorías', value: '' },
+  ...categoriesStore.items.map(c => ({
+    label: c.name,
+    value: c.id,
+  })),
+])
 
 const store = useProductsStore()
 const auth = useAuthStore()
@@ -109,6 +174,11 @@ watch(selectedFamilyId, async id => {
   } else {
     categoriesStore.clear()
   }
+})
+
+watch(search, async v => {
+  store.setSearch(v)
+  await store.fetch()
 })
 
 const filteredItems = computed(() => {

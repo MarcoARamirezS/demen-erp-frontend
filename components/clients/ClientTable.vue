@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useClientsStore } from '~/stores/clients.store'
 import Icon from '~/components/ui/Icon.vue'
 import { useUiStore } from '~/stores/ui.store'
@@ -17,8 +17,13 @@ const itemsPerPage = ref(10)
 /* =======================
    FETCH
 ======================= */
-clientsStore.reset()
-clientsStore.fetch(itemsPerPage.value, search.value)
+onMounted(async () => {
+  // Evitar doble fetch si la página ya lo hizo
+  if (!clientsStore.items.length) {
+    clientsStore.reset()
+    await clientsStore.fetch(itemsPerPage.value, search.value)
+  }
+})
 
 /* =======================
    FILTERED
@@ -179,7 +184,6 @@ async function resetFilters() {
           </tr>
         </thead>
 
-        <!-- Loading -->
         <tbody v-if="clientsStore.loading">
           <tr>
             <td colspan="5" class="p-10 text-center opacity-70">
@@ -189,7 +193,6 @@ async function resetFilters() {
           </tr>
         </tbody>
 
-        <!-- Rows -->
         <tbody v-else-if="paginated.length">
           <tr v-for="c in paginated" :key="c.id" class="hover:bg-base-200/40 transition">
             <td>
@@ -246,7 +249,6 @@ async function resetFilters() {
           </tr>
         </tbody>
 
-        <!-- Empty -->
         <tbody v-else>
           <tr>
             <td colspan="5" class="p-10 text-center opacity-70">
@@ -258,75 +260,12 @@ async function resetFilters() {
     </div>
 
     <!-- =========================
-         MOBILE CARDS (<md)
-    ========================== -->
-    <div class="md:hidden space-y-3">
-      <div
-        v-if="clientsStore.loading"
-        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm flex items-center justify-center gap-2"
-      >
-        <span class="loading loading-spinner loading-sm"></span>
-        <span class="text-sm opacity-70">Cargando clientes…</span>
-      </div>
-
-      <div
-        v-else-if="!paginated.length"
-        class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
-      >
-        No hay resultados
-      </div>
-
-      <div
-        v-else
-        v-for="c in paginated"
-        :key="c.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="font-semibold truncate">
-              {{ c.razonSocial }}
-            </div>
-            <div class="text-xs opacity-60 truncate mt-1">
-              {{ c.rfc || 'Sin RFC' }}
-            </div>
-          </div>
-
-          <span
-            class="badge badge-outline shrink-0"
-            :class="c.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
-          >
-            {{ c.activo ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
-
-        <div class="flex gap-2 mt-4">
-          <button class="btn btn-sm btn-outline flex-1" @click="goToClient(c.id)">
-            <Icon name="eye" size="sm" />
-            Ver cliente
-          </button>
-
-          <button
-            class="btn btn-sm flex-1"
-            :class="c.activo ? 'btn-warning' : 'btn-success'"
-            @click="toggleClient(c)"
-          >
-            <Icon :name="c.activo ? 'power' : 'checkCircle'" size="sm" />
-            {{ c.activo ? 'Desactivar' : 'Activar' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- =========================
          PAGINACIÓN
     ========================== -->
     <div class="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <p class="text-xs opacity-70">
-        Mostrando <span class="font-medium">{{ startIndex + 1 }}</span> –<span
-          class="font-medium"
-          >{{ endIndex }}</span
-        >
+        Mostrando <span class="font-medium">{{ startIndex + 1 }}</span> –
+        <span class="font-medium">{{ endIndex }}</span>
         de
         <span class="font-medium">{{ filtered.length }}</span>
       </p>

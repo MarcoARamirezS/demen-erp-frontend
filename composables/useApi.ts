@@ -8,6 +8,7 @@ export function useApi<T>(
     body?: any
     query?: Record<string, any>
     headers?: Record<string, string>
+    silent?: boolean
   } = {}
 ): Promise<T> {
   const ui = useUiStore()
@@ -18,18 +19,15 @@ export function useApi<T>(
     throw new Error('[useApi] URL inválida')
   }
 
-  ui.showLoading()
+  const silent = options.silent === true
 
-  /* =========================
-     🔥 FIX DEFINITIVO FORMDATA
-  ========================= */
+  if (!silent) {
+    ui.showLoading()
+  }
+
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
-  /* =========================
-     🔥 BASE URL DINÁMICA
-  ========================= */
   const baseUrl = config.public.apiBaseUrl
-
   let finalUrl = `${baseUrl}${url}`
 
   /* =========================
@@ -76,6 +74,7 @@ export function useApi<T>(
         throw {
           statusCode: res.status,
           data,
+          url,
         }
       }
 
@@ -85,25 +84,39 @@ export function useApi<T>(
       const status = error?.statusCode
       const message = error?.data?.message || error?.message || 'Error inesperado del servidor'
 
-      // 🔥 No mostrar toast si es 401 durante logout
-      if (!(status === 401 && auth.isLoggingOut)) {
+      /* =========================
+         🔥 BOOTSTRAP SILENCIOSO
+         Evita toast en /auth/me
+      ========================= */
+      const isSilent401Bootstrap = silent && status === 401 && url === '/auth/me'
+
+      if (!isSilent401Bootstrap && !(status === 401 && auth.isLoggingOut)) {
         ui.showToast('error', message)
       }
 
+      /* =========================
+         🔥 MANEJO GLOBAL 401
+      ========================= */
       if (status === 401 && process.client) {
-        // 🔥 Si ya estamos haciendo logout, no hacer nada
+        // Evitar limpiar estado durante logout
         if (!auth.isLoggingOut) {
-          auth.logout()
-          navigateTo('/')
+          auth.user = null
+          auth.permissions = []
         }
       }
 
+      /* =========================
+         🔥 NORMALIZAR ERROR
+      ========================= */
       return Promise.reject({
-        status,
+        statusCode: status,
         message,
+        url,
       })
     })
     .finally(() => {
-      ui.hideLoading()
+      if (!silent) {
+        ui.hideLoading()
+      }
     })
 }
