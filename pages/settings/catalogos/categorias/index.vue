@@ -11,12 +11,13 @@
         </div>
 
         <div class="flex gap-2 items-center">
-          <UiSelect v-model="selectedFamilyId" size="sm" class="min-w-[220px]">
-            <UiOption value=""> Selecciona una familia </UiOption>
-            <UiOption v-for="f in familiesStore.items" :key="f.id" :value="f.id">
-              {{ f.name }}
-            </UiOption>
-          </UiSelect>
+          <UiSelect
+            v-model="selectedFamilyId"
+            size="sm"
+            class="min-w-[220px]"
+            placeholder="Selecciona una familia"
+            :options="familyOptions"
+          />
 
           <ClientOnly>
             <UiButton
@@ -97,6 +98,14 @@ definePageMeta({
   middleware: ['auth', 'permission'],
   permission: 'product_categories:list',
 })
+
+const familyOptions = computed(() => [
+  { label: 'Selecciona una familia', value: '' },
+  ...familiesStore.items.map(f => ({
+    label: f.name,
+    value: f.id,
+  })),
+])
 
 const familiesStore = useProductFamiliesStore()
 const categoriesStore = useProductCategoriesStore()

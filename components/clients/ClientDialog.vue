@@ -7,6 +7,13 @@ import UiToggle from '~/components/ui/UiToggle.vue'
 import { useUiStore } from '~/stores/ui.store'
 import type { Client, CreateClientDto } from '~/types/client'
 
+const errors = ref({
+  razonSocial: false,
+  rfc: false,
+  email: false,
+  telefono: false,
+})
+
 const props = defineProps<{
   modelValue: boolean
   model?: Client | null
@@ -170,32 +177,41 @@ watch(
    SUBMIT
 ========================= */
 function submit() {
+  errors.value = {
+    razonSocial: false,
+    rfc: false,
+    email: false,
+    telefono: false,
+  }
+
   if (!form.value.razonSocial) {
+    errors.value.razonSocial = true
     ui.showToast('warning', 'La razón social es obligatoria')
     return
   }
 
   if (form.value.rfc && !isValidRFC(form.value.rfc)) {
+    errors.value.rfc = true
     ui.showToast('warning', 'RFC inválido')
     return
   }
 
   if (form.value.email && !isValidEmail(form.value.email)) {
+    errors.value.email = true
     ui.showToast('warning', 'Correo electrónico inválido')
     return
   }
 
   if (form.value.telefono && !isValidPhone(form.value.telefono)) {
+    errors.value.telefono = true
     ui.showToast('warning', 'El teléfono debe tener 10 dígitos')
     return
   }
 
   emit('submit', {
     ...form.value,
-
     diasCredito: Number(form.value.diasCredito),
     limiteCredito: Number(form.value.limiteCredito),
-
     rfc: form.value.rfc.toUpperCase(),
     telefono: form.value.telefono ? `${countryCode.value}${form.value.telefono}` : '',
   })
@@ -226,10 +242,10 @@ function submit() {
              DATOS GENERALES
         ========================== -->
         <div class="space-y-4">
-          <UiInput v-model="form.razonSocial" label="Razón social *" />
+          <UiInput v-model="form.razonSocial" label="Razón social *" :error="errors.razonSocial" />
           <UiInput v-model="form.nombreComercial" label="Nombre comercial" />
-          <UiInput v-model="form.rfc" label="RFC" />
-          <UiInput v-model="form.email" label="Email" />
+          <UiInput v-model="form.rfc" label="RFC" :error="errors.rfc" />
+          <UiInput v-model="form.email" label="Email" :error="errors.email" />
         </div>
 
         <!-- =========================

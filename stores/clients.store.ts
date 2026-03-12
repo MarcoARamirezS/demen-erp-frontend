@@ -15,20 +15,20 @@ export const useClientsStore = defineStore('clients', {
      */
     async fetch(limit = 10, search = '') {
       this.loading = true
-      const api = useApi
 
-      const params: Record<string, any> = { limit }
+      try {
+        const params: Record<string, any> = { limit }
 
-      if (this.cursor) params.cursor = this.cursor
-      if (search) params.search = search
+        if (this.cursor) params.cursor = this.cursor
+        if (search) params.search = search
 
-      console.log('Fetching clients with params:', params)
+        const res = await useApi('/clients', { query: params })
 
-      const res = await api('/clients', { query: params })
-
-      this.items = res.items
-      this.cursor = res.nextCursor ?? null
-      this.loading = false
+        this.items = res.items
+        this.cursor = res.nextCursor ?? null
+      } finally {
+        this.loading = false
+      }
     },
 
     /**

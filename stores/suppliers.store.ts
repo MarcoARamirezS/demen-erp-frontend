@@ -8,6 +8,7 @@ export const useSuppliersStore = defineStore('suppliers', {
     loading: false,
     cursor: null as string | null,
     hasMore: true,
+    search: '', // ⭐ NUEVO
   }),
 
   actions: {
@@ -17,12 +18,22 @@ export const useSuppliersStore = defineStore('suppliers', {
       this.hasMore = true
     },
 
+    setSearch(value: string) {
+      this.search = value
+      this.reset()
+    },
+
     async fetch(limit = 10) {
       if (!this.hasMore || this.loading) return
 
       this.loading = true
+
       const res = await useApi<any>('/suppliers', {
-        query: { limit, cursor: this.cursor },
+        query: {
+          limit,
+          cursor: this.cursor,
+          search: this.search || undefined, // ⭐ NUEVO
+        },
       })
 
       this.items.push(...res.items)

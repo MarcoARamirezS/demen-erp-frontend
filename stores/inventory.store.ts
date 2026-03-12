@@ -6,6 +6,7 @@ export const useInventoryStore = defineStore('inventory', {
     items: [] as InventoryMovement[],
     loading: false,
     cursor: null as string | null,
+    productId: null as string | null, // ⭐ NUEVO
   }),
 
   actions: {
@@ -14,9 +15,8 @@ export const useInventoryStore = defineStore('inventory', {
      */
     async fetch(query: InventoryQuery = {}) {
       this.loading = true
-      try {
-        const api = useApi
 
+      try {
         const params: Record<string, any> = {
           limit: query.limit ?? 20,
         }
@@ -24,13 +24,21 @@ export const useInventoryStore = defineStore('inventory', {
         if (query.cursor) params.cursor = query.cursor
         if (query.productId) params.productId = query.productId
 
-        const res = await api('/inventory', { params })
+        const res = await useApi('/inventory', {
+          query: params,
+        })
 
         this.items = query.cursor ? [...this.items, ...res.items] : res.items
+
         this.cursor = res.nextCursor ?? null
       } finally {
         this.loading = false
       }
+    },
+
+    setProductFilter(productId: string | null) {
+      this.productId = productId
+      this.reset()
     },
 
     /**

@@ -1,22 +1,49 @@
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Proveedores</h1>
-        <p class="text-sm opacity-60">Catálogo de proveedores del sistema</p>
+    <!-- =====================================================
+     HEADER
+===================================================== -->
+    <div class="space-y-4">
+      <!-- Title -->
+      <div class="flex items-start justify-between">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Proveedores</h1>
+
+          <p class="text-sm opacity-60 mt-1">Catálogo de proveedores del sistema</p>
+        </div>
+
+        <ClientOnly>
+          <UiButton
+            v-if="auth.hasPermission('suppliers:create')"
+            icon="plus"
+            variant="primary"
+            size="sm"
+            @click="openCreate"
+          >
+            Nuevo proveedor
+          </UiButton>
+        </ClientOnly>
       </div>
 
-      <ClientOnly>
-        <UiButton
-          v-if="auth.hasPermission('suppliers:create')"
-          icon="plus"
-          variant="primary"
-          @click="openCreate"
-        >
-          Nuevo proveedor
-        </UiButton>
-      </ClientOnly>
+      <!-- Search -->
+      <div
+        class="flex flex-col lg:flex-row lg:items-end gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+      >
+        <div class="w-full lg:w-[40%]">
+          <label class="text-xs opacity-70 block mb-1"> Buscar proveedor </label>
+
+          <UiInput
+            v-model="search"
+            size="sm"
+            placeholder="Nombre, RFC, código, email..."
+            class="w-full"
+          >
+            <template #prefix>
+              <Icon name="search" size="sm" />
+            </template>
+          </UiInput>
+        </div>
+      </div>
     </div>
 
     <SuppliersTable
@@ -41,13 +68,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useSuppliersStore } from '~/stores/suppliers.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
 import SuppliersTable from '~/components/suppliers/SuppliersTable.vue'
 import SupplierDialog from '~/components/suppliers/SupplierDialog.vue'
 import type { Supplier } from '~/types/supplier'
+const search = ref('')
+
+let searchTimeout: any = null
+
+watch(search, value => {
+  clearTimeout(searchTimeout)
+
+  searchTimeout = setTimeout(async () => {
+    store.setSearch(value)
+    await store.fetch()
+  }, 400)
+})
 
 definePageMeta({
   layout: 'default',
