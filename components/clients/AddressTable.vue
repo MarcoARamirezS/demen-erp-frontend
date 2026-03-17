@@ -16,18 +16,20 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <!-- =========================
+  <div
+    class="animate-fadeIn space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg"
+  >
+    <!-- ============================================================
          DESKTOP TABLE (md+)
-    ========================== -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
+    ============================================================ -->
+    <div class="hidden md:block overflow-x-auto rounded-xl border border-base-300">
       <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase text-base-content/70">
+        <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
             <th class="min-w-[260px]">Dirección</th>
             <th class="min-w-[200px]">Ciudad</th>
             <th class="min-w-[160px] text-center">Tipo</th>
-            <th class="w-[120px] text-center">Acciones</th>
+            <th class="w-[90px] text-center">Acciones</th>
           </tr>
         </thead>
 
@@ -49,6 +51,7 @@ defineEmits<{
               <div class="font-semibold truncate max-w-[420px]" :title="a.nombre || a.calle">
                 {{ a.nombre || a.calle }}
               </div>
+
               <div class="text-xs opacity-60 truncate max-w-[420px]">
                 {{ a.calle }}
                 <span v-if="a.colonia"> · {{ a.colonia }}</span>
@@ -57,24 +60,28 @@ defineEmits<{
             </td>
 
             <!-- Ciudad -->
-            <td class="truncate max-w-[260px]" :title="`${a.ciudad}, ${a.estado}`">
+            <td class="truncate max-w-[240px]" :title="`${a.ciudad}, ${a.estado}`">
               {{ a.ciudad }}, {{ a.estado }}
             </td>
 
             <!-- Tipo -->
             <td class="text-center">
-              <span v-if="a.esPrincipal" class="badge badge-outline bg-primary/15 text-primary">
+              <span
+                v-if="a.esPrincipal"
+                class="badge badge-sm badge-outline bg-primary/15 text-primary"
+              >
                 Principal
               </span>
-              <span v-else class="badge badge-outline bg-base-200 text-base-content/60">
+
+              <span v-else class="badge badge-sm badge-outline bg-base-200 text-base-content/60">
                 Secundaria
               </span>
             </td>
 
             <!-- Acciones -->
             <td class="text-center">
-              <div class="flex items-center justify-center gap-1">
-                <div v-if="canUpdate" class="tooltip" data-tip="Editar">
+              <div class="flex items-center justify-center gap-2">
+                <div v-if="canUpdate" class="tooltip" data-tip="Editar dirección">
                   <button
                     class="btn btn-circle btn-sm btn-ghost text-primary"
                     @click="$emit('edit', a)"
@@ -83,7 +90,7 @@ defineEmits<{
                   </button>
                 </div>
 
-                <div v-if="canDelete" class="tooltip" data-tip="Eliminar">
+                <div v-if="canDelete" class="tooltip" data-tip="Eliminar dirección">
                   <button
                     class="btn btn-circle btn-sm btn-ghost text-error"
                     @click="$emit('delete', a.id)"
@@ -110,9 +117,9 @@ defineEmits<{
       </table>
     </div>
 
-    <!-- =========================
+    <!-- ============================================================
          MOBILE CARDS (<md)
-    ========================== -->
+    ============================================================ -->
     <div class="md:hidden space-y-3">
       <!-- Loading -->
       <div
@@ -137,7 +144,7 @@ defineEmits<{
         v-else
         v-for="a in items"
         :key="a.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
+        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
         <!-- Header -->
         <div class="flex items-start justify-between gap-3">
@@ -145,6 +152,7 @@ defineEmits<{
             <div class="font-semibold truncate">
               {{ a.nombre || a.calle }}
             </div>
+
             <div class="text-xs opacity-60 truncate mt-1">
               {{ a.calle }}
               <span v-if="a.colonia"> · {{ a.colonia }}</span>
@@ -158,6 +166,7 @@ defineEmits<{
           >
             Principal
           </span>
+
           <span v-else class="badge badge-outline bg-base-200 text-base-content/60 shrink-0">
             Secundaria
           </span>

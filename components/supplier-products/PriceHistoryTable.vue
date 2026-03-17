@@ -1,18 +1,19 @@
 <template>
-  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <!-- =========================
-         HEADER
-    ========================== -->
-    <div class="mb-4 flex items-center justify-between">
-      <h4 class="font-semibold text-sm">Historial de precios</h4>
+  <div
+    class="animate-fadeIn space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg"
+  >
+    <!-- HEADER -->
+    <div class="flex items-center justify-between">
+      <h4 class="text-sm font-semibold">Historial de precios</h4>
     </div>
 
-    <!-- =========================
-         DESKTOP TABLE (md+)
-    ========================== -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
+    <!-- ===============================
+    DESKTOP TABLE (md+)
+    ================================ -->
+
+    <div class="hidden md:block overflow-x-auto rounded-xl border border-base-300">
       <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase">
+        <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
             <th class="min-w-[160px]">Desde</th>
             <th class="min-w-[160px]">Precio</th>
@@ -20,30 +21,33 @@
           </tr>
         </thead>
 
-        <!-- Empty -->
+        <!-- EMPTY -->
+
         <tbody v-if="!items.length">
           <tr>
-            <td colspan="3" class="p-8 text-center opacity-70">No hay historial de precios</td>
+            <td colspan="3" class="p-10 text-center opacity-70">No hay historial de precios</td>
           </tr>
         </tbody>
 
-        <!-- Rows -->
+        <!-- ROWS -->
+
         <tbody v-else>
           <tr v-for="h in items" :key="h.id" class="hover:bg-base-200/40 transition">
+            <!-- FECHA -->
+
             <td class="text-xs whitespace-nowrap">
-              {{ h.effectiveDateISO ? new Date(h.effectiveDateISO).toLocaleDateString() : '-' }}
+              {{ formatDate(h.effectiveDateISO) }}
             </td>
 
-            <td class="font-mono">
-              {{
-                new Intl.NumberFormat('es-MX', {
-                  style: 'currency',
-                  currency: h.currency || 'MXN',
-                }).format(h.price)
-              }}
+            <!-- PRECIO -->
+
+            <td class="font-mono whitespace-nowrap">
+              {{ formatCurrency(h.price, h.currency) }}
             </td>
 
-            <td>
+            <!-- MONEDA -->
+
+            <td class="uppercase">
               {{ h.currency }}
             </td>
           </tr>
@@ -51,11 +55,13 @@
       </table>
     </div>
 
-    <!-- =========================
-         MOBILE CARDS (<md)
-    ========================== -->
+    <!-- ===============================
+    MOBILE CARDS (<md)
+    ================================ -->
+
     <div class="md:hidden space-y-3">
-      <!-- Empty -->
+      <!-- EMPTY -->
+
       <div
         v-if="!items.length"
         class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
@@ -63,29 +69,31 @@
         No hay historial de precios
       </div>
 
-      <!-- Cards -->
+      <!-- CARDS -->
+
       <div
         v-else
         v-for="h in items"
         :key="h.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
+        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
-        <div class="flex items-center justify-between gap-3">
-          <div class="text-xs opacity-70">Desde</div>
-          <div class="text-xs font-medium">
-            {{ h.effectiveDateISO ? new Date(h.effectiveDateISO).toLocaleDateString() : '-' }}
-          </div>
+        <!-- HEADER -->
+
+        <div class="flex items-center justify-between text-xs">
+          <span class="opacity-60"> Desde </span>
+
+          <span class="font-medium">
+            {{ formatDate(h.effectiveDateISO) }}
+          </span>
         </div>
+
+        <!-- PRICE CARD -->
 
         <div class="mt-3 rounded-xl border border-base-300 bg-base-200/30 p-3">
           <div class="text-xs opacity-60">Precio</div>
-          <div class="font-mono text-sm mt-1">
-            {{
-              new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: h.currency || 'MXN',
-              }).format(h.price)
-            }}
+
+          <div class="mt-1 font-mono text-sm">
+            {{ formatCurrency(h.price, h.currency) }}
           </div>
         </div>
       </div>
@@ -94,5 +102,19 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ items: any[] }>()
+const props = defineProps<{
+  items: any[]
+}>()
+
+function formatDate(date?: string) {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString()
+}
+
+function formatCurrency(value: number, currency = 'MXN') {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency,
+  }).format(value)
+}
 </script>

@@ -1,44 +1,46 @@
 <template>
   <div
-    class="flex min-h-screen"
+    class="flex min-h-screen overflow-x-hidden"
     style="
       background:
         radial-gradient(circle at top left, rgba(0, 182, 169, 0.06), transparent 55%),
         linear-gradient(180deg, #f4f7f1 0%, #eef2ea 100%);
     "
   >
-    <!-- SIDEBAR -->
-    <aside class="hidden md:block w-64 min-h-screen border-r border-base-300 bg-base-200">
+    <!-- SIDEBAR DESKTOP -->
+    <aside class="hidden xl:block w-64 min-h-screen border-r border-base-300 bg-base-200">
       <AppSidebar />
     </aside>
 
-    <!-- MOBILE SIDEBAR -->
+    <!-- SIDEBAR DRAWER -->
     <aside
       v-if="layout.sidebarOpen"
-      class="fixed inset-y-0 left-0 z-50 w-64 bg-base-200 border-r border-base-300 md:hidden"
+      class="fixed inset-y-0 left-0 z-50 w-64 bg-base-200 border-r border-base-300 xl:hidden"
     >
       <AppSidebar />
     </aside>
 
     <!-- CONTENT -->
-    <div class="flex flex-1 flex-col min-h-screen">
+    <div class="flex flex-1 flex-col min-h-screen min-w-0 overflow-x-hidden">
       <AppHeader />
 
-      <main class="flex-1 p-4 sm:p-6 pt-20 md:pt-6 overflow-y-auto">
-        <slot />
+      <main
+        class="flex-1 overflow-y-auto overflow-x-hidden pt-20 xl:pt-6 px-4 sm:px-6 lg:px-8 pb-6"
+      >
+        <div class="w-full max-w-screen-2xl mx-auto">
+          <slot />
+        </div>
       </main>
     </div>
 
-    <!-- Overlay mobile -->
+    <!-- OVERLAY -->
     <div
       v-if="layout.sidebarOpen"
-      class="fixed inset-0 z-40 bg-black/40 md:hidden"
+      class="fixed inset-0 z-40 bg-black/40 xl:hidden"
       @click="layout.closeSidebar"
     />
 
-    <!-- Global UI -->
     <UiGlobalLoader />
-    <UiToast />
     <UiConfirm />
   </div>
 </template>
@@ -47,11 +49,8 @@
 import AppSidebar from '~/components/layout/AppSidebar.vue'
 import AppHeader from '~/components/layout/AppHeader.vue'
 import UiGlobalLoader from '~/components/ui/UiGlobalLoader.vue'
-import UiToast from '~/components/ui/UiToast.vue'
 import UiConfirm from '~/components/ui/UiConfirm.vue'
-
 import { useLayoutStore } from '~/stores/layout.store'
 
-// 🔑 ESTO FALTABA
 const layout = useLayoutStore()
 </script>

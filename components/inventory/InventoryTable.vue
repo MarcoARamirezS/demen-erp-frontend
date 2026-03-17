@@ -18,7 +18,6 @@ defineEmits<{
 function formatDate(date: any) {
   if (!date) return '—'
 
-  // Caso Firestore Timestamp plano (_seconds)
   if (date._seconds) {
     const d = new Date(date._seconds * 1000)
     return d.toLocaleString('es-MX', {
@@ -30,7 +29,6 @@ function formatDate(date: any) {
     })
   }
 
-  // Caso Timestamp con toDate()
   if (typeof date?.toDate === 'function') {
     return date.toDate().toLocaleString('es-MX')
   }
@@ -52,17 +50,19 @@ const typeBadge = (type: string) => {
 </script>
 
 <template>
-  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <!-- =========================
+  <div
+    class="animate-fadeIn space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg"
+  >
+    <!-- ============================================================
          DESKTOP TABLE (md+)
-    ========================== -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
+    ============================================================ -->
+    <div class="hidden md:block overflow-x-auto rounded-xl border border-base-300">
       <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase tracking-wide">
+        <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
-            <th class="min-w-[140px]">Tipo</th>
+            <th class="min-w-[120px]">Tipo</th>
             <th class="min-w-[260px]">Producto</th>
-            <th class="min-w-[120px]">Cantidad</th>
+            <th class="min-w-[120px] text-center">Cantidad</th>
             <th class="min-w-[220px]">Motivo</th>
             <th class="min-w-[200px]">Fecha</th>
           </tr>
@@ -80,37 +80,36 @@ const typeBadge = (type: string) => {
 
         <!-- Rows -->
         <tbody v-else-if="items.length">
-          <tr
-            v-for="m in items"
-            :key="m.id"
-            class="border-b border-base-200 hover:bg-base-200/30 transition"
-          >
+          <tr v-for="m in items" :key="m.id" class="hover:bg-base-200/40 transition">
             <!-- Tipo -->
             <td>
-              <span class="badge gap-1 badge-outline" :class="typeBadge(m.type)">
-                <Icon :name="m.type === 'IN' ? 'arrow-down' : 'arrow-up'" class="w-3 h-3" />
+              <span class="badge badge-sm gap-1 badge-outline" :class="typeBadge(m.type)">
+                <Icon
+                  :name="
+                    m.type === 'IN' ? 'arrow-down' : m.type === 'OUT' ? 'arrow-up' : 'refresh-cw'
+                  "
+                  class="w-3 h-3"
+                />
                 {{ m.type }}
               </span>
             </td>
 
             <!-- Producto -->
             <td>
-              <div class="flex flex-col">
-                <span class="font-medium truncate">
-                  {{ m.product?.name || m.productId }}
-                </span>
+              <div class="font-medium truncate max-w-[360px]">
+                {{ m.product?.name || m.productId }}
               </div>
             </td>
 
             <!-- Cantidad -->
-            <td>
+            <td class="text-center">
               <span class="font-bold" :class="m.type === 'OUT' ? 'text-error' : 'text-success'">
                 {{ m.type === 'OUT' ? '-' : '+' }}{{ m.quantity }}
               </span>
             </td>
 
             <!-- Motivo -->
-            <td class="truncate max-w-[320px]" :title="m.reason">
+            <td class="truncate max-w-[300px]" :title="m.reason">
               {{ m.reason || '—' }}
             </td>
 
@@ -132,9 +131,9 @@ const typeBadge = (type: string) => {
       </table>
     </div>
 
-    <!-- =========================
+    <!-- ============================================================
          MOBILE CARDS (<md)
-    ========================== -->
+    ============================================================ -->
     <div class="md:hidden space-y-3">
       <!-- Loading -->
       <div
@@ -158,12 +157,15 @@ const typeBadge = (type: string) => {
         v-else
         v-for="m in items"
         :key="m.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
+        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
         <!-- Header -->
         <div class="flex items-start justify-between gap-3">
-          <span class="badge gap-1 badge-outline" :class="typeBadge(m.type)">
-            <Icon :name="m.type === 'IN' ? 'arrow-down' : 'arrow-up'" class="w-3 h-3" />
+          <span class="badge badge-outline badge-sm gap-1" :class="typeBadge(m.type)">
+            <Icon
+              :name="m.type === 'IN' ? 'arrow-down' : m.type === 'OUT' ? 'arrow-up' : 'refresh-cw'"
+              class="w-3 h-3"
+            />
             {{ m.type }}
           </span>
 
@@ -176,13 +178,14 @@ const typeBadge = (type: string) => {
         <div class="mt-3 space-y-2 text-sm">
           <div>
             <span class="opacity-60">Producto:</span>
-            <div class="font-mono text-xs break-all mt-1">
+            <div class="font-medium break-all mt-1">
               {{ m.product?.name || m.productId }}
             </div>
           </div>
 
           <div class="flex justify-between items-center">
             <span class="opacity-60">Cantidad:</span>
+
             <span
               class="text-lg font-bold"
               :class="m.type === 'OUT' ? 'text-error' : 'text-success'"
@@ -199,9 +202,9 @@ const typeBadge = (type: string) => {
       </div>
     </div>
 
-    <!-- =========================
+    <!-- ============================================================
          LOAD MORE
-    ========================== -->
+    ============================================================ -->
     <div v-if="cursor" class="mt-4 flex justify-center">
       <UiButton size="sm" outline @click="$emit('load-more')"> Cargar más </UiButton>
     </div>
