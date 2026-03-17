@@ -25,8 +25,11 @@ export const useAuthStore = defineStore('auth', {
         })
 
         await this.fetchMe()
-      } catch (e) {
-        throw e
+
+        // 🔥 FIX: asegurar estado válido
+        if (!this.user) {
+          throw new Error('No se pudo obtener la sesión')
+        }
       } finally {
         this.loading = false
       }
