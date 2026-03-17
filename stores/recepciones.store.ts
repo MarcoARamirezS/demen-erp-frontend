@@ -13,7 +13,9 @@ export const useRecepcionesStore = defineStore('recepciones', {
       try {
         const api = useApi
         const res = await api('/recepciones')
-        this.items = res
+
+        // ✅ FIX
+        this.items = res.items ?? []
       } finally {
         this.loading = false
       }
@@ -21,6 +23,7 @@ export const useRecepcionesStore = defineStore('recepciones', {
 
     async create(payload: Omit<Recepcion, 'id' | 'createdAt'>) {
       const api = useApi
+
       await api('/recepciones', {
         method: 'POST',
         body: payload,

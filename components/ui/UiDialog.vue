@@ -68,42 +68,17 @@ function onBackdropClick() {
 
 <template>
   <Teleport to="body">
-    <div v-if="modelValue" class="fixed inset-0 z-[3000] flex items-center justify-center p-6">
+    <div
+      v-if="modelValue"
+      class="fixed inset-0 z-[3000] flex items-start md:items-center justify-center p-6"
+    >
       <!-- BACKDROP -->
       <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="onBackdropClick" />
 
-      <!-- MODAL CONTAINER -->
-      <div
-        class="relative w-[95%] max-h-[92vh] flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
-        :class="sizeClass"
-      >
-        <!-- HEADER -->
-        <div
-          v-if="!hideHeader"
-          class="flex items-center justify-between gap-3 border-b border-base-300 bg-base-200 px-5 py-4"
-        >
-          <h3 class="truncate text-base font-semibold">
-            {{ title }}
-          </h3>
-
-          <button
-            v-if="!hideClose"
-            class="btn btn-circle btn-sm btn-ghost"
-            type="button"
-            @click="close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <!-- SLOT -->
-        <div v-if="$slots.header || $slots.footer" class="p-0 flex-1 overflow-auto">
-          <slot />
-        </div>
-
-        <div v-else class="px-5 py-5 flex-1 overflow-auto">
-          <slot />
-        </div>
+      <!-- 🔥 FIX: CONTENEDOR LIMPIO (SIN CARD VISUAL) -->
+      <div class="relative w-[95%] max-h-[92vh] flex justify-center" :class="sizeClass">
+        <!-- 🔥 SLOT DIRECTO: EL CARD LO CONTROLA EL DIALOG HIJO -->
+        <slot />
       </div>
     </div>
   </Teleport>

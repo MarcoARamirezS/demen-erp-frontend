@@ -1,113 +1,214 @@
 <template>
   <UiDialog v-model="open" size="xl" hide-header hide-close>
-    <!-- ========================= HEADER (STICKY) ========================== -->
     <div
-      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <h2 class="text-lg font-semibold">
-        {{ mode === 'create' ? 'Crear rol' : 'Editar rol' }}
-      </h2>
-
-      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
-        <Icon name="x" />
-      </button>
-    </div>
-
-    <!-- ========================= CONTENT ========================== -->
-    <div class="px-6 py-5 space-y-6 overflow-auto" style="max-height: calc(90vh - 160px)">
-      <!-- DATOS -->
-      <UiInput v-model="form.name" label="Nombre del rol *" />
-      <UiInput v-model="form.description" label="Descripción" />
-
-      <!-- PERMISOS -->
-      <section class="space-y-4">
-        <h3 class="font-semibold text-primary">Permisos</h3>
-
-        <UiInput
-          v-model="search"
-          size="sm"
-          placeholder="Buscar permiso (ventas, usuarios, eliminar...)"
-        />
-
-        <div class="flex flex-wrap gap-2">
-          <UiButton size="sm" variant="outline" type="button" @click="toggleAllPermissions">
-            Seleccionar todos
-          </UiButton>
+      <!-- =====================================================
+           HEADER
+      ====================================================== -->
+      <header
+        class="sticky top-0 z-10 flex items-start gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
+      >
+        <div class="rounded-full bg-primary/10 p-3 shrink-0">
+          <Icon name="shield" />
         </div>
 
-        <!-- TABS -->
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="resource in filteredResources"
-            :key="resource"
-            type="button"
-            class="flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition"
-            :class="
-              activeTab === resource
-                ? 'bg-primary/10 text-primary border-primary'
-                : 'bg-base-200 border-base-300 hover:bg-base-300'
-            "
-            @click="activeTab = resource"
-          >
-            <Icon name="shield" size="sm" />
-
-            {{ normalizedLabel(resource) }}
-
-            <span class="rounded-full bg-base-100 px-2 py-0.5 text-xs">
-              {{ selectedCount(resource) }}/{{ permissionsByResource[resource]?.length ?? 0 }}
-            </span>
-          </button>
+        <div class="min-w-0 flex-1">
+          <h2 class="font-semibold text-lg truncate text-primary">
+            {{ mode === 'create' ? 'Crear rol' : 'Editar rol' }}
+          </h2>
+          <p class="text-xs opacity-60 truncate">Gestión de permisos del sistema</p>
         </div>
 
-        <!-- PERMISOS TAB ACTIVO -->
-        <div
-          v-if="activePermissions.length"
-          class="rounded-xl border border-base-300 bg-base-100 p-4"
-        >
-          <div class="mb-3 flex justify-between items-center">
-            <h4 class="font-semibold uppercase text-sm text-primary">
-              {{ normalizedLabel(activeTab) }}
-            </h4>
+        <button class="btn btn-circle btn-sm btn-ghost shrink-0" @click="open = false">
+          <Icon name="x" />
+        </button>
+      </header>
 
-            <UiButton size="xs" variant="ghost" type="button" @click="toggleAllActiveTab">
+      <!-- =====================================================
+           CONTENT
+      ====================================================== -->
+      <section class="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+        <!-- =========================
+             DATOS
+        ========================== -->
+        <section class="space-y-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            Datos generales
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UiInput v-model="form.name" label="Nombre del rol *" />
+            <UiInput v-model="form.description" label="Descripción" />
+          </div>
+        </section>
+
+        <!-- =========================
+             PERMISOS
+        ========================== -->
+        <section class="space-y-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                Permisos
+              </h3>
+              <p class="mt-1 text-sm opacity-60">
+                Selecciona los permisos que tendrá asignado este rol
+              </p>
+            </div>
+
+            <UiButton size="sm" variant="outline" type="button" @click="toggleAllPermissions">
               Seleccionar todos
             </UiButton>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            <UiCheckbox
-              v-for="p in activePermissions"
-              :key="p.code"
-              v-model="form.permissionCodes"
-              :value="p.code"
-              :label="actionLabels[p.action] ?? p.action"
+          <!-- SEARCH -->
+          <div class="max-w-md">
+            <UiInput
+              v-model="search"
+              size="sm"
+              placeholder="Buscar permiso (usuarios, eliminar, compras...)"
             />
           </div>
-        </div>
-      </section>
 
-      <!-- RESUMEN -->
-      <section v-if="form.permissionCodes.length" class="space-y-2">
-        <h4 class="text-sm font-semibold text-secondary">Resumen de permisos asignados</h4>
+          <!-- RECURSOS -->
+          <section class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
+                Recursos
+              </div>
 
-        <div class="flex flex-wrap gap-2">
-          <span
-            v-for="code in form.permissionCodes"
-            :key="code"
-            class="badge badge-secondary badge-outline text-xs"
+              <div class="text-xs opacity-60">{{ filteredResources.length }} módulos</div>
+            </div>
+
+            <div class="rounded-xl border border-base-300 bg-base-200/30 p-3">
+              <div
+                class="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3"
+              >
+                <button
+                  v-for="resource in filteredResources"
+                  :key="resource"
+                  type="button"
+                  class="group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition"
+                  :class="
+                    activeTab === resource
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                      : 'border-base-300 bg-base-100 hover:border-primary/30 hover:bg-base-100'
+                  "
+                  @click="activeTab = resource"
+                >
+                  <div class="flex min-w-0 items-center gap-2">
+                    <div
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                      :class="
+                        activeTab === resource
+                          ? 'bg-primary/15 text-primary'
+                          : 'bg-base-200 text-base-content/60'
+                      "
+                    >
+                      <Icon name="shield" size="sm" />
+                    </div>
+
+                    <div class="min-w-0">
+                      <div class="truncate text-sm font-medium">
+                        {{ normalizedLabel(resource) }}
+                      </div>
+
+                      <div class="text-[11px] opacity-50">
+                        {{ permissionsByResource[resource]?.length ?? 0 }} permisos
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    class="ml-3 shrink-0 rounded-full px-2 py-1 text-xs font-medium"
+                    :class="
+                      activeTab === resource
+                        ? 'bg-primary/15 text-primary'
+                        : 'bg-base-200 text-base-content/70'
+                    "
+                  >
+                    {{ selectedCount(resource) }}/{{ permissionsByResource[resource]?.length ?? 0 }}
+                  </div>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- PERMISOS DEL TAB ACTIVO -->
+          <div
+            v-if="activePermissions.length"
+            class="rounded-xl border border-base-300 bg-base-100 p-4"
           >
-            {{ formatPermissionChip(code) }}
-          </span>
-        </div>
-      </section>
-    </div>
+            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 class="font-semibold uppercase text-sm text-primary">
+                  {{ normalizedLabel(activeTab) }}
+                </h4>
+                <p class="text-xs opacity-60 mt-1">
+                  {{ selectedCount(activeTab) }} de {{ activePermissions.length }} permisos
+                  seleccionados
+                </p>
+              </div>
 
-    <!-- FOOTER -->
-    <div
-      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
-    >
-      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
-      <UiButton variant="primary" type="button" @click="submit"> Guardar </UiButton>
+              <UiButton size="xs" variant="ghost" type="button" @click="toggleAllActiveTab">
+                Seleccionar todos
+              </UiButton>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <UiCheckbox
+                v-for="p in activePermissions"
+                :key="p.code"
+                v-model="form.permissionCodes"
+                :value="p.code"
+                :label="actionLabels[p.action] ?? p.action"
+              />
+            </div>
+          </div>
+
+          <div
+            v-else
+            class="rounded-xl border border-dashed border-base-300 bg-base-100 p-6 text-center text-sm opacity-60"
+          >
+            No hay permisos para mostrar con los filtros actuales.
+          </div>
+        </section>
+
+        <!-- =========================
+             RESUMEN
+        ========================== -->
+        <section v-if="form.permissionCodes.length" class="space-y-3">
+          <h4 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            Resumen de permisos asignados
+          </h4>
+
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="code in form.permissionCodes"
+              :key="code"
+              class="badge badge-outline badge-primary text-xs"
+            >
+              {{ formatPermissionChip(code) }}
+            </span>
+          </div>
+        </section>
+      </section>
+
+      <!-- =====================================================
+           FOOTER
+      ====================================================== -->
+      <footer
+        class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
+      >
+        <UiButton variant="ghost" type="button" class="w-full sm:w-auto" @click="open = false">
+          Cancelar
+        </UiButton>
+
+        <UiButton variant="primary" type="button" class="w-full sm:w-auto" @click="submit">
+          Guardar
+        </UiButton>
+      </footer>
     </div>
   </UiDialog>
 </template>
@@ -124,7 +225,9 @@ import { usePermissionsStore } from '~/stores/permissions.store'
 import { useUiStore } from '~/stores/ui.store'
 import type { Role, CreateRoleDto } from '~/types/role'
 
-/* ========================= PROPS ========================== */
+/* =========================
+   PROPS
+========================= */
 const props = defineProps<{
   modelValue: boolean
   mode: 'create' | 'edit'
@@ -136,17 +239,23 @@ const emit = defineEmits<{
   (e: 'submit', payload: Partial<CreateRoleDto>): void
 }>()
 
-/* ========================= STORES ========================== */
+/* =========================
+   STORES
+========================= */
 const permissionsStore = usePermissionsStore()
 const ui = useUiStore()
 
-/* ========================= DIALOG ========================== */
+/* =========================
+   DIALOG
+========================= */
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
 
-/* ========================= FORM ========================== */
+/* =========================
+   FORM
+========================= */
 const form = ref<Partial<CreateRoleDto>>({
   name: '',
   description: '',
@@ -158,7 +267,9 @@ const search = ref('')
 const activeTab = ref('')
 const initialized = ref(false)
 
-/* ========================= LABELS ========================== */
+/* =========================
+   LABELS
+========================= */
 const resourceLabels: Record<string, string> = {
   users: 'Usuarios',
   roles: 'Roles',
@@ -181,8 +292,6 @@ const resourceLabels: Record<string, string> = {
   cxc: 'Cuentas por cobrar',
   contabilidad: 'Contabilidad',
   compras: 'Compras',
-
-  // 🔥 FIXES NUEVOS
   projects: 'Proyectos',
   project_requirements: 'Levantamientos',
   purchases: 'Compras',
@@ -203,14 +312,17 @@ const actionLabels: Record<string, string> = {
   change_status: 'Cambiar estado',
 }
 
-/* ========================= NORMALIZADOR ENTERPRISE ========================== */
+/* =========================
+   NORMALIZADOR
+========================= */
 const normalizedLabel = (resource: string) => {
   if (resourceLabels[resource]) return resourceLabels[resource]
-
   return resource.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
-/* ========================= PERMISSIONS ========================== */
+/* =========================
+   PERMISSIONS
+========================= */
 const safePermissions = computed(() =>
   Array.isArray(permissionsStore.items) ? permissionsStore.items : []
 )
@@ -220,6 +332,7 @@ const permissionsByResource = computed(() => {
 
   for (const p of safePermissions.value) {
     const text = `${p.resource} ${p.action} ${p.code}`.toLowerCase()
+
     if (search.value && !text.includes(search.value.toLowerCase())) continue
 
     if (!map[p.resource]) map[p.resource] = []
@@ -237,7 +350,9 @@ const filteredResources = computed(() =>
 
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 
-/* ========================= WATCHERS ========================== */
+/* =========================
+   WATCHERS
+========================= */
 watch(
   () => permissionsStore.items,
   perms => {
@@ -251,16 +366,41 @@ watch(
 )
 
 watch(
-  () => props.model,
-  v => {
-    form.value = v
-      ? { ...v, permissionCodes: [...(v.permissionCodes ?? [])] }
-      : { name: '', description: '', permissionCodes: [], active: true }
+  () => filteredResources.value,
+  resources => {
+    if (!resources.length) {
+      activeTab.value = ''
+      return
+    }
+
+    if (!resources.includes(activeTab.value)) {
+      activeTab.value = resources[0]
+    }
   },
   { immediate: true }
 )
 
-/* ========================= HELPERS ========================== */
+watch(
+  () => props.model,
+  v => {
+    form.value = v
+      ? {
+          ...v,
+          permissionCodes: [...(v.permissionCodes ?? [])],
+        }
+      : {
+          name: '',
+          description: '',
+          permissionCodes: [],
+          active: true,
+        }
+  },
+  { immediate: true }
+)
+
+/* =========================
+   HELPERS
+========================= */
 function selectedCount(resource: string) {
   return (
     permissionsByResource.value[resource]?.filter(p => form.value.permissionCodes?.includes(p.code))
@@ -278,7 +418,11 @@ function toggleAllActiveTab() {
   const set = new Set(form.value.permissionCodes)
   const allSelected = codes.every(c => set.has(c))
 
-  codes.forEach(c => (allSelected ? set.delete(c) : set.add(c)))
+  codes.forEach(c => {
+    if (allSelected) set.delete(c)
+    else set.add(c)
+  })
+
   form.value.permissionCodes = Array.from(set)
 }
 
@@ -287,13 +431,19 @@ function formatPermissionChip(code: string) {
   return `${normalizedLabel(resource)} · ${actionLabels[action] ?? action}`
 }
 
-/* ========================= SUBMIT ========================== */
+/* =========================
+   SUBMIT
+========================= */
 function submit() {
-  if (!form.value.name) {
+  if (!form.value.name?.trim()) {
     ui.showToast('warning', 'El nombre del rol es obligatorio')
     return
   }
 
-  emit('submit', form.value)
+  emit('submit', {
+    ...form.value,
+    name: form.value.name.trim(),
+    description: form.value.description?.trim() || '',
+  })
 }
 </script>
