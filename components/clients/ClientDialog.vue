@@ -9,9 +9,13 @@ import type { Client, CreateClientDto } from '~/types/client'
 
 const errors = ref({
   razonSocial: false,
+  nombreComercial: false,
   rfc: false,
   email: false,
   telefono: false,
+  diasCredito: false,
+  limiteCredito: false,
+  comentarios: false,
 })
 
 const props = defineProps<{
@@ -43,23 +47,18 @@ const form = ref<CreateClientDto>({
   email: '',
   telefono: '',
 
-  // 🔵 FINANCIERO
   diasCredito: 0,
   limiteCredito: 0,
   condicionPago: '30',
 
-  // 🔵 FISCAL
   clasificacionFiscal: '',
   regimenFiscal: '',
   usoCfdiDefault: '',
 
-  // 🔵 CUMPLIMIENTO
   aplicaRepse: false,
   aplicaPortalFacturacion: false,
 
-  // 🔵 ADMIN
   comentarios: '',
-
   activo: true,
 })
 
@@ -179,24 +178,62 @@ watch(
 function submit() {
   errors.value = {
     razonSocial: false,
+    nombreComercial: false,
     rfc: false,
     email: false,
     telefono: false,
+    diasCredito: false,
+    limiteCredito: false,
+    comentarios: false,
   }
 
-  if (!form.value.razonSocial) {
+  const razonSocial = form.value.razonSocial?.trim()
+  const nombreComercial = form.value.nombreComercial?.trim()
+  const rfc = form.value.rfc?.trim().toUpperCase()
+  const email = form.value.email?.trim()
+
+  const diasCredito = Number(form.value.diasCredito)
+  const limiteCredito = Number(form.value.limiteCredito)
+
+  if (!razonSocial || razonSocial.length < 2) {
     errors.value.razonSocial = true
-    ui.showToast('warning', 'La razón social es obligatoria')
+    ui.showToast('warning', 'La razón social debe tener al menos 2 caracteres')
     return
   }
 
-  if (form.value.rfc && !isValidRFC(form.value.rfc)) {
-    errors.value.rfc = true
-    ui.showToast('warning', 'RFC inválido')
+  if (razonSocial.length > 150) {
+    errors.value.razonSocial = true
+    ui.showToast('warning', 'La razón social no puede exceder 150 caracteres')
     return
   }
 
-  if (form.value.email && !isValidEmail(form.value.email)) {
+  if (!nombreComercial || nombreComercial.length < 2) {
+    errors.value.nombreComercial = true
+    ui.showToast('warning', 'El nombre comercial debe tener al menos 2 caracteres')
+    return
+  }
+
+  if (nombreComercial.length > 120) {
+    errors.value.nombreComercial = true
+    ui.showToast('warning', 'El nombre comercial no puede exceder 120 caracteres')
+    return
+  }
+
+  if (rfc) {
+    if (rfc.length < 12 || rfc.length > 13) {
+      errors.value.rfc = true
+      ui.showToast('warning', 'El RFC debe tener entre 12 y 13 caracteres')
+      return
+    }
+
+    if (!isValidRFC(rfc)) {
+      errors.value.rfc = true
+      ui.showToast('warning', 'RFC inválido')
+      return
+    }
+  }
+
+  if (email && !isValidEmail(email)) {
     errors.value.email = true
     ui.showToast('warning', 'Correo electrónico inválido')
     return
@@ -208,11 +245,32 @@ function submit() {
     return
   }
 
+  if (!Number.isInteger(diasCredito) || diasCredito < 0 || diasCredito > 365) {
+    errors.value.diasCredito = true
+    ui.showToast('warning', 'Los días de crédito deben ser un número entero entre 0 y 365')
+    return
+  }
+
+  if (isNaN(limiteCredito) || limiteCredito < 0) {
+    errors.value.limiteCredito = true
+    ui.showToast('warning', 'El límite de crédito no puede ser negativo')
+    return
+  }
+
+  if (form.value.comentarios && form.value.comentarios.length > 2000) {
+    errors.value.comentarios = true
+    ui.showToast('warning', 'Los comentarios no pueden exceder 2000 caracteres')
+    return
+  }
+
   emit('submit', {
     ...form.value,
-    diasCredito: Number(form.value.diasCredito),
-    limiteCredito: Number(form.value.limiteCredito),
-    rfc: form.value.rfc.toUpperCase(),
+    razonSocial,
+    nombreComercial,
+    email,
+    diasCredito,
+    limiteCredito,
+    rfc: rfc || undefined,
     telefono: form.value.telefono ? `${countryCode.value}${form.value.telefono}` : '',
   })
 
@@ -222,136 +280,206 @@ function submit() {
 
 <template>
   <UiDialog v-model="open" size="xl" hide-header hide-close>
-    <!-- HEADER -->
     <div
-      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <h2 class="font-semibold text-lg">
-        {{ mode === 'create' ? 'Nuevo cliente' : 'Editar cliente' }}
-      </h2>
-
-      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
-        <Icon name="x" />
-      </button>
-    </div>
-
-    <!-- CONTENT -->
-    <div class="px-6 py-5 overflow-auto space-y-6" style="max-height: calc(90vh - 160px)">
-      <form class="space-y-6" @submit.prevent="submit">
-        <!-- =========================
-             DATOS GENERALES
-        ========================== -->
-        <div class="space-y-4">
-          <UiInput v-model="form.razonSocial" label="Razón social *" :error="errors.razonSocial" />
-          <UiInput v-model="form.nombreComercial" label="Nombre comercial" />
-          <UiInput v-model="form.rfc" label="RFC" :error="errors.rfc" />
-          <UiInput v-model="form.email" label="Email" :error="errors.email" />
-        </div>
-
-        <!-- =========================
-             FINANCIERO
-        ========================== -->
-        <div class="border-t pt-6 space-y-4">
-          <h3 class="font-semibold text-sm">Información financiera</h3>
-
-          <UiInput v-model="form.diasCredito" label="Días de crédito" type="number" />
-          <UiInput v-model="form.limiteCredito" label="Límite de crédito" type="number" />
+      <!-- =====================================================
+           HEADER
+      ====================================================== -->
+      <header
+        class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <div class="rounded-full bg-primary/10 p-3">
+            <Icon name="users" class="h-6 w-6 text-primary" />
+          </div>
 
           <div>
-            <label class="label text-sm">
-              <span class="label-text">Condición de pago</span>
-            </label>
-            <select v-model="form.condicionPago" class="select select-bordered w-full">
-              <option value="30">30 días</option>
-              <option value="45">45 días</option>
-              <option value="60">60 días</option>
-              <option value="90">90 días</option>
-            </select>
+            <h2 class="text-xl font-bold text-primary">
+              {{ mode === 'create' ? 'Nuevo cliente' : 'Editar cliente' }}
+            </h2>
+
+            <p class="text-sm opacity-60">Gestión de clientes del sistema</p>
           </div>
         </div>
 
-        <!-- =========================
-             CUMPLIMIENTO
-        ========================== -->
-        <div class="border-t pt-6 space-y-4">
-          <h3 class="font-semibold text-sm">Cumplimiento</h3>
+        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+          <Icon name="x" />
+        </button>
+      </header>
 
-          <UiToggle v-model="form.aplicaRepse" label="Aplica REPSE" />
-          <UiToggle v-model="form.aplicaPortalFacturacion" label="Aplica portal de facturación" />
-        </div>
+      <!-- =====================================================
+           CONTENIDO SCROLL
+      ====================================================== -->
+      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-8">
+        <form class="space-y-8" @submit.prevent="submit">
+          <!-- =========================
+               DATOS GENERALES
+          ========================== -->
+          <section class="space-y-4">
+            <h3 class="font-semibold text-sm text-base-content/70">Datos generales</h3>
 
-        <!-- =========================
-             FISCAL
-        ========================== -->
-        <div class="border-t pt-6 space-y-4">
-          <h3 class="font-semibold text-sm">Información fiscal</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UiInput
+                v-model="form.razonSocial"
+                label="Razón social *"
+                :error="errors.razonSocial"
+              />
 
-          <!-- CLASIFICACIÓN FISCAL -->
-          <div>
-            <label class="label text-sm">
-              <span class="label-text">Clasificación fiscal</span>
-            </label>
-            <select v-model="form.clasificacionFiscal" class="select select-bordered w-full">
-              <option value="">Seleccionar</option>
-              <option v-for="o in CLASIFICACION_FISCAL_OPTIONS" :key="o.value" :value="o.value">
-                {{ o.label }}
-              </option>
-            </select>
-          </div>
+              <UiInput
+                v-model="form.nombreComercial"
+                label="Nombre comercial"
+                :error="errors.nombreComercial"
+              />
 
-          <!-- RÉGIMEN FISCAL -->
-          <div>
-            <label class="label text-sm">
-              <span class="label-text">Régimen fiscal</span>
-            </label>
-            <select v-model="form.regimenFiscal" class="select select-bordered w-full">
-              <option value="">Seleccionar</option>
-              <option v-for="o in REGIMEN_FISCAL_OPTIONS" :key="o.value" :value="o.value">
-                {{ o.label }}
-              </option>
-            </select>
-          </div>
+              <UiInput v-model="form.rfc" label="RFC" :error="errors.rfc" />
 
-          <!-- USO CFDI -->
-          <div>
-            <label class="label text-sm">
-              <span class="label-text">Uso CFDI default</span>
-            </label>
-            <select v-model="form.usoCfdiDefault" class="select select-bordered w-full">
-              <option value="">Seleccionar</option>
-              <option v-for="o in USO_CFDI_OPTIONS" :key="o.value" :value="o.value">
-                {{ o.label }}
-              </option>
-            </select>
-          </div>
-        </div>
+              <UiInput v-model="form.email" label="Email" :error="errors.email" />
 
-        <!-- =========================
-             COMENTARIOS
-        ========================== -->
-        <div class="border-t pt-6 space-y-4">
-          <h3 class="font-semibold text-sm">Comentarios</h3>
+              <UiInput v-model="form.telefono" label="Teléfono" :error="errors.telefono" />
+            </div>
+          </section>
 
-          <textarea
-            v-model="form.comentarios"
-            maxlength="2000"
-            class="textarea textarea-bordered w-full min-h-[120px]"
-          />
+          <!-- =========================
+               FINANCIERO
+          ========================== -->
+          <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
+            <h3 class="font-semibold text-sm">Información financiera</h3>
 
-          <div class="text-xs text-right opacity-50">
-            {{ form.comentarios?.length || 0 }} / 2000
-          </div>
-        </div>
-      </form>
-    </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <UiInput
+                v-model="form.diasCredito"
+                label="Días de crédito"
+                type="number"
+                :error="errors.diasCredito"
+              />
 
-    <!-- FOOTER -->
-    <div
-      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
-    >
-      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
+              <UiInput
+                v-model="form.limiteCredito"
+                label="Límite de crédito"
+                type="number"
+                :error="errors.limiteCredito"
+              />
 
-      <UiButton variant="primary" type="submit" @click="submit"> Guardar </UiButton>
+              <div>
+                <label class="label text-sm">
+                  <span class="label-text">Condición de pago</span>
+                </label>
+
+                <select v-model="form.condicionPago" class="select select-bordered w-full">
+                  <option value="30">30 días</option>
+                  <option value="45">45 días</option>
+                  <option value="60">60 días</option>
+                  <option value="90">90 días</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <!-- =========================
+               CUMPLIMIENTO
+          ========================== -->
+          <section class="space-y-4">
+            <h3 class="font-semibold text-sm text-base-content/70">Cumplimiento</h3>
+
+            <div class="flex flex-col md:flex-row gap-4">
+              <UiToggle v-model="form.aplicaRepse" label="Aplica REPSE" />
+
+              <UiToggle
+                v-model="form.aplicaPortalFacturacion"
+                label="Aplica portal de facturación"
+              />
+            </div>
+          </section>
+
+          <!-- =========================
+               INFORMACIÓN FISCAL
+          ========================== -->
+          <section class="space-y-4">
+            <h3 class="font-semibold text-sm text-base-content/70">Información fiscal</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- CLASIFICACIÓN -->
+              <div>
+                <label class="label text-sm">
+                  <span class="label-text">Clasificación fiscal</span>
+                </label>
+
+                <select v-model="form.clasificacionFiscal" class="select select-bordered w-full">
+                  <option value="">Seleccionar</option>
+
+                  <option v-for="o in CLASIFICACION_FISCAL_OPTIONS" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- REGIMEN -->
+              <div>
+                <label class="label text-sm">
+                  <span class="label-text">Régimen fiscal</span>
+                </label>
+
+                <select v-model="form.regimenFiscal" class="select select-bordered w-full">
+                  <option value="">Seleccionar</option>
+
+                  <option v-for="o in REGIMEN_FISCAL_OPTIONS" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- CFDI -->
+              <div>
+                <label class="label text-sm">
+                  <span class="label-text">Uso CFDI default</span>
+                </label>
+
+                <select v-model="form.usoCfdiDefault" class="select select-bordered w-full">
+                  <option value="">Seleccionar</option>
+
+                  <option v-for="o in USO_CFDI_OPTIONS" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <!-- =========================
+               COMENTARIOS
+          ========================== -->
+          <section class="space-y-3">
+            <h3 class="font-semibold text-sm text-base-content/70">Comentarios</h3>
+
+            <textarea
+              v-model="form.comentarios"
+              maxlength="2000"
+              :class="[
+                'textarea w-full min-h-[120px]',
+                errors.comentarios ? 'textarea-error' : 'textarea-bordered',
+              ]"
+            />
+
+            <div class="text-xs text-right opacity-50">
+              {{ form.comentarios?.length || 0 }} / 2000
+            </div>
+          </section>
+        </form>
+      </section>
+
+      <!-- =====================================================
+           FOOTER
+      ====================================================== -->
+      <footer
+        class="sticky bottom-0 z-10 flex flex-col-reverse md:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]"
+      >
+        <UiButton variant="ghost" type="button" class="w-full md:w-auto" @click="open = false">
+          Cancelar
+        </UiButton>
+
+        <UiButton variant="primary" class="w-full md:w-auto" @click="submit"> Guardar </UiButton>
+      </footer>
     </div>
   </UiDialog>
 </template>

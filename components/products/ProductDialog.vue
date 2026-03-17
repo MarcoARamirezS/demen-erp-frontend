@@ -1,173 +1,194 @@
 <template>
   <UiDialog v-model="open" size="xl" hide-header hide-close>
-    <!-- HEADER -->
     <div
-      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <h2 class="text-lg font-semibold truncate">
-        {{ mode === 'create' ? 'Nuevo producto' : 'Editar producto' }}
-      </h2>
+      <!-- HEADER -->
+      <header
+        class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <div class="rounded-full bg-primary/10 p-3">
+            <Icon name="box" class="h-6 w-6 text-primary" />
+          </div>
 
-      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
-        <Icon name="x" />
-      </button>
-    </div>
-
-    <!-- CONTENT -->
-    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-        <UiInput v-model="form.partNumber" label="Número de parte" />
-
-        <UiInput
-          v-model="form.internalCode"
-          label="Código interno"
-          :disabled="true"
-          placeholder="Se generará automáticamente"
-        />
-
-        <UiInput v-model="form.name" label="Nombre" />
-        <UiInput v-model="form.brand" label="Marca" />
-
-        <!-- FAMILIA -->
-        <div class="space-y-1">
-          <UiSelect
-            v-model="form.familyId"
-            label="Familia"
-            :options="familyOptions"
-            placeholder="Selecciona una familia"
-          />
-
-          <button
-            type="button"
-            class="btn btn-xs btn-ghost w-full justify-start"
-            @click="openCreateFamily"
-          >
-            ➕ Crear nueva familia
-          </button>
+          <div>
+            <h2 class="text-xl font-bold text-primary">
+              {{ mode === 'create' ? 'Nuevo producto' : 'Editar producto' }}
+            </h2>
+            <p class="text-sm opacity-60">Gestión de productos del sistema</p>
+          </div>
         </div>
 
-        <!-- CATEGORÍA -->
-        <div class="space-y-1">
+        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+          <Icon name="x" />
+        </button>
+      </header>
+
+      <!-- CONTENT -->
+      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <UiInput v-model="form.partNumber" label="Número de parte *" :error="errors.partNumber" />
+
+          <UiInput
+            v-model="form.internalCode"
+            label="Código interno"
+            :disabled="true"
+            placeholder="Se generará automáticamente"
+          />
+
+          <UiInput v-model="form.name" label="Nombre *" :error="errors.name" />
+          <UiInput v-model="form.brand" label="Marca" :error="errors.brand" />
+
+          <!-- FAMILIA -->
+          <div class="space-y-1">
+            <UiSelect
+              v-model="form.familyId"
+              label="Familia *"
+              :options="familyOptions"
+              :error="errors.familyId"
+              placeholder="Selecciona una familia"
+            />
+
+            <button
+              type="button"
+              class="btn btn-xs btn-ghost w-full justify-start"
+              @click="openCreateFamily"
+            >
+              ➕ Crear nueva familia
+            </button>
+          </div>
+
+          <!-- CATEGORÍA -->
+          <div class="space-y-1">
+            <UiSelect
+              v-model="form.categoryId"
+              label="Categoría *"
+              :options="categoryOptions"
+              :disabled="!form.familyId"
+              :error="errors.categoryId"
+              placeholder="Selecciona una categoría"
+            />
+
+            <button
+              type="button"
+              class="btn btn-xs btn-ghost w-full justify-start"
+              :disabled="!form.familyId"
+              @click="openCreateCategory"
+            >
+              ➕ Crear nueva categoría
+            </button>
+          </div>
+
           <UiSelect
-            v-model="form.categoryId"
-            label="Categoría"
-            :options="categoryOptions"
-            :disabled="!form.familyId"
-            placeholder="Selecciona una categoría"
+            v-model="form.unit"
+            label="Unidad *"
+            :options="unitOptions"
+            :error="errors.unit"
           />
 
-          <button
-            type="button"
-            class="btn btn-xs btn-ghost w-full justify-start"
-            :disabled="!form.familyId"
-            @click="openCreateCategory"
-          >
-            ➕ Crear nueva categoría
-          </button>
-        </div>
-
-        <UiSelect v-model="form.unit" label="Unidad" :options="unitOptions" />
-
-        <UiInput
-          v-model="form.description"
-          label="Descripción"
-          type="textarea"
-          class="md:col-span-2"
-        />
-
-        <!-- IMÁGENES -->
-        <div class="md:col-span-2">
-          <label class="label">
-            <span class="label-text font-medium">Imágenes del producto</span>
-          </label>
-
-          <input
-            :key="fileInputKey"
-            type="file"
-            multiple
-            accept="image/*"
-            class="file-input file-input-bordered w-full"
-            @change="onSelectImages"
+          <UiInput
+            v-model="form.description"
+            label="Descripción"
+            type="textarea"
+            class="md:col-span-2"
+            :error="errors.description"
           />
 
-          <!-- EXISTENTES -->
-          <div v-if="existingImages.length" class="mt-4">
-            <div class="text-xs opacity-70 mb-2">Imágenes actuales</div>
+          <!-- IMÁGENES -->
+          <div class="md:col-span-2">
+            <label class="label">
+              <span class="label-text font-medium">Imágenes del producto</span>
+            </label>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div
-                v-for="img in existingImages"
-                :key="img.publicId"
-                class="relative rounded-xl border border-base-300 overflow-hidden"
-              >
-                <img :src="img.secureUrl || img.url" class="object-cover h-32 w-full" />
+            <input
+              :key="fileInputKey"
+              type="file"
+              multiple
+              accept="image/*"
+              class="file-input file-input-bordered w-full"
+              @change="onSelectImages"
+            />
 
-                <span v-if="img.isMain" class="badge badge-primary absolute top-2 left-2">
-                  Principal
-                </span>
+            <!-- EXISTENTES -->
+            <div v-if="existingImages.length" class="mt-4">
+              <div class="text-xs opacity-70 mb-2">Imágenes actuales</div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div
+                  v-for="img in existingImages"
+                  :key="img.publicId"
+                  class="relative rounded-xl border border-base-300 overflow-hidden"
+                >
+                  <img :src="img.secureUrl || img.url" class="object-cover h-32 w-full" />
+
+                  <span v-if="img.isMain" class="badge badge-primary absolute top-2 left-2">
+                    Principal
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- NUEVAS -->
-          <div v-if="previews.length" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-            <div
-              v-for="(img, i) in previews"
-              :key="i"
-              class="relative rounded-xl border border-base-300 overflow-hidden group"
-            >
-              <img :src="img" class="object-cover h-32 w-full" />
-
-              <span v-if="i === 0" class="badge badge-primary absolute top-2 left-2">
-                Principal
-              </span>
-
-              <button
-                type="button"
-                class="btn btn-xs btn-circle btn-error absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition"
-                @click="removeImage(i)"
+            <!-- NUEVAS -->
+            <div v-if="previews.length" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              <div
+                v-for="(img, i) in previews"
+                :key="i"
+                class="relative rounded-xl border border-base-300 overflow-hidden group"
               >
-                ✕
-              </button>
+                <img :src="img" class="object-cover h-32 w-full" />
+
+                <span v-if="i === 0" class="badge badge-primary absolute top-2 left-2">
+                  Principal
+                </span>
+
+                <button
+                  type="button"
+                  class="btn btn-xs btn-circle btn-error absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition"
+                  @click="removeImage(i)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div v-if="uploadHint" class="mt-2 text-xs opacity-70">
+              {{ uploadHint }}
             </div>
           </div>
-
-          <div v-if="uploadHint" class="mt-2 text-xs opacity-70">
-            {{ uploadHint }}
-          </div>
         </div>
-      </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer
+        class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
+      >
+        <UiButton variant="ghost" type="button" :disabled="saving" @click="open = false">
+          Cancelar
+        </UiButton>
+
+        <UiButton variant="primary" :loading="saving" :disabled="saving" @click="submit">
+          Guardar
+        </UiButton>
+      </footer>
+
+      <ClientOnly>
+        <ProductFamilyDialog
+          v-if="familyDialogOpen"
+          v-model="familyDialogOpen"
+          mode="create"
+          @submit="handleFamilyCreated"
+        />
+
+        <ProductCategoryDialog
+          v-if="categoryDialogOpen"
+          v-model="categoryDialogOpen"
+          mode="create"
+          :family-id="form.familyId"
+          @submit="handleCategoryCreated"
+        />
+      </ClientOnly>
     </div>
-
-    <!-- FOOTER -->
-    <div
-      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
-    >
-      <UiButton variant="ghost" type="button" :disabled="saving" @click="open = false">
-        Cancelar
-      </UiButton>
-
-      <UiButton variant="primary" :loading="saving" :disabled="saving" @click="submit">
-        Guardar
-      </UiButton>
-    </div>
-
-    <ClientOnly>
-      <ProductFamilyDialog
-        v-if="familyDialogOpen"
-        v-model="familyDialogOpen"
-        mode="create"
-        @submit="handleFamilyCreated"
-      />
-
-      <ProductCategoryDialog
-        v-if="categoryDialogOpen"
-        v-model="categoryDialogOpen"
-        mode="create"
-        :family-id="form.familyId"
-        @submit="handleCategoryCreated"
-      />
-    </ClientOnly>
   </UiDialog>
 </template>
 
@@ -176,6 +197,9 @@ import { reactive, watch, computed, ref, onMounted } from 'vue'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
 import { useProductsStore } from '~/stores/products.store'
+import { useUiStore } from '~/stores/ui.store'
+
+const ui = useUiStore()
 
 type Mode = 'create' | 'edit'
 
@@ -199,23 +223,19 @@ const categoriesStore = useProductCategoriesStore()
 const families = computed(() => familiesStore.items)
 const categories = computed(() => categoriesStore.items)
 
-/* =========================
-   SELECT OPTIONS (NEW API)
-========================= */
+const errors = reactive({
+  partNumber: false,
+  name: false,
+  brand: false,
+  description: false,
+  unit: false,
+  familyId: false,
+  categoryId: false,
+})
 
-const familyOptions = computed(() =>
-  families.value.map(f => ({
-    label: f.name,
-    value: f.id,
-  }))
-)
+const familyOptions = computed(() => families.value.map(f => ({ label: f.name, value: f.id })))
 
-const categoryOptions = computed(() =>
-  categories.value.map(c => ({
-    label: c.name,
-    value: c.id,
-  }))
-)
+const categoryOptions = computed(() => categories.value.map(c => ({ label: c.name, value: c.id })))
 
 const unitOptions = [
   { label: 'm', value: 'm' },
@@ -230,9 +250,6 @@ onMounted(async () => {
   }
 })
 
-/* =========================
-   QUICK CREATE
-========================= */
 const familyDialogOpen = ref(false)
 const categoryDialogOpen = ref(false)
 
@@ -260,9 +277,6 @@ async function handleCategoryCreated(payload: any) {
   form.categoryId = category.id
 }
 
-/* =========================
-   FORM
-========================= */
 const form = reactive({
   partNumber: '',
   internalCode: '',
@@ -274,72 +288,12 @@ const form = reactive({
   categoryId: '',
 })
 
-function resetForm() {
-  Object.assign(form, {
-    partNumber: '',
-    internalCode: '',
-    name: '',
-    description: '',
-    brand: '',
-    unit: 'pz',
-    familyId: '',
-    categoryId: '',
-  })
-}
-
-/* =========================
-   WATCH MODEL (FIX PRINCIPAL)
-========================= */
-watch(
-  () => props.model,
-  async v => {
-    if (!v) {
-      resetForm()
-      return
-    }
-
-    if (v.familyId) {
-      await categoriesStore.fetchByFamily(v.familyId)
-    }
-
-    Object.assign(form, {
-      partNumber: v.partNumber ?? '',
-      internalCode: v.internalCode ?? '',
-      name: v.name ?? '',
-      description: v.description ?? '',
-      brand: v.brand ?? '',
-      unit: v.unit ?? 'pz',
-      familyId: v.familyId ?? '',
-      categoryId: v.categoryId ?? '',
-    })
-  },
-  { immediate: true }
-)
-
-/* =========================
-   WATCH MODE
-========================= */
-watch(
-  () => props.mode,
-  m => {
-    if (m === 'create') {
-      resetForm()
-    }
-  }
-)
-
-/* =========================
-   IMAGES
-========================= */
 const selectedImages = ref<File[]>([])
 const previews = ref<string[]>([])
 const saving = ref(false)
 const fileInputKey = ref(0)
 
-const existingImages = computed(() => {
-  const imgs = props.model?.images ?? []
-  return Array.isArray(imgs) ? imgs : []
-})
+const existingImages = computed(() => props.model?.images ?? [])
 
 const uploadHint = computed(() => {
   if (!selectedImages.value.length) return ''
@@ -349,14 +303,12 @@ const uploadHint = computed(() => {
 function onSelectImages(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
-  if (!files || !files.length) return
+  if (!files) return
 
   const newFiles = Array.from(files)
   selectedImages.value = [...selectedImages.value, ...newFiles]
 
-  newFiles.forEach(file => {
-    previews.value.push(URL.createObjectURL(file))
-  })
+  newFiles.forEach(file => previews.value.push(URL.createObjectURL(file)))
 
   fileInputKey.value++
 }
@@ -367,15 +319,48 @@ function removeImage(index: number) {
   previews.value.splice(index, 1)
 }
 
-/* =========================
-   SUBMIT
-========================= */
 async function submit() {
-  if (saving.value) return
+  Object.keys(errors).forEach(k => (errors[k] = false))
+
+  if (!form.partNumber) {
+    errors.partNumber = true
+    return ui.showToast('warning', 'El número de parte es obligatorio')
+  }
+
+  if (!form.name || form.name.length < 2) {
+    errors.name = true
+    return ui.showToast('warning', 'El nombre debe tener al menos 2 caracteres')
+  }
+
+  if (form.brand.length > 120) {
+    errors.brand = true
+    return ui.showToast('warning', 'La marca no puede exceder 120 caracteres')
+  }
+
+  if (form.description.length > 2000) {
+    errors.description = true
+    return ui.showToast('warning', 'La descripción es demasiado larga')
+  }
+
+  if (!form.unit) {
+    errors.unit = true
+    return ui.showToast('warning', 'Debes seleccionar una unidad')
+  }
+
+  if (!form.familyId) {
+    errors.familyId = true
+    return ui.showToast('warning', 'Debes seleccionar una familia')
+  }
+
+  if (!form.categoryId) {
+    errors.categoryId = true
+    return ui.showToast('warning', 'Debes seleccionar una categoría')
+  }
+
   saving.value = true
 
   try {
-    let saved: any
+    let saved
 
     if (props.mode === 'create') {
       const { internalCode, ...payload } = form
@@ -387,6 +372,8 @@ async function submit() {
     if (selectedImages.value.length) {
       await productsStore.uploadImages(saved.id, selectedImages.value)
     }
+
+    ui.showToast('success', 'Producto guardado correctamente')
 
     emit('submit')
     open.value = false

@@ -1,168 +1,163 @@
 <template>
-  <UiDialog v-model="open" size="xl" hide-close>
-    <!-- ========================= HEADER ========================== -->
+  <UiDialog v-model="open" size="xl" hide-header hide-close>
     <div
-      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <h2 class="text-lg font-semibold">
-        {{ mode === 'create' ? 'Nuevo proveedor' : 'Editar proveedor' }}
-      </h2>
+      <!-- HEADER -->
+      <header
+        class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <div class="rounded-full bg-primary/10 p-3">
+            <Icon name="truck" class="h-6 w-6 text-primary" />
+          </div>
 
-      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
-        <Icon name="x" />
-      </button>
-    </div>
+          <div>
+            <h2 class="text-xl font-bold text-primary">
+              {{ mode === 'create' ? 'Nuevo proveedor' : 'Editar proveedor' }}
+            </h2>
 
-    <!-- ========================= CONTENT ========================== -->
-    <div class="px-6 py-5 overflow-auto space-y-8" style="max-height: calc(90vh - 160px)">
-      <!-- ===== DATOS GENERALES ===== -->
-      <section>
-        <h3 class="text-sm font-semibold mb-4">Datos generales</h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput v-model="form.code" label="Código" placeholder="PROV-001" />
-
-          <UiInput v-model="form.name" label="Nombre comercial" placeholder="Nombre comercial" />
-
-          <UiInput
-            v-model="form.legalName"
-            label="Razón social"
-            placeholder="Razón social completa"
-          />
-
-          <UiInput v-model="form.rfc" label="RFC" placeholder="XAXX010101000" />
-
-          <UiInput
-            v-model="form.email"
-            label="Email"
-            placeholder="contacto@empresa.com"
-            :error="errors.email"
-          />
-
-          <UiInput v-model="form.phone" label="Teléfono" placeholder="1234567890" />
-
-          <UiInput
-            v-model="form.website"
-            label="Sitio web"
-            placeholder="https://www.empresa.com"
-            :error="errors.website"
-          />
+            <p class="text-sm opacity-60">Gestión de proveedores del sistema</p>
+          </div>
         </div>
+
+        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+          <Icon name="x" />
+        </button>
+      </header>
+
+      <!-- CONTENT -->
+      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-8">
+        <!-- DATOS GENERALES -->
+        <section>
+          <h3 class="text-sm font-semibold mb-4">Datos generales</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UiInput v-model="form.code" label="Código *" :error="errors.code" />
+
+            <UiInput v-model="form.name" label="Nombre comercial *" :error="errors.name" />
+
+            <UiInput v-model="form.legalName" label="Razón social" :error="errors.legalName" />
+
+            <UiInput v-model="form.rfc" label="RFC" :error="errors.rfc" />
+
+            <UiInput v-model="form.email" label="Email" :error="errors.email" />
+
+            <UiInput v-model="form.phone" label="Teléfono" />
+
+            <UiInput v-model="form.website" label="Sitio web" :error="errors.website" />
+          </div>
+        </section>
+
+        <!-- CONDICIONES -->
+        <section>
+          <h3 class="text-sm font-semibold mb-4">Condiciones comerciales</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <UiInput
+              v-model="form.paymentTermsDays"
+              type="number"
+              label="Días de crédito"
+              :error="errors.paymentTermsDays"
+            />
+
+            <UiSelect
+              v-model="form.defaultCurrency"
+              label="Moneda por defecto"
+              :options="currencyOptions"
+            />
+          </div>
+        </section>
+
+        <!-- CONTACTOS -->
+        <section>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Contactos</h3>
+
+            <UiButton size="sm" variant="outline" icon="plus" @click="addContact">
+              Agregar contacto
+            </UiButton>
+          </div>
+
+          <div
+            v-for="(c, i) in form.contacts"
+            :key="i"
+            class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3"
+          >
+            <UiInput v-model="c.name" label="Nombre *" :error="errors[`contact_name_${i}`]" />
+            <UiInput v-model="c.role" label="Puesto" />
+
+            <UiInput v-model="c.email" label="Email" :error="errors[`contact_email_${i}`]" />
+
+            <UiInput v-model="c.phone" label="Teléfono" />
+          </div>
+        </section>
+
+        <!-- CUENTAS BANCARIAS -->
+        <section>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Cuentas bancarias</h3>
+
+            <UiButton size="sm" variant="outline" icon="plus" @click="addBankAccount">
+              Agregar cuenta bancaria
+            </UiButton>
+          </div>
+
+          <div
+            v-for="(b, i) in form.bankAccounts"
+            :key="i"
+            class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 items-end"
+          >
+            <UiInput v-model="b.bankName" label="Banco *" :error="errors[`bank_name_${i}`]" />
+
+            <UiInput
+              v-model="b.accountHolder"
+              label="Titular *"
+              :error="errors[`account_holder_${i}`]"
+            />
+
+            <UiInput v-model="b.accountNumber" label="Cuenta" />
+
+            <UiSelect v-model="b.currency" label="Moneda" :options="bankCurrencyOptions" />
+
+            <UiInput
+              v-model="b.clabe"
+              label="CLABE"
+              class="md:col-span-2"
+              :error="errors[`clabe_${i}`]"
+            />
+          </div>
+        </section>
+
+        <!-- NOTAS -->
+        <section>
+          <UiInput v-model="form.notes" label="Notas" type="textarea" :error="errors.notes" />
+        </section>
       </section>
 
-      <!-- ===== CONDICIONES COMERCIALES ===== -->
-      <section>
-        <h3 class="text-sm font-semibold mb-4">Condiciones comerciales</h3>
+      <!-- FOOTER -->
+      <footer
+        class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
+      >
+        <UiButton variant="ghost" @click="open = false"> Cancelar </UiButton>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-          <UiInput
-            v-model="form.paymentTermsDays"
-            type="number"
-            label="Días de crédito"
-            placeholder="0 - 365"
-            :error="errors.paymentTermsDays"
-          />
-
-          <UiSelect
-            v-model="form.defaultCurrency"
-            label="Moneda por defecto"
-            :options="currencyOptions"
-          />
-        </div>
-      </section>
-
-      <!-- ===== CONTACTOS ===== -->
-      <section>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold">Contactos</h3>
-          <UiButton size="sm" variant="outline" icon="plus" type="button" @click="addContact">
-            Agregar contacto
-          </UiButton>
-        </div>
-
-        <div
-          v-for="(c, i) in form.contacts"
-          :key="i"
-          class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3"
-        >
-          <UiInput v-model="c.name" label="Nombre" placeholder="Nombre del contacto" />
-          <UiInput v-model="c.role" label="Puesto" placeholder="Cargo o puesto" />
-
-          <UiInput
-            v-model="c.email"
-            label="Email"
-            placeholder="contacto@empresa.com"
-            :error="errors[`contact_email_${i}`]"
-          />
-
-          <UiInput v-model="c.phone" label="Teléfono" placeholder="1234567890" />
-        </div>
-      </section>
-
-      <!-- ===== CUENTAS BANCARIAS ===== -->
-      <section>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold">Cuentas bancarias</h3>
-          <UiButton size="sm" variant="outline" icon="plus" type="button" @click="addBankAccount">
-            Agregar cuenta bancaria
-          </UiButton>
-        </div>
-
-        <div
-          v-for="(b, i) in form.bankAccounts"
-          :key="i"
-          class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 items-end"
-        >
-          <UiInput v-model="b.bankName" label="Banco" placeholder="BBVA, Banamex..." />
-          <UiInput v-model="b.accountHolder" label="Titular" placeholder="Nombre del titular" />
-          <UiInput v-model="b.accountNumber" label="Cuenta" placeholder="1234567890" />
-
-          <UiSelect v-model="b.currency" label="Moneda" :options="bankCurrencyOptions" />
-
-          <UiInput
-            v-model="b.clabe"
-            label="CLABE"
-            placeholder="18 dígitos"
-            class="md:col-span-2"
-            :error="errors[`clabe_${i}`]"
-          />
-        </div>
-      </section>
-
-      <!-- ===== NOTAS ===== -->
-      <section>
-        <UiInput
-          v-model="form.notes"
-          label="Notas"
-          type="textarea"
-          placeholder="Observaciones internas..."
-        />
-      </section>
-    </div>
-
-    <!-- ========================= FOOTER ========================== -->
-    <div
-      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
-    >
-      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
-
-      <UiButton variant="primary" @click="submit"> Guardar </UiButton>
+        <UiButton variant="primary" @click="submit"> Guardar </UiButton>
+      </footer>
     </div>
   </UiDialog>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed, watchEffect } from 'vue'
-import type { Supplier } from '~/types/supplier'
+import { reactive, watch, computed } from 'vue'
 import { useUiStore } from '~/stores/ui.store'
 
 const ui = useUiStore()
 
-const props = defineProps<{
-  modelValue: boolean
-  mode: 'create' | 'edit'
-  model: Supplier | null
-}>()
+const props = defineProps({
+  modelValue: Boolean,
+  mode: String,
+  model: Object,
+})
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 
@@ -176,7 +171,7 @@ function getDefaultForm() {
     code: '',
     name: '',
     legalName: '',
-    rfc: 'XAXX010101000',
+    rfc: '',
     email: '',
     phone: '',
     website: '',
@@ -184,13 +179,7 @@ function getDefaultForm() {
     defaultCurrency: 'MXN',
     contacts: [{ name: '', role: '', email: '', phone: '' }],
     bankAccounts: [
-      {
-        bankName: '',
-        accountHolder: '',
-        accountNumber: '',
-        clabe: '',
-        currency: 'MXN',
-      },
+      { bankName: '', accountHolder: '', accountNumber: '', clabe: '', currency: 'MXN' },
     ],
     notes: '',
     active: true,
@@ -198,20 +187,6 @@ function getDefaultForm() {
 }
 
 const form = reactive<any>(getDefaultForm())
-
-/* =========================
-   SELECT OPTIONS
-========================= */
-
-const currencyOptions = [
-  { label: 'MXN – Peso mexicano', value: 'MXN' },
-  { label: 'USD – Dólar americano', value: 'USD' },
-]
-
-const bankCurrencyOptions = [
-  { label: 'MXN', value: 'MXN' },
-  { label: 'USD', value: 'USD' },
-]
 
 const errors = reactive<Record<string, string>>({})
 
@@ -224,43 +199,15 @@ watch(
   { immediate: true }
 )
 
-/* ========================= VALIDACIONES EN TIEMPO REAL ========================== */
+const currencyOptions = [
+  { label: 'MXN – Peso mexicano', value: 'MXN' },
+  { label: 'USD – Dólar americano', value: 'USD' },
+]
 
-function isValidURL(url: string) {
-  if (!url) return true
-  let testUrl = url.trim()
-  if (!/^https?:\/\//i.test(testUrl)) testUrl = 'https://' + testUrl
-  try {
-    new URL(testUrl)
-    return true
-  } catch {
-    return false
-  }
-}
-
-function isValidCLABE(clabe: string) {
-  return /^\d{18}$/.test(clabe)
-}
-
-function isValidEmail(email: string) {
-  if (!email) return true
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
-
-watchEffect(() => {
-  errors.email = form.email && !isValidEmail(form.email) ? 'Email inválido' : ''
-  errors.website = form.website && !isValidURL(form.website) ? 'URL inválida' : ''
-  errors.paymentTermsDays =
-    form.paymentTermsDays < 0 || form.paymentTermsDays > 365 ? 'Debe estar entre 0 y 365' : ''
-
-  form.contacts.forEach((c: any, i: number) => {
-    errors[`contact_email_${i}`] = c.email && !isValidEmail(c.email) ? 'Email inválido' : ''
-  })
-
-  form.bankAccounts.forEach((b: any, i: number) => {
-    errors[`clabe_${i}`] = b.clabe && !isValidCLABE(b.clabe) ? 'CLABE debe tener 18 dígitos' : ''
-  })
-})
+const bankCurrencyOptions = [
+  { label: 'MXN', value: 'MXN' },
+  { label: 'USD', value: 'USD' },
+]
 
 function addContact() {
   form.contacts.push({ name: '', role: '', email: '', phone: '' })
@@ -276,10 +223,51 @@ function addBankAccount() {
   })
 }
 
+function isValidEmail(e: string) {
+  return !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+}
+
 function submit() {
+  Object.keys(errors).forEach(k => (errors[k] = ''))
+
+  if (!form.code || form.code.length < 2) {
+    errors.code = 'Código inválido'
+  }
+
+  if (!form.name || form.name.length < 2) {
+    errors.name = 'Nombre requerido'
+  }
+
+  if (form.email && !isValidEmail(form.email)) {
+    errors.email = 'Email inválido'
+  }
+
+  if (form.paymentTermsDays < 0 || form.paymentTermsDays > 365) {
+    errors.paymentTermsDays = 'Debe estar entre 0 y 365'
+  }
+
+  form.contacts.forEach((c: any, i: number) => {
+    if (c.name && c.name.length < 2) {
+      errors[`contact_name_${i}`] = 'Nombre inválido'
+    }
+    if (c.email && !isValidEmail(c.email)) {
+      errors[`contact_email_${i}`] = 'Email inválido'
+    }
+  })
+
+  form.bankAccounts.forEach((b: any, i: number) => {
+    if (b.bankName && b.bankName.length < 2) {
+      errors[`bank_name_${i}`] = 'Banco inválido'
+    }
+    if (b.accountHolder && b.accountHolder.length < 2) {
+      errors[`account_holder_${i}`] = 'Titular inválido'
+    }
+  })
+
   const hasErrors = Object.values(errors).some(e => e)
+
   if (hasErrors) {
-    ui.showToast('error', 'Hay campos con errores. Revisa el formulario.')
+    ui.showToast('error', 'Hay campos con errores')
     return
   }
 

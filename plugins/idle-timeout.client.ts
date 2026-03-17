@@ -5,7 +5,7 @@ export default defineNuxtPlugin(() => {
   const auth = useAuthStore()
   const ui = useUiStore()
 
-  const IDLE_LIMIT = 15 * 60 * 1000 // 15 minutos
+  const IDLE_LIMIT = 60 * 60 * 1000 // 15 minutos
   let idleTimer: ReturnType<typeof setTimeout> | null = null
 
   function logoutDueToInactivity() {

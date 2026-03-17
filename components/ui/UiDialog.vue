@@ -1,6 +1,6 @@
 <!-- components/ui/UiDialog.vue -->
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 type UiDialogSize = 'sm' | 'md' | 'lg' | 'xl'
 
@@ -26,8 +26,6 @@ const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
 }>()
 
-const dlg = ref<HTMLDialogElement | null>(null)
-
 const sizeClass = computed(() => {
   switch (props.size) {
     case 'sm':
@@ -45,64 +43,68 @@ const sizeClass = computed(() => {
 
 const close = () => emit('update:modelValue', false)
 
+/* BODY SCROLL LOCK */
 watch(
   () => props.modelValue,
-  async v => {
-    await nextTick()
-    if (!dlg.value) return
-    if (v && !dlg.value.open) dlg.value.showModal()
-    if (!v && dlg.value.open) dlg.value.close()
+  v => {
+    if (v) document.body.classList.add('overflow-hidden')
+    else document.body.classList.remove('overflow-hidden')
   },
   { immediate: true }
 )
 
-const onCloseNative = () => {
-  if (props.modelValue) emit('update:modelValue', false)
+/* ESC */
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && props.modelValue) close()
 }
 
-const onBackdropClick = (e: MouseEvent) => {
-  if (!props.closeOnBackdrop) return
-  if (e.target === dlg.value) close()
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+function onBackdropClick() {
+  if (props.closeOnBackdrop) close()
 }
 </script>
 
 <template>
-  <dialog ref="dlg" class="modal" @close="onCloseNative" @click="onBackdropClick">
-    <div class="modal-box w-11/12 p-0" :class="sizeClass">
-      <!-- =========================
-           HEADER (DEFAULT)
-      ========================== -->
+  <Teleport to="body">
+    <div v-if="modelValue" class="fixed inset-0 z-[3000] flex items-center justify-center p-6">
+      <!-- BACKDROP -->
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="onBackdropClick" />
+
+      <!-- MODAL CONTAINER -->
       <div
-        v-if="!hideHeader"
-        class="flex items-center justify-between gap-3 border-b border-base-300 bg-base-200 px-5 py-4"
+        class="relative w-[95%] max-h-[92vh] flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
+        :class="sizeClass"
       >
-        <h3 class="truncate text-base font-semibold">
-          {{ title }}
-        </h3>
-
-        <button
-          v-if="!hideClose"
-          class="btn btn-circle btn-sm btn-ghost"
-          type="button"
-          @click="close"
+        <!-- HEADER -->
+        <div
+          v-if="!hideHeader"
+          class="flex items-center justify-between gap-3 border-b border-base-300 bg-base-200 px-5 py-4"
         >
-          ✕
-        </button>
-      </div>
+          <h3 class="truncate text-base font-semibold">
+            {{ title }}
+          </h3>
 
-      <!-- =========================
-           BODY (NO PADDING FOR ADVANCED)
-      ========================== -->
-      <div v-if="$slots.header || $slots.footer" class="p-0">
-        <slot />
-      </div>
+          <button
+            v-if="!hideClose"
+            class="btn btn-circle btn-sm btn-ghost"
+            type="button"
+            @click="close"
+          >
+            ✕
+          </button>
+        </div>
 
-      <!-- =========================
-           BODY (SIMPLE)
-      ========================== -->
-      <div v-else class="px-5 py-5">
-        <slot />
+        <!-- SLOT -->
+        <div v-if="$slots.header || $slots.footer" class="p-0 flex-1 overflow-auto">
+          <slot />
+        </div>
+
+        <div v-else class="px-5 py-5 flex-1 overflow-auto">
+          <slot />
+        </div>
       </div>
     </div>
-  </dialog>
+  </Teleport>
 </template>

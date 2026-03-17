@@ -9,6 +9,9 @@
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
+
+  <!-- GLOBAL UI -->
+  <UiToast />
 </template>
 
 <script setup lang="ts">
@@ -16,6 +19,7 @@ import { watch } from 'vue'
 import { useAuthStore } from '~/stores/auth.store'
 import { usePermissionsStore } from '~/stores/permissions.store'
 import { useRolesStore } from '~/stores/roles.store'
+import UiToast from '~/components/ui/UiToast.vue'
 
 const auth = useAuthStore()
 const permissions = usePermissionsStore()
@@ -26,7 +30,6 @@ watch(
   async isAuth => {
     if (!isAuth) return
 
-    // 🧠 BOOTSTRAP ÚNICO
     await Promise.all([permissions.fetch(), roles.fetch()])
   },
   { immediate: true }

@@ -1,153 +1,145 @@
 <template>
-  <UiDialog v-model="open" size="xl" hide-close>
-    <!-- HEADER -->
+  <UiDialog v-model="open" size="xl" hide-header hide-close>
     <div
-      class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <h2 class="text-lg font-semibold">
-        {{ mode === 'create' ? 'Asignar proveedor a producto' : 'Editar proveedor del producto' }}
-      </h2>
+      <!-- HEADER -->
+      <header
+        class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <div class="rounded-full bg-primary/10 p-3">
+            <Icon name="truck" class="h-6 w-6 text-primary" />
+          </div>
 
-      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
-        <Icon name="x" />
-      </button>
-    </div>
+          <div>
+            <h2 class="text-xl font-bold text-primary">
+              {{
+                mode === 'create' ? 'Asignar proveedor a producto' : 'Editar proveedor del producto'
+              }}
+            </h2>
 
-    <!-- CONTENT -->
-    <div class="px-6 py-5 overflow-auto space-y-6" style="max-height: calc(90vh - 160px)">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-        <!-- PROVEEDOR -->
-        <UiSelect
-          v-model="form.supplierId"
-          label="Proveedor"
-          placeholder="Selecciona un proveedor"
-          empty-text="No existen proveedores"
-          :disabled="mode === 'edit' || !!lockSupplier"
-          :options="
-            suppliers.map(s => ({
-              label: s.name,
-              value: s.id,
-              image: s.image,
-            }))
-          "
-        />
-
-        <!-- PRODUCTO -->
-        <UiSelect
-          v-model="form.productId"
-          label="Producto"
-          placeholder="Selecciona un producto"
-          empty-text="No existen productos"
-          :disabled="mode === 'edit' || !!lockProduct"
-          :options="
-            products.map(p => ({
-              label: p.name,
-              value: p.id,
-              image: p.image,
-            }))
-          "
-        />
-
-        <!-- SKU -->
-        <UiInput
-          v-model="form.supplierSku"
-          label="SKU del proveedor"
-          placeholder="Se generará automáticamente si lo dejas vacío"
-        />
-
-        <UiInput
-          v-model="form.currentPrice"
-          label="Precio"
-          type="number"
-          min="0"
-          placeholder="0.00"
-        />
-
-        <UiSelect
-          v-model="form.currency"
-          label="Moneda"
-          :options="[
-            { label: 'MXN – Peso mexicano', value: 'MXN' },
-            { label: 'USD – Dólar americano', value: 'USD' },
-          ]"
-        />
-
-        <UiInput
-          v-model="form.leadTimeDays"
-          label="Lead time (días)"
-          type="number"
-          min="0"
-          placeholder="Días estimados de entrega"
-        />
-
-        <!-- MOQ -->
-        <div>
-          <UiInput
-            v-model="form.moq"
-            label="MOQ"
-            type="number"
-            min="0"
-            placeholder="Cantidad mínima por pedido"
-          />
-          <p class="text-xs text-base-content/60 mt-1">
-            Cantidad mínima que debes comprar al proveedor.
-          </p>
+            <p class="text-sm opacity-60">
+              Condiciones comerciales del proveedor para este producto
+            </p>
+          </div>
         </div>
 
-        <!-- PACK SIZE -->
-        <div>
+        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+          <Icon name="x" />
+        </button>
+      </header>
+
+      <!-- CONTENT -->
+      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <!-- PROVEEDOR -->
+          <UiSelect
+            v-model="form.supplierId"
+            label="Proveedor *"
+            :error="errors.supplierId"
+            :disabled="mode === 'edit' || !!lockSupplier"
+            :options="supplierOptions"
+          />
+
+          <!-- PRODUCTO -->
+          <UiSelect
+            v-model="form.productId"
+            label="Producto *"
+            :error="errors.productId"
+            :disabled="mode === 'edit' || !!lockProduct"
+            :options="productOptions"
+          />
+
+          <!-- SKU -->
           <UiInput
-            v-model="form.packSize"
-            label="Numero de Piezas"
+            v-model="form.supplierSku"
+            label="SKU del proveedor"
+            placeholder="Se generará automáticamente si lo dejas vacío"
+          />
+
+          <!-- PRECIO -->
+          <UiInput
+            v-model="form.currentPrice"
+            label="Precio *"
             type="number"
             min="0"
-            placeholder="Unidades por caja o empaque"
+            :error="errors.currentPrice"
           />
-          <p class="text-xs text-base-content/60 mt-1">
-            Número de piezas que vienen en cada caja o empaque.
-          </p>
+
+          <!-- MONEDA -->
+          <UiSelect v-model="form.currency" label="Moneda" :options="currencyOptions" />
+
+          <!-- LEAD TIME -->
+          <UiInput
+            v-model="form.leadTimeDays"
+            label="Lead time (días)"
+            type="number"
+            min="0"
+            :error="errors.leadTimeDays"
+          />
+
+          <!-- MOQ -->
+          <div>
+            <UiInput v-model="form.moq" label="MOQ" type="number" min="0" :error="errors.moq" />
+            <p class="text-xs text-base-content/60 mt-1">
+              Cantidad mínima que debes comprar al proveedor.
+            </p>
+          </div>
+
+          <!-- PACK SIZE -->
+          <div>
+            <UiInput
+              v-model="form.packSize"
+              label="Número de piezas"
+              type="number"
+              min="0"
+              :error="errors.packSize"
+            />
+            <p class="text-xs text-base-content/60 mt-1">Unidades que vienen en cada caja.</p>
+          </div>
+
+          <UiToggle
+            v-model="form.preferred"
+            label="Proveedor preferido para este producto"
+            class="md:col-span-2"
+          />
+
+          <UiInput
+            v-model="form.notes"
+            label="Notas"
+            type="textarea"
+            class="md:col-span-2"
+            :error="errors.notes"
+          />
         </div>
+      </section>
 
-        <UiToggle
-          v-model="form.preferred"
-          label="Proveedor preferido para este producto"
-          class="md:col-span-2"
-        />
+      <!-- FOOTER -->
+      <footer
+        class="sticky bottom-0 z-10 flex flex-col-reverse md:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
+      >
+        <UiButton variant="ghost" @click="open = false"> Cancelar </UiButton>
 
-        <UiInput v-model="form.notes" label="Notas" type="textarea" class="md:col-span-2" />
-      </div>
-    </div>
-
-    <!-- FOOTER -->
-    <div
-      class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
-    >
-      <UiButton variant="ghost" type="button" @click="open = false"> Cancelar </UiButton>
-
-      <UiButton variant="primary" :disabled="!isValid" @click="submit"> Guardar </UiButton>
+        <UiButton variant="primary" @click="submit"> Guardar </UiButton>
+      </footer>
     </div>
   </UiDialog>
 </template>
 
 <script setup lang="ts">
 import { reactive, watch, computed, onMounted } from 'vue'
-import type { SupplierProduct } from '~/types/supplier-product'
-import type { Supplier } from '~/types/supplier'
-import type { Product } from '~/types/product'
-
 import { useSuppliersStore } from '~/stores/suppliers.store'
 import { useProductsStore } from '~/stores/products.store'
-import { useSupplierProductPricesStore } from '~/stores/supplier-product-prices.store'
 import { useUiStore } from '~/stores/ui.store'
 
 const ui = useUiStore()
-const pricesStore = useSupplierProductPricesStore()
 
-const props = defineProps<{
-  modelValue: boolean
-  mode: 'create' | 'edit'
-  model: SupplierProduct | Partial<SupplierProduct> | null
-}>()
+const props = defineProps({
+  modelValue: Boolean,
+  mode: String,
+  model: Object,
+})
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 
@@ -159,20 +151,37 @@ const open = computed({
 const suppliersStore = useSuppliersStore()
 const productsStore = useProductsStore()
 
-const suppliers = computed<Supplier[]>(() => suppliersStore.items)
-const products = computed<Product[]>(() => productsStore.items)
+const suppliers = computed(() => suppliersStore.items)
+const products = computed(() => productsStore.items)
 
-const lockSupplier = computed(() => !!(props.model as any)?.supplierId && props.mode === 'create')
-const lockProduct = computed(() => !!(props.model as any)?.productId && props.mode === 'create')
+const supplierOptions = computed(() =>
+  suppliers.value.map(s => ({
+    label: s.name,
+    value: s.id,
+  }))
+)
 
-/* ========================= FORM ========================== */
+const productOptions = computed(() =>
+  products.value.map(p => ({
+    label: p.name,
+    value: p.id,
+  }))
+)
+
+const currencyOptions = [
+  { label: 'MXN – Peso mexicano', value: 'MXN' },
+  { label: 'USD – Dólar americano', value: 'USD' },
+]
+
+const lockSupplier = computed(() => !!props.model?.supplierId && props.mode === 'create')
+const lockProduct = computed(() => !!props.model?.productId && props.mode === 'create')
 
 const form = reactive({
   supplierId: '',
   productId: '',
   supplierSku: '',
   currentPrice: '0',
-  currency: 'MXN' as 'MXN' | 'USD',
+  currency: 'MXN',
   leadTimeDays: '0',
   moq: '0',
   packSize: '0',
@@ -180,39 +189,7 @@ const form = reactive({
   notes: '',
 })
 
-/* ========================= SKU AUTO ========================== */
-
-function short(text: string) {
-  return text
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .substring(0, 3)
-    .toUpperCase()
-}
-
-function random3() {
-  return Math.floor(100 + Math.random() * 900)
-}
-
-/* 🔥 GENERAR SKU CUANDO CAMBIAN PROVEEDOR O PRODUCTO */
-watch(
-  () => [form.supplierId, form.productId],
-  ([supId, prodId]) => {
-    if (props.mode !== 'create') return
-    if (form.supplierSku) return
-    if (!supId || !prodId) return
-
-    const supplier = suppliers.value.find(s => s.id === supId)
-    const product = products.value.find(p => p.id === prodId)
-    if (!supplier || !product) return
-
-    const sup = short(supplier.code ?? supplier.name)
-    const prod = short(product.code ?? product.name)
-
-    form.supplierSku = `${sup}-${prod}-${random3()}`
-  }
-)
-
-/* ========================= LOAD DATA ========================== */
+const errors = reactive<any>({})
 
 onMounted(async () => {
   if (!suppliersStore.items.length) await suppliersStore.fetch()
@@ -220,54 +197,85 @@ onMounted(async () => {
 })
 
 watch(
-  () => [props.model, props.mode],
-  ([model, mode]) => {
-    if (mode === 'create') {
-      Object.assign(form, {
-        supplierId: '',
-        productId: '',
-        supplierSku: '',
-        currentPrice: '0',
-        currency: 'MXN',
-        leadTimeDays: '0',
-        moq: '0',
-        packSize: '0',
-        preferred: false,
-        notes: '',
-      })
-      return
-    }
-
-    if (mode === 'edit' && model) {
-      const data = JSON.parse(JSON.stringify(model))
-      Object.assign(form, {
-        supplierId: data.supplierId ?? '',
-        productId: data.productId ?? '',
-        supplierSku: data.supplierSku ?? '',
-        currentPrice: String(data.currentPrice ?? 0),
-        currency: data.currency ?? 'MXN',
-        leadTimeDays: String(data.leadTimeDays ?? 0),
-        moq: String(data.moq ?? 0),
-        packSize: String(data.packSize ?? 0),
-        preferred: !!data.preferred,
-        notes: data.notes ?? '',
-      })
-    }
+  () => props.model,
+  v => {
+    if (!v) return
+    Object.assign(form, {
+      supplierId: v.supplierId ?? '',
+      productId: v.productId ?? '',
+      supplierSku: v.supplierSku ?? '',
+      currentPrice: String(v.currentPrice ?? 0),
+      currency: v.currency ?? 'MXN',
+      leadTimeDays: String(v.leadTimeDays ?? 0),
+      moq: String(v.moq ?? 0),
+      packSize: String(v.packSize ?? 0),
+      preferred: !!v.preferred,
+      notes: v.notes ?? '',
+    })
   },
   { immediate: true }
 )
 
-/* ========================= VALIDATION ========================== */
+function validate() {
+  Object.keys(errors).forEach(k => (errors[k] = ''))
 
-const isValid = computed(() => {
+  if (!form.supplierId || form.supplierId.length < 20) {
+    errors.supplierId = 'Proveedor inválido'
+    ui.showToast('warning', 'Debes seleccionar un proveedor válido')
+    return false
+  }
+
+  if (!form.productId || form.productId.length < 20) {
+    errors.productId = 'Producto inválido'
+    ui.showToast('warning', 'Debes seleccionar un producto válido')
+    return false
+  }
+
   const price = Number(form.currentPrice)
-  return !!form.supplierId && !!form.productId && !Number.isNaN(price) && price >= 0
-})
 
-/* ========================= SUBMIT ========================== */
+  if (isNaN(price) || price < 0) {
+    errors.currentPrice = 'Precio inválido'
+    ui.showToast('warning', 'El precio debe ser mayor o igual a 0')
+    return false
+  }
 
-async function submit() {
-  const payload = {
+  const lead = Number(form.leadTimeDays)
+
+  if (lead < 0 || lead > 3650) {
+    errors.leadTimeDays = 'Valor inválido'
+    ui.showToast('warning', 'El lead time debe estar entre 0 y 3650 días')
+    return false
+  }
+
+  const moq = Number(form.moq)
+
+  if (moq < 0 || moq > 1000000) {
+    errors.moq = 'MOQ inválido'
+    ui.showToast('warning', 'El MOQ debe estar entre 0 y 1,000,000')
+    return false
+  }
+
+  const pack = Number(form.packSize)
+
+  if (pack < 0 || pack > 1000000) {
+    errors.packSize = 'Valor inválido'
+    ui.showToast('warning', 'El número de piezas debe estar entre 0 y 1,000,000')
+    return false
+  }
+
+  if (form.notes && form.notes.length > 2000) {
+    errors.notes = 'Notas demasiado largas'
+    ui.showToast('warning', 'Las notas no pueden superar 2000 caracteres')
+    return false
+  }
+
+  return true
+}
+
+function submit() {
+  if (!validate()) return
+
+  emit('submit', {
     supplierId: form.supplierId,
     productId: form.productId,
     supplierSku: form.supplierSku || undefined,
@@ -278,13 +286,8 @@ async function submit() {
     packSize: Number(form.packSize),
     preferred: !!form.preferred,
     notes: form.notes || undefined,
-  }
+  })
 
-  try {
-    emit('submit', payload)
-    open.value = false
-  } catch (e: any) {
-    ui.showToast('error', 'Error al guardar')
-  }
+  open.value = false
 }
 </script>

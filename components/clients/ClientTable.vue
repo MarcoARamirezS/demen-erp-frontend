@@ -1,44 +1,92 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useClientsStore } from '~/stores/clients.store'
-import Icon from '~/components/ui/Icon.vue'
 import { useUiStore } from '~/stores/ui.store'
+import Icon from '~/components/ui/Icon.vue'
 
-const ui = useUiStore()
 const clientsStore = useClientsStore()
+const ui = useUiStore()
 
-/* =======================
-   STATE
-======================= */
+/* =========================
+STATE
+========================= */
+
 const search = ref('')
+const searchDebounced = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
-/* =======================
-   FETCH
-======================= */
+const sortField = ref<'razonSocial' | 'rfc' | 'email'>('razonSocial')
+const sortDirection = ref<'asc' | 'desc'>('asc')
+
+/* =========================
+FETCH
+========================= */
+
 onMounted(async () => {
-  // Evitar doble fetch si la página ya lo hizo
   if (!clientsStore.items.length) {
     clientsStore.reset()
-    await clientsStore.fetch(itemsPerPage.value, search.value)
+    await clientsStore.fetch(itemsPerPage.value, '')
   }
 })
 
-/* =======================
-   FILTERED
-======================= */
-const filtered = computed(() => clientsStore.items)
+/* =========================
+SEARCH DEBOUNCE
+========================= */
 
-/* =======================
-   PAGINATION
-======================= */
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filtered.value.length / itemsPerPage.value))
-)
+let debounce: any
+
+watch(search, v => {
+  clearTimeout(debounce)
+
+  debounce = setTimeout(async () => {
+    searchDebounced.value = v
+    currentPage.value = 1
+    clientsStore.reset()
+    await clientsStore.fetch(itemsPerPage.value, searchDebounced.value)
+  }, 400)
+})
+
+watch(itemsPerPage, async () => {
+  currentPage.value = 1
+  clientsStore.reset()
+  await clientsStore.fetch(itemsPerPage.value, searchDebounced.value)
+})
+
+/* =========================
+SORTING
+========================= */
+
+function sortBy(field: 'razonSocial' | 'rfc' | 'email') {
+  if (sortField.value === field) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDirection.value = 'asc'
+  }
+}
+
+const sortedItems = computed(() => {
+  return [...clientsStore.items].sort((a: any, b: any) => {
+    const A = (a[sortField.value] || '').toLowerCase()
+    const B = (b[sortField.value] || '').toLowerCase()
+
+    if (A < B) return sortDirection.value === 'asc' ? -1 : 1
+    if (A > B) return sortDirection.value === 'asc' ? 1 : -1
+    return 0
+  })
+})
+
+/* =========================
+PAGINATION
+========================= */
+
+const totalItems = computed(() => sortedItems.value.length)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / itemsPerPage.value)))
 
 const paginated = computed(() =>
-  filtered.value.slice(
+  sortedItems.value.slice(
     (currentPage.value - 1) * itemsPerPage.value,
     currentPage.value * itemsPerPage.value
   )
@@ -57,30 +105,15 @@ const setPage = (p: number) => (currentPage.value = p)
 const nextPage = () => setPage(currentPage.value + 1)
 const prevPage = () => setPage(currentPage.value - 1)
 
-/* =======================
-   WATCH
-======================= */
-watch(search, async () => {
-  currentPage.value = 1
-  clientsStore.reset()
-  await clientsStore.fetch(itemsPerPage.value, search.value)
-})
+/* =========================
+ACTIONS
+========================= */
 
-watch(itemsPerPage, async () => {
-  currentPage.value = 1
-  clientsStore.reset()
-  await clientsStore.fetch(itemsPerPage.value, search.value)
-})
-
-/* =======================
-   ACTIONS
-======================= */
 function goToClient(id: string) {
   navigateTo(`/clients/${id}`)
 }
 
 async function toggleClient(client: any) {
-  console.log('Toggling client', client.id, 'Current status:', client.activo)
   const newStatus = !client.activo
 
   if (client.activo) {
@@ -98,6 +131,7 @@ async function toggleClient(client: any) {
 
 async function resetFilters() {
   search.value = ''
+  searchDebounced.value = ''
   currentPage.value = 1
   clientsStore.reset()
   await clientsStore.fetch(itemsPerPage.value)
@@ -105,135 +139,119 @@ async function resetFilters() {
 </script>
 
 <template>
-  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
+  <div
+    class="animate-fadeIn space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg"
+  >
     <!-- =========================
-         FILTROS (Mobile)
-    ========================== -->
-    <details class="md:hidden rounded-2xl border border-base-300 bg-base-200/60 p-3 mb-4">
-      <summary class="cursor-pointer font-medium text-sm flex items-center justify-between">
-        <span>Filtros</span>
-        <span class="text-xs opacity-60">Toca para abrir</span>
-      </summary>
+FILTERS
+========================= -->
 
-      <div class="mt-3 space-y-3">
-        <div class="relative w-full">
-          <span class="pointer-events-none absolute left-3 top-2.5 opacity-50">
-            <Icon name="search" class="h-4 w-4" />
-          </span>
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Buscar razón social, nombre o RFC…"
-            class="input input-sm input-bordered w-full pl-9"
-          />
-        </div>
-
-        <select v-model.number="itemsPerPage" class="select select-sm select-bordered w-full">
-          <option :value="10">10 por página</option>
-          <option :value="25">25 por página</option>
-          <option :value="50">50 por página</option>
-        </select>
-
-        <button class="btn btn-sm btn-outline w-full" @click="resetFilters">Limpiar filtros</button>
-      </div>
-    </details>
-
-    <!-- =========================
-         FILTROS (iPad + Desktop)
-    ========================== -->
     <div
-      class="hidden md:flex mb-4 items-end gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+      class="flex flex-wrap items-center gap-3 rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
     >
-      <div class="relative flex-1 min-w-[280px]">
-        <label class="text-xs opacity-70 block mb-1">Buscar</label>
-        <span class="pointer-events-none absolute left-3 top-[34px] opacity-50">
-          <Icon name="search" class="h-4 w-4" />
-        </span>
+      <div class="relative">
+        <Icon name="search" class="absolute left-3 top-2.5 h-4 w-4 opacity-50" />
         <input
           v-model="search"
-          type="text"
-          placeholder="Razón social, nombre o RFC…"
-          class="input input-sm input-bordered w-full pl-9"
+          class="input input-sm input-bordered w-36 md:w-44 lg:w-64 pl-9"
+          placeholder="Buscar cliente..."
         />
       </div>
 
-      <div class="w-40">
-        <label class="text-xs opacity-70 block mb-1">Por página</label>
-        <select v-model.number="itemsPerPage" class="select select-sm select-bordered w-full">
-          <option :value="10">10</option>
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-        </select>
-      </div>
+      <select v-model.number="itemsPerPage" class="select select-sm select-bordered min-w-[90px]">
+        <option :value="10">10</option>
+        <option :value="25">25</option>
+        <option :value="50">50</option>
+      </select>
 
-      <button class="btn btn-sm btn-outline mt-5" @click="resetFilters">Limpiar</button>
+      <button class="btn btn-sm btn-outline" @click="resetFilters">
+        <Icon name="x-circle" class="h-4 w-4 mr-1" /> Limpiar
+      </button>
     </div>
 
     <!-- =========================
-         DESKTOP TABLE (md+)
-    ========================== -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
+TABLE (TABLET + DESKTOP)
+========================= -->
+
+    <div class="overflow-x-auto rounded-xl border border-base-300">
       <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase text-base-content/70">
+        <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
-            <th class="min-w-[260px]">Razón social</th>
-            <th class="min-w-[160px]">RFC</th>
-            <th class="min-w-[220px]">Email</th>
-            <th class="min-w-[140px] text-center">Estado</th>
-            <th class="w-[90px] text-center">Acciones</th>
+            <th class="cursor-pointer" @click="sortBy('razonSocial')">Razón Social</th>
+
+            <th class="cursor-pointer" @click="sortBy('rfc')">RFC</th>
+
+            <th class="hidden md:table-cell cursor-pointer" @click="sortBy('email')">Email</th>
+
+            <th class="text-center">Estado</th>
+
+            <th class="text-right w-[90px]">Acciones</th>
           </tr>
         </thead>
 
         <tbody v-if="clientsStore.loading">
-          <tr>
-            <td colspan="5" class="p-10 text-center opacity-70">
-              <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
-              Cargando clientes…
+          <tr v-for="i in 5" :key="i">
+            <td colspan="5">
+              <div class="h-10 w-full animate-pulse rounded bg-base-200"></div>
             </td>
           </tr>
         </tbody>
 
         <tbody v-else-if="paginated.length">
-          <tr v-for="c in paginated" :key="c.id" class="hover:bg-base-200/40 transition">
+          <tr
+            v-for="c in paginated"
+            :key="c.id"
+            class="border-b border-base-200 hover:bg-base-200/40 transition"
+          >
             <td>
-              <div class="font-semibold truncate max-w-[420px]" :title="c.razonSocial">
-                {{ c.razonSocial }}
-              </div>
-              <div v-if="c.nombreComercial" class="text-xs opacity-60 truncate max-w-[420px]">
-                {{ c.nombreComercial }}
+              <div class="flex items-center gap-3">
+                <div
+                  class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold"
+                >
+                  {{ c.razonSocial?.charAt(0) || '?' }}
+                </div>
+
+                <div>
+                  <div
+                    class="font-semibold truncate max-w-[260px] md:max-w-[220px] lg:max-w-[360px]"
+                  >
+                    {{ c.razonSocial }}
+                  </div>
+
+                  <div v-if="c.nombreComercial" class="text-xs opacity-60 truncate">
+                    {{ c.nombreComercial }}
+                  </div>
+                </div>
               </div>
             </td>
 
-            <td class="truncate max-w-[200px]">
+            <td class="whitespace-nowrap">
               {{ c.rfc || '—' }}
             </td>
 
-            <td class="truncate max-w-[260px]">
+            <td class="hidden md:table-cell truncate max-w-[200px]">
               {{ c.email || '—' }}
             </td>
 
             <td class="text-center">
-              <span
-                class="badge badge-outline"
-                :class="c.activo ? 'bg-success/15 text-success' : 'bg-error/15 text-error'"
-              >
+              <span class="badge badge-sm" :class="c.activo ? 'badge-success' : 'badge-outline'">
                 {{ c.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
 
-            <td class="text-center">
-              <div class="flex items-center justify-center gap-1">
-                <div class="tooltip tooltip-left" data-tip="Ver cliente">
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <div class="tooltip" data-tip="Ver cliente">
                   <button
                     class="btn btn-circle btn-sm btn-ghost text-primary"
                     @click="goToClient(c.id)"
                   >
-                    <Icon name="eye" size="sm" />
+                    <Icon name="eye" />
                   </button>
                 </div>
 
                 <div
-                  class="tooltip tooltip-left"
+                  class="tooltip"
                   :data-tip="c.activo ? 'Desactivar cliente' : 'Activar cliente'"
                 >
                   <button
@@ -241,7 +259,7 @@ async function resetFilters() {
                     :class="c.activo ? 'text-warning' : 'text-success'"
                     @click="toggleClient(c)"
                   >
-                    <Icon :name="c.activo ? 'power' : 'checkCircle'" size="sm" />
+                    <Icon :name="c.activo ? 'power' : 'checkCircle'" />
                   </button>
                 </div>
               </div>
@@ -251,26 +269,22 @@ async function resetFilters() {
 
         <tbody v-else>
           <tr>
-            <td colspan="5" class="p-10 text-center opacity-70">
-              No hay resultados con los filtros actuales
-            </td>
+            <td colspan="5" class="p-6 text-center opacity-70">No hay clientes</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <!-- =========================
-         PAGINACIÓN
-    ========================== -->
-    <div class="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+PAGINATION
+========================= -->
+
+    <div class="mt-4 flex flex-col lg:flex-row items-center justify-between gap-3">
       <p class="text-xs opacity-70">
-        Mostrando <span class="font-medium">{{ startIndex + 1 }}</span> –
-        <span class="font-medium">{{ endIndex }}</span>
-        de
-        <span class="font-medium">{{ filtered.length }}</span>
+        Mostrando <b>{{ startIndex + 1 }}</b> – <b>{{ endIndex }}</b> de <b>{{ totalItems }}</b>
       </p>
 
-      <div class="join self-center md:self-auto">
+      <div class="join">
         <button class="btn join-item btn-sm" :disabled="currentPage === 1" @click="prevPage">
           «
         </button>

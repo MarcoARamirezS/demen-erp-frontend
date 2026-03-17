@@ -1,42 +1,45 @@
 <template>
-  <UiDialog v-model="open" size="xl" :hide-close="true">
-    <!-- =========================
-         HEADER (STICKY)
-    ========================== -->
+  <UiDialog v-model="open" size="xl" hide-close>
+    <!-- HEADER -->
     <div
-      class="sticky top-0 z-10 flex items-start gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
+      class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-base-300 bg-base-200 px-6 py-4"
     >
-      <div class="rounded-full bg-primary/10 p-3 shrink-0">
-        <Icon name="shield" />
+      <div class="flex items-start gap-4 min-w-0">
+        <div class="rounded-full bg-primary/10 p-3 shrink-0">
+          <Icon name="shield" />
+        </div>
+
+        <div class="min-w-0">
+          <h2 class="font-semibold text-lg flex items-center gap-2">
+            <span class="badge badge-outline badge-sm font-mono" :class="actionTone(model?.action)">
+              {{ model?.action }}
+            </span>
+
+            <span class="opacity-70">
+              {{ model?.resource }}
+            </span>
+          </h2>
+
+          <p class="text-xs opacity-60 truncate">
+            {{ model ? formatDateTime(model.createdAt) : '' }}
+            <span v-if="model?.id" class="font-mono"> · {{ model.id }}</span>
+          </p>
+        </div>
       </div>
 
-      <div class="min-w-0 flex-1">
-        <h2 class="font-semibold text-lg truncate">{{ model?.resource }} · {{ model?.action }}</h2>
-        <p class="text-xs opacity-60 truncate">
-          {{ model ? formatDateTime(model.createdAt) : '' }}
-          <span v-if="model?.id" class="font-mono"> · {{ model.id }}</span>
-        </p>
-      </div>
-
-      <!-- Close -->
-      <button type="button" class="btn btn-circle btn-sm btn-ghost" @click="open = false">
+      <button type="button" class="btn btn-circle btn-sm btn-ghost shrink-0" @click="open = false">
         <Icon name="x" />
       </button>
     </div>
 
-    <!-- =========================
-         CONTENT (SCROLL)
-    ========================== -->
-    <div class="px-6 py-5 overflow-auto" style="max-height: calc(90vh - 160px)">
-      <!-- LOADING -->
+    <!-- CONTENT -->
+    <div class="px-6 py-6 space-y-6 overflow-auto" style="max-height: calc(90vh - 160px)">
       <div v-if="loading" class="py-10 text-center opacity-70">
         <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
         Cargando detalle…
       </div>
 
-      <!-- CONTENT -->
       <div v-else-if="model" class="space-y-6">
-        <!-- GRID -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- ACTOR -->
           <div class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-1">
@@ -55,9 +58,10 @@
             </div>
           </div>
 
-          <!-- RESOURCE ID -->
+          <!-- RESOURCE -->
           <div class="rounded-xl border border-base-300 bg-base-100 p-4">
             <div class="text-xs uppercase opacity-60 mb-1">Recurso ID</div>
+
             <div class="font-medium break-all">
               {{ model.resourceId || '—' }}
             </div>
@@ -71,23 +75,20 @@
             Meta (JSON)
           </h3>
 
-          <div class="rounded-xl border border-base-300 bg-base-100 p-4 overflow-auto">
-            <pre class="text-xs whitespace-pre-wrap break-words"
+          <div class="rounded-xl border border-base-300 bg-base-200/40 p-4 overflow-auto">
+            <pre class="text-[13px] leading-relaxed font-mono whitespace-pre-wrap break-words"
               >{{ prettyMeta }}
             </pre>
           </div>
         </section>
       </div>
 
-      <!-- EMPTY -->
       <div v-else class="py-10 text-center opacity-70">No hay información para mostrar.</div>
     </div>
 
-    <!-- =========================
-         FOOTER (STICKY)
-    ========================== -->
+    <!-- FOOTER -->
     <div
-      class="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-base-300 bg-base-200 px-6 py-4"
+      class="sticky bottom-0 z-10 flex justify-end gap-3 border-t border-base-300 bg-base-200 px-6 py-4"
     >
       <UiButton variant="outline" @click="open = false"> Cerrar </UiButton>
     </div>
@@ -118,16 +119,10 @@ const open = computed({
   },
 })
 
-/* =========================
-   ACTOR COMPUTEDS
-========================= */
 const actorNombre = computed(() => props.model?.actor?.nombre || null)
 const actorUsuario = computed(() => props.model?.actor?.usuario || null)
 const actorId = computed(() => props.model?.actor?.id || props.model?.actorUserId || null)
 
-/* =========================
-   META
-========================= */
 const prettyMeta = computed(() => {
   try {
     return JSON.stringify(props.model?.meta ?? {}, null, 2)
@@ -135,4 +130,13 @@ const prettyMeta = computed(() => {
     return String(props.model?.meta ?? '')
   }
 })
+
+const actionTone = (action?: string) => {
+  if (!action) return 'badge-ghost'
+  if (action.includes('delete')) return 'bg-error/15 text-error'
+  if (action.includes('update')) return 'bg-warning/15 text-warning'
+  if (action.includes('create')) return 'bg-success/15 text-success'
+  if (action.includes('login')) return 'bg-info/15 text-info'
+  return 'bg-base-200'
+}
 </script>

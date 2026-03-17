@@ -1,12 +1,12 @@
 <template>
   <header
-    class="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-4 sm:px-6 border-b border-base-300 bg-base-100 md:static"
+    class="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-4 sm:px-6 border-b border-base-300 bg-base-100 xl:static"
   >
-    <!-- Left -->
+    <!-- LEFT -->
     <div class="flex items-center gap-3">
-      <!-- Hamburger -->
+      <!-- HAMBURGER (mobile + tablet) -->
       <button
-        class="btn btn-ghost btn-sm md:hidden"
+        class="btn btn-ghost btn-sm xl:hidden"
         type="button"
         @click="layout.toggleSidebar"
         aria-label="Abrir menú"
@@ -17,7 +17,7 @@
       <span class="text-sm font-medium text-base-content/70"> ERP DEMEN </span>
     </div>
 
-    <!-- Right -->
+    <!-- RIGHT -->
     <div class="flex items-center gap-3">
       <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg bg-base-200 text-sm">
         <Icon name="user" class="w-4 h-4" />

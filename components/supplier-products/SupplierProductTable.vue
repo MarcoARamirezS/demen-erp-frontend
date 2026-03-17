@@ -1,67 +1,133 @@
 <template>
-  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
+  <div
+    class="animate-fadeIn space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg"
+  >
     <!-- =========================
-         DESKTOP TABLE (md+)
+    FILTERS
     ========================== -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
-      <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase">
+
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+    >
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <Icon name="search" class="absolute left-3 top-2.5 h-4 w-4 opacity-50" />
+
+          <input
+            v-model="search"
+            placeholder="Buscar proveedor o producto..."
+            class="input input-sm input-bordered w-44 md:w-60 lg:w-72 pl-9"
+          />
+        </div>
+
+        <button v-if="search" class="btn btn-sm btn-outline" @click="search = ''">Limpiar</button>
+      </div>
+
+      <div class="text-xs opacity-70">{{ filtered.length }} relaciones</div>
+    </div>
+
+    <!-- =========================
+    TABLE DESKTOP
+    ========================== -->
+
+    <!-- FIX: md -> lg para evitar mala vista en iPad -->
+
+    <div class="hidden lg:block overflow-x-auto w-full">
+      <table
+        class="table w-full min-w-[1000px] xl:min-w-[1100px] text-sm border border-base-300 rounded-xl overflow-hidden"
+      >
+        <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
-            <th class="min-w-[260px]">Proveedor</th>
-            <th class="min-w-[260px]">Producto</th>
-            <th class="min-w-[160px]">Precio</th>
-            <th class="min-w-[100px]">MOQ</th>
-            <th class="min-w-[140px]">Lead time</th>
-            <th class="min-w-[120px] text-center">Preferido</th>
-            <th class="w-[120px] text-center">Acciones</th>
+            <th class="min-w-[240px]">Proveedor</th>
+
+            <th class="min-w-[240px]">Producto</th>
+
+            <th class="cursor-pointer whitespace-nowrap" @click="toggleSort">
+              Precio
+              <Icon
+                name="chevron-down"
+                class="inline ml-1 w-3 h-3"
+                :class="{ 'rotate-180': sortDesc }"
+              />
+            </th>
+
+            <th class="whitespace-nowrap">MOQ</th>
+
+            <th class="whitespace-nowrap">Lead</th>
+
+            <th class="text-center whitespace-nowrap">Preferido</th>
+
+            <th class="text-right w-[120px] whitespace-nowrap">Acciones</th>
           </tr>
         </thead>
 
-        <!-- Loading -->
+        <!-- LOADING -->
+
         <tbody v-if="loading">
           <tr>
             <td colspan="7" class="p-10 text-center opacity-70">
-              <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
+              <span class="loading loading-spinner loading-md mr-2"></span>
               Cargando relaciones…
             </td>
           </tr>
         </tbody>
 
-        <!-- Rows -->
-        <tbody v-else-if="items.length">
-          <tr v-for="sp in items" :key="sp.id" class="hover:bg-base-200/40 transition">
-            <!-- Proveedor -->
+        <!-- EMPTY -->
+
+        <tbody v-else-if="!filtered.length">
+          <tr>
+            <td colspan="7" class="p-10 text-center opacity-70">Sin relaciones registradas</td>
+          </tr>
+        </tbody>
+
+        <!-- ROWS -->
+
+        <tbody v-else>
+          <tr v-for="sp in sorted" :key="sp.id" class="hover:bg-base-200/40 transition">
+            <!-- PROVEEDOR -->
+
             <td>
               <div class="font-semibold truncate max-w-[360px]">
                 {{ supplierName(sp.supplierId) }}
               </div>
+
               <div class="text-xs opacity-60 font-mono truncate max-w-[360px]">
                 {{ sp.supplierSku || sp.supplierId }}
               </div>
             </td>
 
-            <!-- Producto -->
+            <!-- PRODUCTO -->
+
             <td>
               <div class="font-semibold truncate max-w-[360px]">
                 {{ productName(sp.productId) }}
               </div>
+
               <div class="text-xs opacity-60 font-mono truncate max-w-[360px]">
                 {{ sp.productId }}
               </div>
             </td>
 
-            <!-- Precio -->
-            <td class="font-mono whitespace-nowrap">{{ sp.currentPrice }} {{ sp.currency }}</td>
+            <!-- PRECIO -->
+
+            <td class="font-mono whitespace-nowrap">
+              <span :class="sp.preferred ? 'text-success font-semibold' : ''">
+                {{ sp.currentPrice }} {{ sp.currency }}
+              </span>
+            </td>
 
             <!-- MOQ -->
-            <td>
+
+            <td class="whitespace-nowrap">
               {{ sp.moq }}
             </td>
 
-            <!-- Lead time -->
-            <td>{{ sp.leadTimeDays }} días</td>
+            <!-- LEAD -->
 
-            <!-- Preferido -->
+            <td class="whitespace-nowrap">{{ sp.leadTimeDays }} días</td>
+
+            <!-- PREFERRED -->
+
             <td class="text-center">
               <span
                 class="badge badge-outline"
@@ -73,9 +139,10 @@
               </span>
             </td>
 
-            <!-- Acciones -->
-            <td class="text-center">
-              <div class="flex items-center justify-center gap-1">
+            <!-- ACTIONS -->
+
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
                 <div class="tooltip" data-tip="Editar">
                   <button
                     class="btn btn-circle btn-sm btn-ghost text-primary"
@@ -97,57 +164,34 @@
             </td>
           </tr>
         </tbody>
-
-        <!-- Empty -->
-        <tbody v-else>
-          <tr>
-            <td colspan="7" class="p-10 text-center opacity-70">Sin relaciones registradas</td>
-          </tr>
-        </tbody>
       </table>
     </div>
 
     <!-- =========================
-         MOBILE CARDS (<md)
+    MOBILE + TABLET CARDS
     ========================== -->
-    <div class="md:hidden space-y-3">
-      <!-- Loading -->
-      <div
-        v-if="loading"
-        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm flex items-center justify-center gap-2"
-      >
-        <span class="loading loading-spinner loading-sm"></span>
-        <span class="text-sm opacity-70">Cargando relaciones…</span>
-      </div>
 
-      <!-- Empty -->
-      <div
-        v-else-if="!items.length"
-        class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
-      >
-        Sin relaciones registradas
-      </div>
+    <!-- FIX: md:hidden -> lg:hidden -->
 
-      <!-- Cards -->
+    <div class="lg:hidden space-y-3">
       <div
-        v-else
-        v-for="sp in items"
+        v-for="sp in sorted"
         :key="sp.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
+        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
-        <!-- Header -->
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="font-semibold truncate">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-semibold">
               {{ supplierName(sp.supplierId) }}
             </div>
-            <div class="text-xs opacity-60 truncate mt-1">
+
+            <div class="text-xs opacity-60">
               {{ productName(sp.productId) }}
             </div>
           </div>
 
           <span
-            class="badge badge-outline shrink-0"
+            class="badge badge-outline"
             :class="
               sp.preferred ? 'bg-success/15 text-success' : 'bg-base-200 text-base-content/60'
             "
@@ -156,8 +200,7 @@
           </span>
         </div>
 
-        <!-- Body -->
-        <div class="mt-3 space-y-2 text-sm">
+        <div class="mt-3 text-sm space-y-1">
           <div>
             <span class="opacity-60">Precio:</span>
             <span class="font-mono ml-1"> {{ sp.currentPrice }} {{ sp.currency }} </span>
@@ -169,44 +212,31 @@
           </div>
 
           <div>
-            <span class="opacity-60">Lead time:</span>
+            <span class="opacity-60">Lead:</span>
             {{ sp.leadTimeDays }} días
-          </div>
-
-          <div v-if="sp.packSize">
-            <span class="opacity-60">Pack:</span>
-            {{ sp.packSize }}
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="mt-4 flex gap-2">
           <button class="btn btn-sm btn-outline flex-1" @click="$emit('edit', sp)">
-            <Icon name="edit" size="sm" />
+            <Icon name="edit" />
             Editar
           </button>
 
           <button class="btn btn-sm btn-outline btn-error flex-1" @click="$emit('delete', sp)">
-            <Icon name="trash" size="sm" />
+            <Icon name="trash" />
             Eliminar
           </button>
         </div>
       </div>
     </div>
-
-    <!-- =========================
-         LOAD MORE
-    ========================== -->
-    <div v-if="hasMore" class="mt-4 flex justify-center">
-      <UiButton size="sm" variant="outline" :loading="loading" @click="$emit('load-more')">
-        Cargar más
-      </UiButton>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import Icon from '~/components/ui/Icon.vue'
+
 import { useSuppliersStore } from '~/stores/suppliers.store'
 import { useProductsStore } from '~/stores/products.store'
 
@@ -221,7 +251,15 @@ defineEmits(['edit', 'delete', 'load-more'])
 const suppliersStore = useSuppliersStore()
 const productsStore = useProductsStore()
 
+const search = ref('')
+const sortDesc = ref(false)
+
+/* =========================
+MAPS
+========================= */
+
 const suppliersMap = computed(() => new Map(suppliersStore.items.map(s => [s.id, s])))
+
 const productsMap = computed(() => new Map(productsStore.items.map(p => [p.id, p])))
 
 function supplierName(id: string) {
@@ -231,4 +269,35 @@ function supplierName(id: string) {
 function productName(id: string) {
   return productsMap.value.get(id)?.name ?? id
 }
+
+/* =========================
+SEARCH
+========================= */
+
+const filtered = computed(() => {
+  if (!search.value) return props.items
+
+  const q = search.value.toLowerCase()
+
+  return props.items.filter(
+    sp =>
+      supplierName(sp.supplierId).toLowerCase().includes(q) ||
+      productName(sp.productId).toLowerCase().includes(q)
+  )
+})
+
+/* =========================
+SORT
+========================= */
+
+function toggleSort() {
+  sortDesc.value = !sortDesc.value
+}
+
+const sorted = computed(() => {
+  return [...filtered.value].sort((a, b) => {
+    const diff = a.currentPrice - b.currentPrice
+    return sortDesc.value ? -diff : diff
+  })
+})
 </script>
