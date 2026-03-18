@@ -308,9 +308,10 @@ async function save() {
             <Icon name="plus" class="w-4 h-4" />
           </button>
         </div>
-
+        <!--
         <UiInput v-model="form.plantaCliente" label="Planta Cliente" />
-        <UiInput v-model="form.objetivoFuncionalCliente" label="Objetivo Funcional" />
+        -->
+        <UiInput v-model="form.objetivoFuncionalCliente" label="Nombre del Proyecto" />
         <UiInput v-model="form.personaAQuienVisita" label="Persona a quien visita" />
         <UiInput v-model="form.fecha" type="date" label="Fecha" />
 

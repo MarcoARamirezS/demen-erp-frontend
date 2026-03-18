@@ -9,22 +9,41 @@ defineProps<{
 
 defineEmits(['edit', 'delete', 'changeStatus', 'requirements'])
 
+const statusLabel = (status: string) => {
+  switch (status) {
+    case 'AUTH_PENDING':
+      return 'Pendiente de autorización'
+    case 'AUTHORIZED':
+      return 'Autorizado'
+    case 'IN_EXECUTION':
+      return 'En ejecución'
+    case 'COMPLETED':
+      return 'Completado'
+    case 'NOT_ASSIGNED':
+      return 'No asignado'
+    case 'IN_QUOTATION':
+      return 'En cotización'
+    default:
+      return status || 'Sin estado'
+  }
+}
+
 const statusColor = (status: string) => {
   switch (status) {
     case 'AUTH_PENDING':
-      return 'badge-warning'
+      return 'border-warning bg-warning text-warning-content shadow-sm'
     case 'AUTHORIZED':
-      return 'badge-info'
+      return 'border-info bg-info text-info-content shadow-sm'
     case 'IN_EXECUTION':
-      return 'badge-primary'
+      return 'border-primary bg-primary text-primary-content shadow-sm'
     case 'COMPLETED':
-      return 'badge-success'
+      return 'border-success bg-success text-success-content shadow-sm'
     case 'NOT_ASSIGNED':
-      return 'badge-error'
+      return 'border-error bg-error text-error-content shadow-sm'
     case 'IN_QUOTATION':
-      return 'badge-accent'
+      return 'border-accent bg-accent text-accent-content shadow-sm'
     default:
-      return 'badge-ghost'
+      return 'border-base-300 bg-base-200 text-base-content shadow-sm'
   }
 }
 </script>
@@ -39,10 +58,10 @@ const statusColor = (status: string) => {
         <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
             <th class="w-[90px]">Imagen</th>
-            <th class="min-w-[120px]">Número</th>
-            <th class="min-w-[260px]">Cliente / Sucursal</th>
+            <th class="min-w-[160px]">Número</th>
+            <th class="min-w-[280px]">Cliente / Sucursal</th>
             <th class="min-w-[140px]">Fecha</th>
-            <th class="min-w-[160px] text-center">Estado</th>
+            <th class="min-w-[190px] text-center">Estado</th>
             <th class="w-[140px] text-center">Acciones</th>
           </tr>
         </thead>
@@ -59,31 +78,53 @@ const statusColor = (status: string) => {
 
         <!-- Rows -->
         <tbody v-else-if="items.length">
-          <tr v-for="p in items" :key="p.id" class="hover:bg-base-200/40 transition">
+          <tr v-for="p in items" :key="p.id" class="transition hover:bg-base-200/40">
             <!-- Imagen -->
             <td>
               <img
                 v-if="p.images?.length"
                 :src="p.images[0].secureUrl"
-                class="w-12 h-12 rounded-xl object-cover border border-base-300"
+                class="h-12 w-12 rounded-xl border border-base-300 object-cover"
               />
 
-              <div v-else class="w-12 h-12 rounded-xl border border-base-300 bg-base-200/40" />
+              <div v-else class="h-12 w-12 rounded-xl border border-base-300 bg-base-200/40" />
             </td>
 
             <!-- Número -->
-            <td class="font-medium">
-              {{ p.projectNumber }}
+            <td>
+              <div class="flex flex-col gap-1">
+                <span
+                  class="text-[11px] font-semibold uppercase tracking-wide text-base-content/50"
+                >
+                  Proyecto
+                </span>
+
+                <div
+                  class="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm font-bold text-primary shadow-sm"
+                >
+                  <Icon name="hash" size="xs" />
+                  <span class="tracking-wide">{{ p.projectNumber }}</span>
+                </div>
+              </div>
             </td>
 
             <!-- Cliente -->
             <td>
-              <div class="font-medium truncate max-w-[300px]">
-                {{ p.client?.name ?? '—' }}
-              </div>
+              <div class="flex flex-col gap-1">
+                <span
+                  class="text-[11px] font-semibold uppercase tracking-wide text-base-content/50"
+                >
+                  Cliente
+                </span>
 
-              <div class="text-xs opacity-60 truncate max-w-[300px]">
-                {{ p.branch?.name ?? '—' }}
+                <div class="max-w-[320px] truncate text-sm font-bold text-base-content">
+                  {{ p.client?.name ?? '—' }}
+                </div>
+
+                <div class="max-w-[320px] truncate text-xs text-base-content/60">
+                  <span class="font-medium">Sucursal:</span>
+                  {{ p.branch?.name ?? '—' }}
+                </div>
               </div>
             </td>
 
@@ -94,8 +135,8 @@ const statusColor = (status: string) => {
 
             <!-- Estado -->
             <td class="text-center">
-              <span class="badge badge-sm badge-outline" :class="statusColor(p.status)">
-                {{ p.status }}
+              <span class="badge badge-sm border font-semibold" :class="statusColor(p.status)">
+                {{ statusLabel(p.status) }}
               </span>
             </td>
 
@@ -147,11 +188,11 @@ const statusColor = (status: string) => {
     <!-- =========================
          MOBILE CARDS
     ========================== -->
-    <div class="md:hidden space-y-3">
+    <div class="space-y-3 md:hidden">
       <!-- Loading -->
       <div
         v-if="loading"
-        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm flex items-center justify-center gap-2"
+        class="flex items-center justify-center gap-2 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
         <span class="loading loading-spinner loading-sm"></span>
         <span class="text-sm opacity-70">Cargando proyectos...</span>
@@ -160,7 +201,7 @@ const statusColor = (status: string) => {
       <!-- Empty -->
       <div
         v-else-if="!items.length"
-        class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
+        class="rounded-2xl border border-base-300 bg-base-100 p-6 text-center opacity-70 shadow-sm"
       >
         No existen proyectos registrados
       </div>
@@ -176,33 +217,53 @@ const statusColor = (status: string) => {
           <img
             v-if="p.images?.length"
             :src="p.images[0].secureUrl"
-            class="w-14 h-14 rounded-xl object-cover border border-base-300"
+            class="h-14 w-14 rounded-xl border border-base-300 object-cover"
           />
 
-          <div v-else class="w-14 h-14 rounded-xl border border-base-300 bg-base-200/40" />
+          <div v-else class="h-14 w-14 rounded-xl border border-base-300 bg-base-200/40" />
 
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold truncate">
-              {{ p.projectNumber }}
+          <div class="min-w-0 flex-1">
+            <div class="mb-2">
+              <span
+                class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-base-content/50"
+              >
+                Proyecto
+              </span>
+
+              <div
+                class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-bold text-primary shadow-sm"
+              >
+                <Icon name="hash" size="xs" />
+                <span class="truncate">{{ p.projectNumber }}</span>
+              </div>
             </div>
 
-            <div class="text-sm truncate">
-              {{ p.client?.name ?? '—' }}
+            <div class="mt-2">
+              <span
+                class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-base-content/50"
+              >
+                Cliente
+              </span>
+
+              <div class="truncate text-sm font-bold text-base-content">
+                {{ p.client?.name ?? '—' }}
+              </div>
+
+              <div class="truncate text-xs text-base-content/60">
+                <span class="font-medium">Sucursal:</span>
+                {{ p.branch?.name ?? '—' }}
+              </div>
             </div>
 
-            <div class="text-xs opacity-60 truncate">
-              {{ p.branch?.name ?? '—' }}
-            </div>
-
-            <div class="text-xs opacity-60 mt-1">
+            <div class="mt-2 text-xs opacity-60">
               {{ p.fecha }}
             </div>
           </div>
         </div>
 
-        <div class="mt-3 flex items-center justify-between">
-          <span class="badge badge-sm badge-outline" :class="statusColor(p.status)">
-            {{ p.status }}
+        <div class="mt-3 flex items-center justify-between gap-3">
+          <span class="badge border font-semibold" :class="statusColor(p.status)">
+            {{ statusLabel(p.status) }}
           </span>
 
           <div class="flex gap-2">

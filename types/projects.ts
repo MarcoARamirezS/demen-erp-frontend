@@ -12,6 +12,15 @@ export type ProjectStatus =
   | 'IN_EXECUTION'
   | 'COMPLETED'
   | 'NOT_ASSIGNED'
+  | 'IN_QUOTATION'
+
+export type ProjectSortBy = 'createdAt' | 'clientName' | 'projectNumber' | 'fecha'
+export type ProjectSortDir = 'asc' | 'desc'
+
+export interface ProjectRelatedRef {
+  id: string
+  name: string
+}
 
 export interface Project {
   id: string
@@ -33,7 +42,10 @@ export interface Project {
 
   isActive: boolean
 
-  images?: ProjectImage[] // 🔥 NUEVO
+  images?: ProjectImage[]
+
+  client?: ProjectRelatedRef | null
+  branch?: ProjectRelatedRef | null
 
   createdAt?: any
   updatedAt?: any
@@ -47,4 +59,12 @@ export interface CreateProjectDto {
   realizaLevantamiento?: string | null
   personaAQuienVisita?: string | null
   fecha?: string | null
+}
+
+export interface ProjectListFilters {
+  status?: ProjectStatus
+  clientId?: string
+  search?: string
+  sortBy?: ProjectSortBy
+  sortDir?: ProjectSortDir
 }

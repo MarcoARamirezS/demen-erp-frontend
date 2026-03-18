@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
 import UiButton from '~/components/ui/UiButton.vue'
+import Icon from '~/components/ui/Icon.vue'
 import { useUiStore } from '~/stores/ui.store'
 import type { ClientAddress, CreateClientAddressDto } from '~/types/client-address'
 
@@ -14,12 +15,12 @@ const props = withDefaults(
   defineProps<{
     modelValue: boolean
     clienteId: string
-    existingAddresses?: ClientAddress[] // ✅ NUEVO
+    existingAddresses?: ClientAddress[]
     model?: ClientAddress | null
     mode: 'create' | 'edit'
   }>(),
   {
-    existingAddresses: () => [], // ✅ evita undefined
+    existingAddresses: () => [],
   }
 )
 
@@ -51,24 +52,43 @@ const errors = ref({
    FORM
 ========================= */
 
-const form = ref<CreateClientAddressDto>({
-  clienteId: props.clienteId,
-  nombre: '',
-  calle: '',
-  numero: '',
-  colonia: '',
-  ciudad: '',
-  estado: '',
-  pais: 'México',
-  codigoPostal: '',
+function getInitialForm(): CreateClientAddressDto {
+  return {
+    clienteId: props.clienteId,
+    nombre: '',
+    calle: '',
+    numero: '',
+    colonia: '',
+    ciudad: '',
+    estado: '',
+    pais: 'México',
+    codigoPostal: '',
 
-  contactoNombre: '',
-  contactoTelefono: '',
-  contactoEmail: '',
+    contactoNombre: '',
+    contactoTelefono: '',
+    contactoEmail: '',
 
-  esPrincipal: false,
-  activo: true,
-})
+    esPrincipal: false,
+    activo: true,
+  }
+}
+
+const form = ref<CreateClientAddressDto>(getInitialForm())
+
+function resetErrors() {
+  errors.value = {
+    nombre: false,
+    calle: false,
+    ciudad: false,
+    estado: false,
+    contactoEmail: false,
+  }
+}
+
+function resetForm() {
+  form.value = getInitialForm()
+  resetErrors()
+}
 
 /* =========================
    REGEX
@@ -77,29 +97,35 @@ const form = ref<CreateClientAddressDto>({
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /* =========================
-   WATCH EDIT MODE
+   WATCH EDIT / CREATE MODE
 ========================= */
 
 watch(
-  () => props.model,
-  v => {
-    if (v) {
+  () => [props.modelValue, props.model, props.clienteId] as const,
+  ([isOpen, model]) => {
+    if (!isOpen) return
+
+    resetErrors()
+
+    if (model) {
       form.value = {
         clienteId: props.clienteId,
-        nombre: v.nombre,
-        calle: v.calle,
-        numero: v.numero,
-        colonia: v.colonia,
-        ciudad: v.ciudad,
-        estado: v.estado,
-        pais: v.pais,
-        codigoPostal: v.codigoPostal,
-        contactoNombre: v.contactoNombre,
-        contactoTelefono: v.contactoTelefono,
-        contactoEmail: v.contactoEmail,
-        esPrincipal: v.esPrincipal,
-        activo: v.activo,
+        nombre: model.nombre || '',
+        calle: model.calle || '',
+        numero: model.numero || '',
+        colonia: model.colonia || '',
+        ciudad: model.ciudad || '',
+        estado: model.estado || '',
+        pais: model.pais || 'México',
+        codigoPostal: model.codigoPostal || '',
+        contactoNombre: model.contactoNombre || '',
+        contactoTelefono: model.contactoTelefono || '',
+        contactoEmail: model.contactoEmail || '',
+        esPrincipal: model.esPrincipal ?? false,
+        activo: model.activo ?? true,
       }
+    } else {
+      resetForm()
     }
   },
   { immediate: true }
@@ -110,19 +136,20 @@ watch(
 ========================= */
 
 function submit() {
-  errors.value = {
-    nombre: false,
-    calle: false,
-    ciudad: false,
-    estado: false,
-    contactoEmail: false,
-  }
+  resetErrors()
 
   const nombre = form.value.nombre?.trim()
   const calle = form.value.calle?.trim()
+  const numero = form.value.numero?.trim()
+  const colonia = form.value.colonia?.trim()
   const ciudad = form.value.ciudad?.trim()
   const estado = form.value.estado?.trim()
-  const email = form.value.contactoEmail?.trim()
+  const pais = form.value.pais?.trim() || 'México'
+  const codigoPostal = form.value.codigoPostal?.trim()
+
+  const contactoNombre = form.value.contactoNombre?.trim()
+  const contactoTelefono = form.value.contactoTelefono?.trim()
+  const contactoEmail = form.value.contactoEmail?.trim()
 
   if (!nombre || nombre.length < 2) {
     errors.value.nombre = true
@@ -148,19 +175,27 @@ function submit() {
     return
   }
 
-  if (email && !EMAIL_REGEX.test(email)) {
+  if (contactoEmail && !EMAIL_REGEX.test(contactoEmail)) {
     errors.value.contactoEmail = true
     ui.showToast('warning', 'Correo de contacto inválido')
     return
   }
 
   emit('submit', {
-    ...form.value,
+    clienteId: props.clienteId,
     nombre,
     calle,
+    numero: numero || undefined,
+    colonia: colonia || undefined,
     ciudad,
     estado,
-    contactoEmail: email || undefined,
+    pais,
+    codigoPostal: codigoPostal || undefined,
+    contactoNombre: contactoNombre || undefined,
+    contactoTelefono: contactoTelefono || undefined,
+    contactoEmail: contactoEmail || undefined,
+    esPrincipal: form.value.esPrincipal ?? false,
+    activo: form.value.activo ?? true,
   })
 
   open.value = false
@@ -175,7 +210,6 @@ function submit() {
       <!-- =====================================================
            HEADER
       ====================================================== -->
-
       <header
         class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
       >
@@ -201,8 +235,7 @@ function submit() {
       <!-- =====================================================
            CONTENT
       ====================================================== -->
-
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-6">
+      <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6 pb-10">
         <form class="space-y-6" @submit.prevent="submit">
           <UiInput
             v-model="form.nombre"
@@ -211,24 +244,40 @@ function submit() {
             :error="errors.nombre"
           />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <UiInput v-model="form.calle" label="Calle *" :error="errors.calle" />
             <UiInput v-model="form.numero" label="Número" />
           </div>
 
           <UiInput v-model="form.colonia" label="Colonia" />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <UiInput v-model="form.ciudad" label="Ciudad *" :error="errors.ciudad" />
             <UiInput v-model="form.estado" label="Estado *" :error="errors.estado" />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <UiInput v-model="form.pais" label="País" />
             <UiInput v-model="form.codigoPostal" label="Código postal" />
           </div>
 
-          <div class="border-t border-base-300 pt-4 space-y-4">
+          <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+            <label class="flex cursor-pointer items-center gap-3">
+              <input
+                v-model="form.esPrincipal"
+                type="checkbox"
+                class="checkbox checkbox-primary checkbox-sm"
+              />
+              <div>
+                <p class="text-sm font-medium">Marcar como dirección principal</p>
+                <p class="text-xs opacity-60">
+                  Si se activa, las demás direcciones quedarán como secundarias.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <div class="space-y-4 border-t border-base-300 pt-4">
             <h3 class="text-sm font-semibold text-base-content/70">Contacto en esta dirección</h3>
 
             <UiInput v-model="form.contactoNombre" label="Nombre contacto" />
@@ -245,9 +294,8 @@ function submit() {
       <!-- =====================================================
            FOOTER
       ====================================================== -->
-
       <footer
-        class="sticky bottom-0 z-10 flex flex-col-reverse md:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]"
+        class="sticky bottom-0 z-10 flex flex-col-reverse justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] md:flex-row"
       >
         <UiButton variant="ghost" type="button" class="w-full md:w-auto" @click="open = false">
           Cancelar

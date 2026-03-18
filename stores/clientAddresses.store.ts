@@ -11,8 +11,13 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
     async fetchByClient(clienteId: string) {
       this.loading = true
       try {
-        this.items = await useApi('/clients/addresses', {
-          query: { clienteId }, // 🔥 CAMBIO CLAVE
+        const data = await useApi<ClientAddress[]>('/clients/addresses', {
+          query: { clienteId },
+        })
+
+        this.items = [...data].sort((a, b) => {
+          if (Boolean(a.esPrincipal) === Boolean(b.esPrincipal)) return 0
+          return a.esPrincipal ? -1 : 1
         })
       } finally {
         this.loading = false
@@ -24,7 +29,7 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
         method: 'POST',
         body: {
           ...payload,
-          esPrincipal: payload.esFiscal, // 🔁 mapeo backend
+          esPrincipal: payload.esPrincipal ?? false,
         },
       })
     },
@@ -32,11 +37,19 @@ export const useClientAddressesStore = defineStore('clientAddresses', {
     async update(id: string, payload: Partial<CreateClientAddressDto>) {
       await useApi(`/clients/addresses/${id}`, {
         method: 'PATCH',
+        body: payload,
+      })
+    },
+
+    async setPrimary(address: Pick<ClientAddress, 'id' | 'clienteId'>) {
+      await useApi(`/clients/addresses/${address.id}`, {
+        method: 'PATCH',
         body: {
-          ...payload,
-          esPrincipal: payload.esFiscal,
+          esPrincipal: true,
         },
       })
+
+      await this.fetchByClient(address.clienteId)
     },
 
     async remove(id: string) {

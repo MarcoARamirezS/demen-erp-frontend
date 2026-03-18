@@ -12,6 +12,7 @@ defineProps<{
 defineEmits<{
   (e: 'edit', address: ClientAddress): void
   (e: 'delete', id: string): void
+  (e: 'set-primary', address: ClientAddress): void
 }>()
 </script>
 
@@ -29,7 +30,7 @@ defineEmits<{
             <th class="min-w-[260px]">Dirección</th>
             <th class="min-w-[200px]">Ciudad</th>
             <th class="min-w-[160px] text-center">Tipo</th>
-            <th class="w-[90px] text-center">Acciones</th>
+            <th class="w-[140px] text-center">Acciones</th>
           </tr>
         </thead>
 
@@ -81,6 +82,19 @@ defineEmits<{
             <!-- Acciones -->
             <td class="text-center">
               <div class="flex items-center justify-center gap-2">
+                <div
+                  v-if="canUpdate && !a.esPrincipal"
+                  class="tooltip"
+                  data-tip="Marcar como principal"
+                >
+                  <button
+                    class="btn btn-circle btn-sm btn-ghost text-warning"
+                    @click="$emit('set-primary', a)"
+                  >
+                    <Icon name="check" size="sm" />
+                  </button>
+                </div>
+
                 <div v-if="canUpdate" class="tooltip" data-tip="Editar dirección">
                   <button
                     class="btn btn-circle btn-sm btn-ghost text-primary"
@@ -179,7 +193,16 @@ defineEmits<{
         </div>
 
         <!-- Actions -->
-        <div class="mt-4 flex gap-2">
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            v-if="canUpdate && !a.esPrincipal"
+            class="btn btn-sm btn-primary flex-1"
+            @click="$emit('set-primary', a)"
+          >
+            <Icon name="check" size="sm" />
+            Hacer principal
+          </button>
+
           <button v-if="canUpdate" class="btn btn-sm btn-outline flex-1" @click="$emit('edit', a)">
             <Icon name="edit" size="sm" />
             Editar
