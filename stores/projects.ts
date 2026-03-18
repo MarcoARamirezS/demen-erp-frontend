@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { Project, CreateProjectDto } from '@/types/project'
+import type { Project, CreateProjectDto, ProjectListFilters } from '@/types/project'
 
 export const useProjectsStore = defineStore('projects', {
   state: () => ({
@@ -21,11 +21,9 @@ export const useProjectsStore = defineStore('projects', {
     },
 
     /* =========================
-       FETCH (compatible backend actual)
-       Nota: backend aún no es cursor-based,
-       pero dejamos estructura lista.
+       FETCH
     ========================= */
-    async fetch(filters: Record<string, any> = {}) {
+    async fetch(filters: ProjectListFilters = {}) {
       if (this.loading) return
 
       this.loading = true
@@ -91,6 +89,10 @@ export const useProjectsStore = defineStore('projects', {
       const idx = this.items.findIndex(i => i.id === id)
       if (idx !== -1) this.items[idx] = updated
 
+      if (this.selected?.id === id) {
+        this.selected = updated
+      }
+
       return updated
     },
 
@@ -103,6 +105,10 @@ export const useProjectsStore = defineStore('projects', {
       })
 
       this.items = this.items.filter(i => i.id !== id)
+
+      if (this.selected?.id === id) {
+        this.selected = null
+      }
     },
 
     /* =========================
@@ -120,7 +126,7 @@ export const useProjectsStore = defineStore('projects', {
     },
 
     /* =========================
-    UPLOAD IMAGES
+       UPLOAD IMAGES
     ========================= */
     async uploadImages(id: string, files: File[]) {
       const form = new FormData()
@@ -134,7 +140,6 @@ export const useProjectsStore = defineStore('projects', {
         body: form,
       })
 
-      // refrescar proyecto actualizado
       await this.get(id)
     },
   },

@@ -1,101 +1,194 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { useInventoryStore } from '~/stores/inventory.store'
 import { useAuthStore } from '~/stores/auth.store'
-import InventoryTable from '~/components/inventory/InventoryTable.vue'
+import { useInventoryMovementsStore } from '~/stores/inventoryMovements.store'
+import { useInventoryStockStore } from '~/stores/inventoryStock.store'
+import InventorySummaryCards from '~/components/inventory/InventorySummaryCards.vue'
+import InventoryToolbar from '~/components/inventory/InventoryToolbar.vue'
+import InventoryMovementsTable from '~/components/inventory/InventoryMovementsTable.vue'
+import InventoryStockTable from '~/components/inventory/InventoryStockTable.vue'
 import InventoryMovementDialog from '~/components/inventory/InventoryMovementDialog.vue'
-
-const search = ref('')
-
-let searchTimeout: any = null
-
-watch(search, value => {
-  clearTimeout(searchTimeout)
-
-  searchTimeout = setTimeout(async () => {
-    const product = inventory.items.find(p =>
-      p.product?.name?.toLowerCase().includes(value.toLowerCase())
-    )
-
-    inventory.setProductFilter(product?.id ?? null)
-
-    await inventory.fetch()
-  }, 400)
-})
 
 definePageMeta({
   middleware: ['auth', 'permission'],
   permission: 'inventory:list',
 })
 
-const inventory = useInventoryStore()
 const auth = useAuthStore()
+const movementsStore = useInventoryMovementsStore()
+const stockStore = useInventoryStockStore()
 
 const openDialog = ref(false)
+const activeTab = ref<'stock' | 'movements'>('stock')
+
+const stockSearch = ref('')
+const stockStatus = ref<'' | 'OK' | 'LOW' | 'OUT'>('')
+
+const movementSearch = ref('')
+const movementType = ref<'' | 'IN' | 'OUT' | 'ADJUST'>('')
+
+let stockTimeout: ReturnType<typeof setTimeout> | null = null
+let movementTimeout: ReturnType<typeof setTimeout> | null = null
 
 function openCreate() {
   openDialog.value = true
 }
 
-onMounted(() => {
-  inventory.reset()
-  inventory.fetch()
+function resetStockFilters() {
+  stockSearch.value = ''
+  stockStatus.value = ''
+}
+
+function resetMovementFilters() {
+  movementSearch.value = ''
+  movementType.value = ''
+}
+
+watch(
+  [stockSearch, stockStatus],
+  () => {
+    if (stockTimeout) clearTimeout(stockTimeout)
+
+    stockTimeout = setTimeout(async () => {
+      stockStore.setFilters({
+        search: stockSearch.value,
+        stockStatus: stockStatus.value,
+      })
+
+      await stockStore.fetch()
+    }, 350)
+  },
+  { deep: true }
+)
+
+watch(
+  [movementSearch, movementType],
+  () => {
+    if (movementTimeout) clearTimeout(movementTimeout)
+
+    movementTimeout = setTimeout(async () => {
+      movementsStore.setFilters({
+        search: movementSearch.value,
+        type: movementType.value,
+      })
+
+      await movementsStore.fetch()
+    }, 350)
+  },
+  { deep: true }
+)
+
+onMounted(async () => {
+  stockStore.reset()
+  movementsStore.reset()
+
+  await Promise.all([stockStore.fetchSummary(), stockStore.fetch(), movementsStore.fetch()])
 })
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-6 animate-fadeIn">
     <!-- HEADER -->
     <div
-      class="rounded-2xl border border-base-300 bg-gradient-to-br from-base-200/60 to-base-100 p-6"
+      class="rounded-2xl border border-base-300 bg-gradient-to-br from-base-200/60 to-base-100 p-6 shadow-sm"
     >
-      <div class="flex items-start justify-between">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Inventario</h1>
-
-          <p class="opacity-70 text-sm mt-1">Control de entradas, salidas y ajustes</p>
+          <p class="mt-1 text-sm opacity-70">Existencias, movimientos y control de stock</p>
         </div>
 
-        <UiButton
+        <button
           v-if="auth.hasPermission('inventory:create')"
-          icon="plus"
-          size="sm"
+          class="btn btn-primary"
           @click="openCreate"
         >
+          <Icon name="plus" class="h-4 w-4" />
           Nuevo movimiento
-        </UiButton>
+        </button>
       </div>
 
-      <!-- SEARCH -->
-      <div class="mt-4 flex flex-col lg:flex-row gap-3 lg:items-end">
-        <div class="w-full lg:w-[40%]">
-          <label class="text-xs opacity-70 block mb-1"> Buscar producto </label>
-
-          <UiInput
-            v-model="search"
-            size="sm"
-            placeholder="Nombre o número de parte..."
-            class="w-full"
-          >
-            <template #prefix>
-              <Icon name="search" size="sm" />
-            </template>
-          </UiInput>
-        </div>
+      <div class="mt-5">
+        <InventorySummaryCards :summary="stockStore.summary" :loading="stockStore.summaryLoading" />
       </div>
     </div>
 
-    <!-- TABLE -->
-    <InventoryTable
-      :items="inventory.items"
-      :loading="inventory.loading"
-      :cursor="inventory.cursor"
-      @load-more="inventory.fetch({ cursor: inventory.cursor })"
+    <!-- TABS -->
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-2 shadow-sm">
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          class="btn"
+          :class="activeTab === 'stock' ? 'btn-primary' : 'btn-ghost'"
+          @click="activeTab = 'stock'"
+        >
+          <Icon name="boxes" class="h-4 w-4" />
+          Existencias
+        </button>
+
+        <button
+          class="btn"
+          :class="activeTab === 'movements' ? 'btn-primary' : 'btn-ghost'"
+          @click="activeTab = 'movements'"
+        >
+          <Icon name="arrow-left-right" class="h-4 w-4" />
+          Movimientos
+        </button>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <InventoryToolbar
+      v-if="activeTab === 'stock'"
+      mode="stock"
+      :search="stockSearch"
+      :stock-status="stockStatus"
+      :can-create="auth.hasPermission('inventory:create')"
+      @update:search="stockSearch = $event"
+      @update:stock-status="stockStatus = $event"
+      @create="openCreate"
+      @reset="resetStockFilters"
+    />
+
+    <InventoryToolbar
+      v-else
+      mode="movements"
+      :search="movementSearch"
+      :movement-type="movementType"
+      :can-create="auth.hasPermission('inventory:create')"
+      @update:search="movementSearch = $event"
+      @update:movement-type="movementType = $event"
+      @create="openCreate"
+      @reset="resetMovementFilters"
+    />
+
+    <!-- CONTENT -->
+    <InventoryStockTable
+      v-if="activeTab === 'stock'"
+      :items="stockStore.items"
+      :loading="stockStore.loading"
+      :cursor="stockStore.cursor"
+      @load-more="stockStore.fetch({ cursor: stockStore.cursor || undefined })"
+    />
+
+    <InventoryMovementsTable
+      v-else
+      :items="movementsStore.items"
+      :loading="movementsStore.loading"
+      :cursor="movementsStore.cursor"
+      @load-more="movementsStore.fetch({ cursor: movementsStore.cursor || undefined })"
     />
 
     <!-- DIALOG -->
     <ClientOnly>
-      <InventoryMovementDialog v-model="openDialog" @submit="inventory.create" />
+      <InventoryMovementDialog
+        v-model="openDialog"
+        @submit="
+          async payload => {
+            await movementsStore.create(payload)
+            await Promise.all([stockStore.fetchSummary(), stockStore.fetch()])
+          }
+        "
+      />
     </ClientOnly>
   </div>
 </template>
