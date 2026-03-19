@@ -1,12 +1,28 @@
 import { defineStore } from 'pinia'
-import type { InventoryStockItem, InventoryStockQuery, InventorySummary } from '~/types/inventory'
+import type { InventoryStockItem, InventorySummary, InventoryStockStatus } from '~/types/inventory'
+
+type StockFetchParams = {
+  limit?: number
+  cursor?: string
+}
+
+type StockResponse = {
+  ok: boolean
+  items: InventoryStockItem[]
+  nextCursor: string | null
+}
+
+type SummaryResponse = {
+  ok: boolean
+  summary: InventorySummary
+}
 
 export const useInventoryStockStore = defineStore('inventoryStock', {
   state: () => ({
     items: [] as InventoryStockItem[],
     loading: false,
-    summaryLoading: false,
     cursor: null as string | null,
+
     summary: {
       totalProducts: 0,
       lowStockProducts: 0,
@@ -14,63 +30,77 @@ export const useInventoryStockStore = defineStore('inventoryStock', {
       totalUnits: 0,
       movementsToday: 0,
     } as InventorySummary,
-    filters: {
-      search: '',
-      stockStatus: '' as InventoryStockQuery['stockStatus'],
-    },
+    summaryLoading: false,
+
+    search: '',
+    stockStatus: '' as InventoryStockStatus | '',
   }),
 
   actions: {
+    setFilters(payload: { search?: string; stockStatus?: InventoryStockStatus | '' }) {
+      this.search = payload.search ?? ''
+      this.stockStatus = payload.stockStatus ?? ''
+      this.cursor = null
+      this.items = []
+    },
+
     reset() {
       this.items = []
       this.cursor = null
+      this.loading = false
     },
 
-    setFilters(filters: Partial<typeof this.filters>) {
-      this.filters = {
-        ...this.filters,
-        ...filters,
-      }
-      this.reset()
+    clearAll() {
+      this.items = []
+      this.cursor = null
+      this.loading = false
+      this.search = ''
+      this.stockStatus = ''
     },
 
-    async fetch(query: InventoryStockQuery = {}) {
+    async fetch(params: StockFetchParams = {}) {
       if (this.loading) return
 
       this.loading = true
+
       try {
-        const params: Record<string, any> = {
-          limit: query.limit ?? 20,
-          search: (query.search ?? this.filters.search) || undefined,
-          stockStatus: (query.stockStatus ?? this.filters.stockStatus) || undefined,
-        }
-
-        if (query.cursor) params.cursor = query.cursor
-
-        const res = await useApi<{
-          ok: boolean
-          items: InventoryStockItem[]
-          nextCursor: string | null
-        }>('/inventory/stock', {
-          query: params,
+        const res = await useApi<StockResponse>('/inventory/stock', {
+          query: {
+            limit: params.limit ?? 20,
+            cursor: params.cursor ?? this.cursor ?? undefined,
+            search: this.search || undefined,
+            stockStatus: this.stockStatus || undefined,
+          },
         })
 
-        this.items = query.cursor ? [...this.items, ...(res.items ?? [])] : (res.items ?? [])
-        this.cursor = res.nextCursor ?? null
+        const incomingItems = Array.isArray(res?.items) ? res.items : []
+
+        if (params.cursor) {
+          this.items.push(...incomingItems)
+        } else {
+          this.items = incomingItems
+        }
+
+        this.cursor = res?.nextCursor ?? null
       } finally {
         this.loading = false
       }
     },
 
     async fetchSummary() {
-      this.summaryLoading = true
-      try {
-        const res = await useApi<{
-          ok: boolean
-          summary: InventorySummary
-        }>('/inventory/summary')
+      if (this.summaryLoading) return
 
-        this.summary = res.summary
+      this.summaryLoading = true
+
+      try {
+        const res = await useApi<SummaryResponse>('/inventory/summary')
+        this.summary = res?.summary ?? {
+          totalProducts: 0,
+          lowStockProducts: 0,
+          outOfStockProducts: 0,
+          totalUnits: 0,
+          movementsToday: 0,
+        }
       } finally {
         this.summaryLoading = false
       }

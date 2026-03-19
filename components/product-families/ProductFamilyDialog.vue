@@ -32,16 +32,57 @@
            CONTENT
       ====================================================== -->
       <section class="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        <!-- ALERTA DE VALIDACIÓN -->
+        <div
+          v-if="errorSummary.length"
+          class="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm"
+        >
+          <div class="flex items-start gap-3">
+            <Icon name="alert-triangle" class="mt-0.5 h-5 w-5 text-error" />
+
+            <div class="flex-1">
+              <p class="font-semibold text-error">Revisa los siguientes campos:</p>
+
+              <ul class="mt-2 list-disc space-y-1 pl-5 text-base-content/80">
+                <li v-for="item in errorSummary" :key="item.key">
+                  <span class="font-medium">{{ item.label }}:</span>
+                  {{ item.message }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <!-- DATOS -->
-        <div class="space-y-4">
+        <form class="space-y-4" @submit.prevent="submit">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
             Datos generales
           </h3>
 
-          <UiInput v-model="form.name" label="Nombre de la familia" autofocus />
+          <div data-error-field="name">
+            <UiInput
+              v-model="form.name"
+              label="Nombre de la familia *"
+              placeholder="Ej: Electrónica, Refacciones, Material eléctrico"
+              autofocus
+              :error="errors.name"
+            />
+          </div>
 
-          <UiInput v-model="form.code" label="Código" placeholder="Ej: ELECTRONICA" />
-        </div>
+          <div data-error-field="code">
+            <UiInput
+              v-model="form.code"
+              label="Código *"
+              placeholder="Ej: ELECTRONICA"
+              :error="errors.code"
+            />
+
+            <p class="mt-1 text-xs opacity-60">
+              En modo creación se genera automáticamente a partir del nombre, pero puedes ajustarlo
+              si lo necesitas.
+            </p>
+          </div>
+        </form>
       </section>
 
       <!-- =====================================================
@@ -61,7 +102,17 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed } from 'vue'
+import { reactive, watch, computed, nextTick } from 'vue'
+import Icon from '~/components/ui/Icon.vue'
+import UiDialog from '~/components/ui/UiDialog.vue'
+import UiInput from '~/components/ui/UiInput.vue'
+import UiButton from '~/components/ui/UiButton.vue'
+import { useUiStore } from '~/stores/ui.store'
+
+type ProductFamilyForm = {
+  name: string
+  code: string
+}
 
 const props = defineProps<{
   modelValue: boolean
@@ -69,17 +120,86 @@ const props = defineProps<{
   model?: any
 }>()
 
-const emit = defineEmits(['update:modelValue', 'submit'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', v: boolean): void
+  (
+    e: 'submit',
+    payload: {
+      name: string
+      code: string
+      activo?: boolean
+    }
+  ): void
+}>()
+
+const ui = useUiStore()
 
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
 
-const form = reactive({
+const form = reactive<ProductFamilyForm>({
   name: '',
   code: '',
 })
+
+const errors = reactive<Record<string, string>>({})
+
+const fieldLabels: Record<string, string> = {
+  name: 'Nombre de la familia',
+  code: 'Código',
+}
+
+const errorSummary = computed(() =>
+  Object.entries(errors)
+    .filter(([, message]) => !!message)
+    .map(([key, message]) => ({
+      key,
+      label: fieldLabels[key] || key,
+      message,
+    }))
+)
+
+function clearErrors() {
+  Object.keys(errors).forEach(key => delete errors[key])
+}
+
+function resetForm() {
+  form.name = ''
+  form.code = ''
+  clearErrors()
+}
+
+function hydrateForm() {
+  clearErrors()
+
+  if (props.model) {
+    form.name = props.model.name ?? ''
+    form.code = props.model.code ?? ''
+    return
+  }
+
+  resetForm()
+}
+
+async function focusFirstErrorField() {
+  const firstKey = Object.keys(errors).find(key => errors[key])
+  if (!firstKey) return
+
+  await nextTick()
+
+  const wrapper = document.querySelector(`[data-error-field="${firstKey}"]`)
+  const target = wrapper?.querySelector('input, textarea, select, button') as HTMLElement | null
+
+  if (wrapper) {
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  if (target?.focus) {
+    target.focus()
+  }
+}
 
 /* =========================
    AUTOGENERAR CÓDIGO
@@ -91,6 +211,8 @@ watch(
       form.code =
         val
           ?.toUpperCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
           .replace(/\s+/g, '_')
           .replace(/[^A-Z0-9_]/g, '')
           .substring(0, 20) || ''
@@ -99,34 +221,66 @@ watch(
 )
 
 /* =========================
-   EDIT MODE
+   OPEN / CLOSE
 ========================= */
 watch(
-  () => props.model,
-  v => {
-    if (v) {
-      Object.assign(form, {
-        name: v.name ?? '',
-        code: v.code ?? '',
-      })
+  () => props.modelValue,
+  isOpen => {
+    if (isOpen) {
+      hydrateForm()
     } else {
-      form.name = ''
-      form.code = ''
+      clearErrors()
     }
   },
   { immediate: true }
 )
 
 /* =========================
+   EDIT MODE
+========================= */
+watch(
+  () => props.model,
+  () => {
+    if (!props.modelValue) return
+    hydrateForm()
+  },
+  { immediate: false }
+)
+
+/* =========================
    SUBMIT
 ========================= */
-function submit() {
-  if (!form.name.trim()) return
-  if (!form.code.trim()) return
+async function submit() {
+  clearErrors()
+
+  const name = form.name.trim()
+  const code = form.code.trim().toUpperCase()
+
+  if (!name) {
+    errors.name = 'El nombre de la familia es obligatorio'
+  } else if (name.length < 2) {
+    errors.name = 'Debe tener al menos 2 caracteres'
+  }
+
+  if (!code) {
+    errors.code = 'El código es obligatorio'
+  } else if (code.length < 2) {
+    errors.code = 'Debe tener al menos 2 caracteres'
+  }
+
+  const firstError = Object.entries(errors).find(([, value]) => !!value)
+
+  if (firstError) {
+    const [key, message] = firstError
+    ui.showToast('warning', `${fieldLabels[key] || key}: ${message}`)
+    await focusFirstErrorField()
+    return
+  }
 
   emit('submit', {
-    name: form.name.trim(),
-    code: form.code.trim().toUpperCase(),
+    name,
+    code,
+    activo: props.model?.activo ?? true,
   })
 
   open.value = false

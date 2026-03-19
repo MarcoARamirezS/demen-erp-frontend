@@ -29,6 +29,27 @@
            CONTENT
       ====================================================== -->
       <section class="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+        <!-- ALERTA DE VALIDACIÓN -->
+        <div
+          v-if="errorSummary.length"
+          class="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm"
+        >
+          <div class="flex items-start gap-3">
+            <Icon name="alert-triangle" class="mt-0.5 h-5 w-5 text-error" />
+
+            <div class="flex-1">
+              <p class="font-semibold text-error">Revisa los siguientes campos:</p>
+
+              <ul class="mt-2 list-disc space-y-1 pl-5 text-base-content/80">
+                <li v-for="item in errorSummary" :key="item.key">
+                  <span class="font-medium">{{ item.label }}:</span>
+                  {{ item.message }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <!-- =========================
              DATOS
         ========================== -->
@@ -38,8 +59,29 @@
           </h3>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiInput v-model="form.name" label="Nombre del rol *" />
-            <UiInput v-model="form.description" label="Descripción" />
+            <div data-error-field="name">
+              <UiInput
+                v-model="form.name"
+                label="Nombre del rol *"
+                placeholder="Ej: Administrador de compras, Supervisor de almacén, Capturista"
+                :error="errors.name"
+              />
+            </div>
+
+            <div data-error-field="description">
+              <UiInput
+                v-model="form.description"
+                label="Descripción"
+                placeholder="Describe qué puede hacer este rol dentro del sistema"
+                :error="errors.description"
+              />
+              <p class="mt-1 text-xs opacity-60">
+                Usa una descripción breve y clara para identificar su alcance.
+              </p>
+              <div class="mt-1 text-right text-xs opacity-50">
+                {{ form.description.length }} / 300
+              </div>
+            </div>
           </div>
         </section>
 
@@ -58,7 +100,7 @@
             </div>
 
             <UiButton size="sm" variant="outline" type="button" @click="toggleAllPermissions">
-              Seleccionar todos
+              {{ allPermissionsSelected ? 'Quitar todos' : 'Seleccionar todos' }}
             </UiButton>
           </div>
 
@@ -67,8 +109,11 @@
             <UiInput
               v-model="search"
               size="sm"
-              placeholder="Buscar permiso (usuarios, eliminar, compras...)"
+              placeholder="Buscar permiso por módulo o acción, ej: usuarios, eliminar, compras"
             />
+            <p class="mt-1 text-xs opacity-60">
+              Filtra permisos por nombre del recurso o por acción.
+            </p>
           </div>
 
           <!-- RECURSOS -->
@@ -149,10 +194,13 @@
                   {{ selectedCount(activeTab) }} de {{ activePermissions.length }} permisos
                   seleccionados
                 </p>
+                <p class="text-xs opacity-50 mt-1">
+                  Marca solo las acciones que este rol debe poder ejecutar en este módulo.
+                </p>
               </div>
 
               <UiButton size="xs" variant="ghost" type="button" @click="toggleAllActiveTab">
-                Seleccionar todos
+                {{ allActiveTabSelected ? 'Quitar todos' : 'Seleccionar todos' }}
               </UiButton>
             </div>
 
@@ -214,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, reactive, nextTick } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
@@ -224,6 +272,13 @@ import UiButton from '~/components/ui/UiButton.vue'
 import { usePermissionsStore } from '~/stores/permissions.store'
 import { useUiStore } from '~/stores/ui.store'
 import type { Role, CreateRoleDto } from '~/types/role'
+
+type RoleDialogForm = {
+  name: string
+  description: string
+  permissionCodes: string[]
+  active: boolean
+}
 
 /* =========================
    PROPS
@@ -256,12 +311,17 @@ const open = computed({
 /* =========================
    FORM
 ========================= */
-const form = ref<Partial<CreateRoleDto>>({
-  name: '',
-  description: '',
-  permissionCodes: [],
-  active: true,
-})
+function getDefaultForm(): RoleDialogForm {
+  return {
+    name: '',
+    description: '',
+    permissionCodes: [],
+    active: true,
+  }
+}
+
+const form = reactive<RoleDialogForm>(getDefaultForm())
+const errors = reactive<Record<string, string>>({})
 
 const search = ref('')
 const activeTab = ref('')
@@ -270,6 +330,11 @@ const initialized = ref(false)
 /* =========================
    LABELS
 ========================= */
+const fieldLabels: Record<string, string> = {
+  name: 'Nombre del rol',
+  description: 'Descripción',
+}
+
 const resourceLabels: Record<string, string> = {
   users: 'Usuarios',
   roles: 'Roles',
@@ -313,6 +378,23 @@ const actionLabels: Record<string, string> = {
 }
 
 /* =========================
+   ERRORS
+========================= */
+const errorSummary = computed(() =>
+  Object.entries(errors)
+    .filter(([, message]) => !!message)
+    .map(([key, message]) => ({
+      key,
+      label: fieldLabels[key] || key,
+      message,
+    }))
+)
+
+function clearErrors() {
+  Object.keys(errors).forEach(key => delete errors[key])
+}
+
+/* =========================
    NORMALIZADOR
 ========================= */
 const normalizedLabel = (resource: string) => {
@@ -350,6 +432,18 @@ const filteredResources = computed(() =>
 
 const activePermissions = computed(() => permissionsByResource.value[activeTab.value] ?? [])
 
+const allPermissionsSelected = computed(() => {
+  const allCodes = [...new Set(safePermissions.value.map(p => p.code))]
+  if (!allCodes.length) return false
+  return allCodes.every(code => form.permissionCodes.includes(code))
+})
+
+const allActiveTabSelected = computed(() => {
+  const codes = activePermissions.value.map(p => p.code)
+  if (!codes.length) return false
+  return codes.every(code => form.permissionCodes.includes(code))
+})
+
 /* =========================
    WATCHERS
 ========================= */
@@ -381,19 +475,37 @@ watch(
 )
 
 watch(
+  () => props.modelValue,
+  isOpen => {
+    if (!isOpen) {
+      clearErrors()
+      return
+    }
+
+    search.value = ''
+    initialized.value = false
+  },
+  { immediate: true }
+)
+
+watch(
   () => props.model,
   v => {
-    form.value = v
+    clearErrors()
+
+    const next = v
       ? {
-          ...v,
+          name: v.name ?? '',
+          description: v.description ?? '',
           permissionCodes: [...(v.permissionCodes ?? [])],
+          active: v.active ?? true,
         }
-      : {
-          name: '',
-          description: '',
-          permissionCodes: [],
-          active: true,
-        }
+      : getDefaultForm()
+
+    form.name = next.name
+    form.description = next.description
+    form.permissionCodes = next.permissionCodes
+    form.active = next.active
   },
   { immediate: true }
 )
@@ -403,47 +515,89 @@ watch(
 ========================= */
 function selectedCount(resource: string) {
   return (
-    permissionsByResource.value[resource]?.filter(p => form.value.permissionCodes?.includes(p.code))
+    permissionsByResource.value[resource]?.filter(p => form.permissionCodes.includes(p.code))
       .length ?? 0
   )
 }
 
 function toggleAllPermissions() {
-  const codes = safePermissions.value.map(p => p.code)
-  form.value.permissionCodes = form.value.permissionCodes?.length === codes.length ? [] : [...codes]
+  const codes = [...new Set(safePermissions.value.map(p => p.code))]
+  form.permissionCodes = allPermissionsSelected.value ? [] : [...codes]
 }
 
 function toggleAllActiveTab() {
   const codes = activePermissions.value.map(p => p.code)
-  const set = new Set(form.value.permissionCodes)
-  const allSelected = codes.every(c => set.has(c))
+  const set = new Set(form.permissionCodes)
 
-  codes.forEach(c => {
-    if (allSelected) set.delete(c)
-    else set.add(c)
-  })
+  if (allActiveTabSelected.value) {
+    codes.forEach(code => set.delete(code))
+  } else {
+    codes.forEach(code => set.add(code))
+  }
 
-  form.value.permissionCodes = Array.from(set)
+  form.permissionCodes = Array.from(set)
 }
 
 function formatPermissionChip(code: string) {
-  const [resource, action] = code.split(':')
+  const [resource = '', action = code] = code.split(':')
+  if (!resource) return code
   return `${normalizedLabel(resource)} · ${actionLabels[action] ?? action}`
+}
+
+async function focusFirstErrorField() {
+  const firstKey = Object.keys(errors).find(key => errors[key])
+  if (!firstKey) return
+
+  await nextTick()
+
+  const wrapper = document.querySelector(`[data-error-field="${firstKey}"]`)
+  const target = wrapper?.querySelector('input, textarea, select, button') as HTMLElement | null
+
+  if (wrapper) {
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  if (target?.focus) {
+    target.focus()
+  }
 }
 
 /* =========================
    SUBMIT
 ========================= */
-function submit() {
-  if (!form.value.name?.trim()) {
-    ui.showToast('warning', 'El nombre del rol es obligatorio')
+async function submit() {
+  clearErrors()
+
+  const name = form.name.trim()
+  const description = form.description.trim()
+  const permissionCodes = [...new Set(form.permissionCodes)]
+
+  if (!name) {
+    errors.name = 'El nombre del rol es obligatorio'
+  } else if (name.length < 2) {
+    errors.name = 'Debe tener al menos 2 caracteres'
+  } else if (name.length > 80) {
+    errors.name = 'No puede exceder 80 caracteres'
+  }
+
+  if (description.length > 300) {
+    errors.description = 'No puede exceder 300 caracteres'
+  }
+
+  const firstError = Object.entries(errors).find(([, value]) => !!value)
+
+  if (firstError) {
+    const [key, message] = firstError
+    ui.showToast('warning', `${fieldLabels[key] || key}: ${message}`)
+    await focusFirstErrorField()
     return
   }
 
   emit('submit', {
-    ...form.value,
-    name: form.value.name.trim(),
-    description: form.value.description?.trim() || '',
+    name,
+    description: description || '',
+    permissionCodes,
+    active: !!form.active,
   })
 }
 </script>

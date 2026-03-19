@@ -21,7 +21,10 @@ defineEmits<{
 
 <template>
   <div class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-    <div class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
+    <div
+      class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_auto_auto] xl:items-end"
+    >
+      <!-- BUSCAR -->
       <label class="form-control w-full">
         <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
           Buscar
@@ -43,6 +46,7 @@ defineEmits<{
         </label>
       </label>
 
+      <!-- FILTRO -->
       <label v-if="mode === 'movements'" class="form-control w-full">
         <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
           Tipo
@@ -65,7 +69,7 @@ defineEmits<{
         </select>
       </label>
 
-      <label v-if="mode === 'stock'" class="form-control w-full">
+      <label v-else class="form-control w-full">
         <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
           Estado de stock
         </div>
@@ -87,15 +91,33 @@ defineEmits<{
         </select>
       </label>
 
-      <button class="btn btn-outline" @click="$emit('reset')">
-        <Icon name="rotate-ccw" class="h-4 w-4" />
-        Limpiar
-      </button>
+      <!-- LIMPIAR -->
+      <div class="w-full xl:w-auto">
+        <div
+          class="mb-1 text-xs font-semibold uppercase tracking-wide text-transparent select-none"
+        >
+          Acción
+        </div>
 
-      <button v-if="canCreate" class="btn btn-primary" @click="$emit('create')">
-        <Icon name="plus" class="h-4 w-4" />
-        Nuevo movimiento
-      </button>
+        <button class="btn btn-outline w-full xl:w-auto" @click="$emit('reset')">
+          <Icon name="rotate-ccw" class="h-4 w-4" />
+          Limpiar
+        </button>
+      </div>
+
+      <!-- NUEVO -->
+      <div v-if="canCreate" class="w-full xl:w-auto">
+        <div
+          class="mb-1 text-xs font-semibold uppercase tracking-wide text-transparent select-none"
+        >
+          Acción
+        </div>
+
+        <button class="btn btn-primary w-full xl:w-auto" @click="$emit('create')">
+          <Icon name="plus" class="h-4 w-4" />
+          Nuevo movimiento
+        </button>
+      </div>
     </div>
   </div>
 </template>
