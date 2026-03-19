@@ -44,6 +44,37 @@ function resetMovementFilters() {
   movementType.value = ''
 }
 
+function syncFiltersToStores() {
+  stockStore.setFilters({
+    search: stockSearch.value,
+    stockStatus: stockStatus.value,
+  })
+
+  movementsStore.setFilters({
+    search: movementSearch.value,
+    type: movementType.value,
+  })
+}
+
+async function reloadInventoryData() {
+  if (stockTimeout) {
+    clearTimeout(stockTimeout)
+    stockTimeout = null
+  }
+
+  if (movementTimeout) {
+    clearTimeout(movementTimeout)
+    movementTimeout = null
+  }
+
+  syncFiltersToStores()
+
+  stockStore.reset()
+  movementsStore.reset()
+
+  await Promise.all([stockStore.fetchSummary(), stockStore.fetch(), movementsStore.fetch()])
+}
+
 watch(
   [stockSearch, stockStatus],
   () => {
@@ -79,10 +110,7 @@ watch(
 )
 
 onMounted(async () => {
-  stockStore.reset()
-  movementsStore.reset()
-
-  await Promise.all([stockStore.fetchSummary(), stockStore.fetch(), movementsStore.fetch()])
+  await reloadInventoryData()
 })
 </script>
 
@@ -97,15 +125,6 @@ onMounted(async () => {
           <h1 class="text-2xl font-bold tracking-tight">Inventario</h1>
           <p class="mt-1 text-sm opacity-70">Existencias, movimientos y control de stock</p>
         </div>
-
-        <button
-          v-if="auth.hasPermission('inventory:create')"
-          class="btn btn-primary"
-          @click="openCreate"
-        >
-          <Icon name="plus" class="h-4 w-4" />
-          Nuevo movimiento
-        </button>
       </div>
 
       <div class="mt-5">
@@ -185,7 +204,7 @@ onMounted(async () => {
         @submit="
           async payload => {
             await movementsStore.create(payload)
-            await Promise.all([stockStore.fetchSummary(), stockStore.fetch()])
+            await reloadInventoryData()
           }
         "
       />

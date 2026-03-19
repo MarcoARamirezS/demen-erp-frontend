@@ -1,5 +1,345 @@
+<template>
+  <UiDialog v-model="open" size="xl" hide-header hide-close>
+    <div
+      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
+    >
+      <!-- =====================================================
+           HEADER
+      ====================================================== -->
+      <header
+        class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <div class="rounded-full bg-primary/10 p-3">
+            <Icon name="users" class="h-6 w-6 text-primary" />
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold text-primary">
+              {{ mode === 'create' ? 'Nuevo cliente' : 'Editar cliente' }}
+            </h2>
+
+            <p class="text-sm opacity-60">Gestión de clientes del sistema</p>
+          </div>
+        </div>
+
+        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+          <Icon name="x" />
+        </button>
+      </header>
+
+      <!-- =====================================================
+           CONTENIDO SCROLL
+      ====================================================== -->
+      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-8">
+        <!-- ALERTA DE VALIDACIÓN -->
+        <div
+          v-if="errorSummary.length"
+          class="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm"
+        >
+          <div class="flex items-start gap-3">
+            <Icon name="alert-triangle" class="mt-0.5 h-5 w-5 text-error" />
+
+            <div class="flex-1">
+              <p class="font-semibold text-error">Revisa los siguientes campos:</p>
+
+              <ul class="mt-2 list-disc space-y-1 pl-5 text-base-content/80">
+                <li v-for="item in errorSummary" :key="item.key">
+                  <span class="font-medium">{{ item.label }}:</span>
+                  {{ item.message }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <form class="space-y-8" @submit.prevent="submit">
+          <!-- =========================
+               DATOS GENERALES
+          ========================== -->
+          <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-base-content/70">Datos generales</h3>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div data-error-field="tipo">
+                <label class="label text-sm">
+                  <span class="label-text">Tipo de cliente *</span>
+                </label>
+
+                <select
+                  v-model="form.tipo"
+                  class="select w-full"
+                  :class="errors.tipo ? 'select-error' : 'select-bordered'"
+                >
+                  <option value="empresa">Empresa</option>
+                  <option value="persona">Persona</option>
+                </select>
+
+                <p class="mt-1 text-xs opacity-60">
+                  Selecciona si el cliente es una empresa o una persona física.
+                </p>
+
+                <p v-if="errors.tipo" class="mt-1 text-xs text-error">
+                  {{ errors.tipo }}
+                </p>
+              </div>
+
+              <div data-error-field="razonSocial">
+                <UiInput
+                  v-model="form.razonSocial"
+                  label="Razón social *"
+                  placeholder="Ej: Comercializadora del Bajío S.A. de C.V."
+                  :error="errors.razonSocial"
+                />
+              </div>
+
+              <div data-error-field="nombreComercial">
+                <UiInput
+                  v-model="form.nombreComercial"
+                  label="Nombre comercial *"
+                  placeholder="Ej: Comercializadora del Bajío"
+                  :error="errors.nombreComercial"
+                />
+              </div>
+
+              <div data-error-field="rfc">
+                <UiInput
+                  v-model="form.rfc"
+                  label="RFC"
+                  placeholder="Ej: ABC123456T89"
+                  :error="errors.rfc"
+                />
+              </div>
+
+              <div data-error-field="email">
+                <UiInput
+                  v-model="form.email"
+                  label="Email"
+                  placeholder="Ej: compras@empresa.com"
+                  :error="errors.email"
+                />
+              </div>
+
+              <div data-error-field="telefono">
+                <UiInput
+                  v-model="form.telefono"
+                  label="Teléfono"
+                  placeholder="Ej: 4641234567"
+                  :error="errors.telefono"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- =========================
+               FINANCIERO
+          ========================== -->
+          <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
+            <h3 class="text-sm font-semibold">Información financiera</h3>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div data-error-field="diasCredito">
+                <UiInput
+                  v-model="form.diasCredito"
+                  label="Días de crédito"
+                  type="number"
+                  placeholder="Ej: 30"
+                  :error="errors.diasCredito"
+                />
+              </div>
+
+              <div data-error-field="limiteCredito">
+                <UiInput
+                  v-model="form.limiteCredito"
+                  label="Límite de crédito"
+                  type="number"
+                  placeholder="Ej: 50000"
+                  :error="errors.limiteCredito"
+                />
+              </div>
+
+              <div data-error-field="condicionPago">
+                <label class="label text-sm">
+                  <span class="label-text">Condición de pago</span>
+                </label>
+
+                <select
+                  v-model="form.condicionPago"
+                  class="select w-full"
+                  :class="errors.condicionPago ? 'select-error' : 'select-bordered'"
+                >
+                  <option value="30">30 días</option>
+                  <option value="45">45 días</option>
+                  <option value="60">60 días</option>
+                  <option value="90">90 días</option>
+                </select>
+
+                <p class="mt-1 text-xs opacity-60">
+                  Selecciona el plazo habitual acordado con el cliente.
+                </p>
+
+                <p v-if="errors.condicionPago" class="mt-1 text-xs text-error">
+                  {{ errors.condicionPago }}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- =========================
+               CUMPLIMIENTO
+          ========================== -->
+          <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-base-content/70">Cumplimiento</h3>
+
+            <div class="flex flex-col gap-4 md:flex-row">
+              <UiToggle v-model="form.aplicaRepse" label="Aplica REPSE" />
+
+              <UiToggle
+                v-model="form.aplicaPortalFacturacion"
+                label="Aplica portal de facturación"
+              />
+            </div>
+          </section>
+
+          <!-- =========================
+               INFORMACIÓN FISCAL
+          ========================== -->
+          <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-base-content/70">Información fiscal</h3>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div data-error-field="clasificacionFiscal">
+                <label class="label text-sm">
+                  <span class="label-text">Clasificación fiscal</span>
+                </label>
+
+                <select
+                  v-model="form.clasificacionFiscal"
+                  class="select w-full"
+                  :class="errors.clasificacionFiscal ? 'select-error' : 'select-bordered'"
+                >
+                  <option value="">Seleccionar</option>
+
+                  <option v-for="o in CLASIFICACION_FISCAL_OPTIONS" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                  </option>
+                </select>
+
+                <p class="mt-1 text-xs opacity-60">
+                  Elige la clasificación fiscal que mejor describa al cliente.
+                </p>
+
+                <p v-if="errors.clasificacionFiscal" class="mt-1 text-xs text-error">
+                  {{ errors.clasificacionFiscal }}
+                </p>
+              </div>
+
+              <div data-error-field="regimenFiscal">
+                <label class="label text-sm">
+                  <span class="label-text">Régimen fiscal</span>
+                </label>
+
+                <select
+                  v-model="form.regimenFiscal"
+                  class="select w-full"
+                  :class="errors.regimenFiscal ? 'select-error' : 'select-bordered'"
+                >
+                  <option value="">Seleccionar</option>
+
+                  <option v-for="o in REGIMEN_FISCAL_OPTIONS" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                  </option>
+                </select>
+
+                <p class="mt-1 text-xs opacity-60">
+                  Selecciona el régimen fiscal registrado ante el SAT.
+                </p>
+
+                <p v-if="errors.regimenFiscal" class="mt-1 text-xs text-error">
+                  {{ errors.regimenFiscal }}
+                </p>
+              </div>
+
+              <div data-error-field="usoCfdiDefault">
+                <label class="label text-sm">
+                  <span class="label-text">Uso CFDI default</span>
+                </label>
+
+                <select
+                  v-model="form.usoCfdiDefault"
+                  class="select w-full"
+                  :class="errors.usoCfdiDefault ? 'select-error' : 'select-bordered'"
+                >
+                  <option value="">Seleccionar</option>
+
+                  <option v-for="o in USO_CFDI_OPTIONS" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                  </option>
+                </select>
+
+                <p class="mt-1 text-xs opacity-60">
+                  Define el uso CFDI más común para este cliente.
+                </p>
+
+                <p v-if="errors.usoCfdiDefault" class="mt-1 text-xs text-error">
+                  {{ errors.usoCfdiDefault }}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- =========================
+               COMENTARIOS
+          ========================== -->
+          <section class="space-y-3">
+            <h3 class="text-sm font-semibold text-base-content/70">Comentarios</h3>
+
+            <div data-error-field="comentarios">
+              <textarea
+                v-model="form.comentarios"
+                maxlength="2000"
+                placeholder="Ej: Cliente con crédito autorizado, requiere portal de facturación y atención los martes."
+                :class="[
+                  'textarea w-full min-h-[120px]',
+                  errors.comentarios ? 'textarea-error' : 'textarea-bordered',
+                ]"
+              />
+
+              <p class="mt-1 text-xs opacity-60">
+                Agrega observaciones relevantes para ventas, crédito o facturación.
+              </p>
+
+              <p v-if="errors.comentarios" class="mt-1 text-xs text-error">
+                {{ errors.comentarios }}
+              </p>
+
+              <div class="mt-1 text-right text-xs opacity-50">
+                {{ form.comentarios?.length || 0 }} / 2000
+              </div>
+            </div>
+          </section>
+        </form>
+      </section>
+
+      <!-- =====================================================
+           FOOTER
+      ====================================================== -->
+      <footer
+        class="sticky bottom-0 z-10 flex flex-col-reverse justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] md:flex-row"
+      >
+        <UiButton variant="ghost" type="button" class="w-full md:w-auto" @click="open = false">
+          Cancelar
+        </UiButton>
+
+        <UiButton variant="primary" class="w-full md:w-auto" @click="submit"> Guardar </UiButton>
+      </footer>
+    </div>
+  </UiDialog>
+</template>
+
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, reactive, watch } from 'vue'
+import Icon from '~/components/ui/Icon.vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
 import UiButton from '~/components/ui/UiButton.vue'
@@ -7,16 +347,27 @@ import UiToggle from '~/components/ui/UiToggle.vue'
 import { useUiStore } from '~/stores/ui.store'
 import type { Client, CreateClientDto } from '~/types/client'
 
-const errors = ref({
-  razonSocial: false,
-  nombreComercial: false,
-  rfc: false,
-  email: false,
-  telefono: false,
-  diasCredito: false,
-  limiteCredito: false,
-  comentarios: false,
-})
+type ClientTipo = 'empresa' | 'persona'
+type CondicionPago = '30' | '45' | '60' | '90'
+
+type ClientForm = {
+  tipo: ClientTipo
+  razonSocial: string
+  nombreComercial: string
+  rfc: string
+  email: string
+  telefono: string
+  diasCredito: number | string
+  limiteCredito: number | string
+  condicionPago: CondicionPago
+  clasificacionFiscal: string
+  regimenFiscal: string
+  usoCfdiDefault: string
+  aplicaRepse: boolean
+  aplicaPortalFacturacion: boolean
+  comentarios: string
+  activo: boolean
+}
 
 const props = defineProps<{
   modelValue: boolean
@@ -31,36 +382,36 @@ const emit = defineEmits<{
 
 const ui = useUiStore()
 
+const COUNTRY_CODE = '+52'
+
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
 
-/* =========================
-   FORM
-========================= */
-const form = ref<CreateClientDto>({
-  tipo: 'empresa',
-  razonSocial: '',
-  nombreComercial: '',
-  rfc: 'XAXX010101000',
-  email: '',
-  telefono: '',
+function getDefaultForm(): ClientForm {
+  return {
+    tipo: 'empresa',
+    razonSocial: '',
+    nombreComercial: '',
+    rfc: '',
+    email: '',
+    telefono: '',
+    diasCredito: 0,
+    limiteCredito: 0,
+    condicionPago: '30',
+    clasificacionFiscal: '',
+    regimenFiscal: '',
+    usoCfdiDefault: '',
+    aplicaRepse: false,
+    aplicaPortalFacturacion: false,
+    comentarios: '',
+    activo: true,
+  }
+}
 
-  diasCredito: 0,
-  limiteCredito: 0,
-  condicionPago: '30',
-
-  clasificacionFiscal: '',
-  regimenFiscal: '',
-  usoCfdiDefault: '',
-
-  aplicaRepse: false,
-  aplicaPortalFacturacion: false,
-
-  comentarios: '',
-  activo: true,
-})
+const form = reactive<ClientForm>(getDefaultForm())
+const errors = reactive<Record<string, string>>({})
 
 const REGIMEN_FISCAL_OPTIONS = [
   { value: '601', label: '601 - General de Ley Personas Morales' },
@@ -117,12 +468,33 @@ const CLASIFICACION_FISCAL_OPTIONS = [
   { value: 'sin_obligaciones', label: 'Sin obligaciones fiscales' },
 ]
 
-const countryCode = ref('+52')
+const fieldLabels: Record<string, string> = {
+  tipo: 'Tipo de cliente',
+  razonSocial: 'Razón social',
+  nombreComercial: 'Nombre comercial',
+  rfc: 'RFC',
+  email: 'Email',
+  telefono: 'Teléfono',
+  diasCredito: 'Días de crédito',
+  limiteCredito: 'Límite de crédito',
+  condicionPago: 'Condición de pago',
+  clasificacionFiscal: 'Clasificación fiscal',
+  regimenFiscal: 'Régimen fiscal',
+  usoCfdiDefault: 'Uso CFDI default',
+  comentarios: 'Comentarios',
+}
 
-/* =========================
-   VALIDATIONS
-========================= */
-const RFC_REGEX = /^([A-ZÑ&]{3,4})\d{6}([A-Z0-9]{3})?$/
+const errorSummary = computed(() =>
+  Object.entries(errors)
+    .filter(([, message]) => !!message)
+    .map(([key, message]) => ({
+      key,
+      label: fieldLabels[key] || key,
+      message,
+    }))
+)
+
+const RFC_REGEX = /^([A-ZÑ&]{3,4})\d{6}([A-Z0-9]{3})$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function isValidRFC(rfc: string) {
@@ -133,353 +505,206 @@ function isValidEmail(email: string) {
   return EMAIL_REGEX.test(email)
 }
 
-function isValidPhone(phone: string) {
-  return /^\d{10}$/.test(phone)
+function isValidPhone(phoneDigits: string) {
+  return /^\d{10}$/.test(phoneDigits)
 }
 
-/* =========================
-   WATCH EDIT MODE
-========================= */
+function clearErrors() {
+  Object.keys(errors).forEach(key => delete errors[key])
+}
+
+function hydrateForm(client?: Client | null) {
+  clearErrors()
+
+  if (!client) {
+    Object.assign(form, getDefaultForm())
+    return
+  }
+
+  Object.assign(form, {
+    ...getDefaultForm(),
+    tipo: (client.tipo as ClientTipo) || 'empresa',
+    razonSocial: client.razonSocial ?? '',
+    nombreComercial: client.nombreComercial ?? '',
+    rfc: client.rfc ?? '',
+    email: client.email ?? '',
+    telefono: (client.telefono ?? '').replace(/^\+52/, '').replace(/\D/g, ''),
+    diasCredito: client.diasCredito ?? 0,
+    limiteCredito: client.limiteCredito ?? 0,
+    condicionPago: (client.condicionPago as CondicionPago) ?? '30',
+    clasificacionFiscal: client.clasificacionFiscal ?? '',
+    regimenFiscal: client.regimenFiscal ?? '',
+    usoCfdiDefault: client.usoCfdiDefault ?? '',
+    aplicaRepse: !!client.aplicaRepse,
+    aplicaPortalFacturacion: !!client.aplicaPortalFacturacion,
+    comentarios: client.comentarios ?? '',
+    activo: client.activo ?? true,
+  })
+}
+
 watch(
-  () => props.model,
-  v => {
-    if (v) {
-      form.value = {
-        tipo: v.tipo,
-        razonSocial: v.razonSocial,
-        nombreComercial: v.nombreComercial ?? '',
-        rfc: v.rfc ?? 'XAXX010101000',
-        email: v.email ?? '',
-        telefono: v.telefono?.replace('+52', '') ?? '',
-
-        diasCredito: v.diasCredito ?? 0,
-        limiteCredito: v.limiteCredito ?? 0,
-        condicionPago: v.condicionPago ?? '30',
-
-        clasificacionFiscal: v.clasificacionFiscal ?? '',
-        regimenFiscal: v.regimenFiscal ?? '',
-        usoCfdiDefault: v.usoCfdiDefault ?? '',
-
-        aplicaRepse: !!v.aplicaRepse,
-        aplicaPortalFacturacion: !!v.aplicaPortalFacturacion,
-
-        comentarios: v.comentarios ?? '',
-
-        activo: v.activo,
+  () => props.modelValue,
+  isOpen => {
+    if (isOpen) {
+      if (props.mode === 'edit' && props.model) {
+        hydrateForm(props.model)
+      } else {
+        hydrateForm(null)
       }
+    } else {
+      clearErrors()
     }
   },
   { immediate: true }
 )
 
-/* =========================
-   SUBMIT
-========================= */
-function submit() {
-  errors.value = {
-    razonSocial: false,
-    nombreComercial: false,
-    rfc: false,
-    email: false,
-    telefono: false,
-    diasCredito: false,
-    limiteCredito: false,
-    comentarios: false,
+watch(
+  () => props.model,
+  value => {
+    if (props.modelValue && props.mode === 'edit') {
+      hydrateForm(value)
+    }
+  },
+  { deep: true }
+)
+
+function optionalString(value?: string | null) {
+  const clean = String(value ?? '').trim()
+  return clean ? clean : undefined
+}
+
+async function focusFirstErrorField() {
+  const firstKey = Object.keys(errors).find(key => errors[key])
+  if (!firstKey) return
+
+  await nextTick()
+
+  const wrapper = document.querySelector(`[data-error-field="${firstKey}"]`)
+  const target = wrapper?.querySelector('input, textarea, select, button') as HTMLElement | null
+
+  if (wrapper) {
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
-  const razonSocial = form.value.razonSocial?.trim()
-  const nombreComercial = form.value.nombreComercial?.trim()
-  const rfc = form.value.rfc?.trim().toUpperCase()
-  const email = form.value.email?.trim()
+  if (target?.focus) {
+    target.focus()
+  }
+}
 
-  const diasCredito = Number(form.value.diasCredito)
-  const limiteCredito = Number(form.value.limiteCredito)
+async function submit() {
+  clearErrors()
 
-  if (!razonSocial || razonSocial.length < 2) {
-    errors.value.razonSocial = true
-    ui.showToast('warning', 'La razón social debe tener al menos 2 caracteres')
-    return
+  const tipo = form.tipo
+  const razonSocial = form.razonSocial.trim()
+  const nombreComercial = form.nombreComercial.trim()
+  const rfc = form.rfc.trim().toUpperCase()
+  const email = form.email.trim().toLowerCase()
+  const telefonoDigits = form.telefono.replace(/\D/g, '')
+  const diasCredito = Number(form.diasCredito)
+  const limiteCredito = Number(form.limiteCredito)
+  const condicionPago = form.condicionPago
+  const clasificacionFiscal = form.clasificacionFiscal.trim()
+  const regimenFiscal = form.regimenFiscal.trim()
+  const usoCfdiDefault = form.usoCfdiDefault.trim()
+  const comentarios = form.comentarios.trim()
+
+  if (!['empresa', 'persona'].includes(tipo)) {
+    errors.tipo = 'Selecciona un tipo válido'
   }
 
-  if (razonSocial.length > 150) {
-    errors.value.razonSocial = true
-    ui.showToast('warning', 'La razón social no puede exceder 150 caracteres')
-    return
+  if (!razonSocial) {
+    errors.razonSocial = 'La razón social es obligatoria'
+  } else if (razonSocial.length < 2) {
+    errors.razonSocial = 'Debe tener al menos 2 caracteres'
+  } else if (razonSocial.length > 150) {
+    errors.razonSocial = 'No puede exceder 150 caracteres'
   }
 
-  if (!nombreComercial || nombreComercial.length < 2) {
-    errors.value.nombreComercial = true
-    ui.showToast('warning', 'El nombre comercial debe tener al menos 2 caracteres')
-    return
-  }
-
-  if (nombreComercial.length > 120) {
-    errors.value.nombreComercial = true
-    ui.showToast('warning', 'El nombre comercial no puede exceder 120 caracteres')
-    return
+  if (!nombreComercial) {
+    errors.nombreComercial = 'El nombre comercial es obligatorio'
+  } else if (nombreComercial.length < 2) {
+    errors.nombreComercial = 'Debe tener al menos 2 caracteres'
+  } else if (nombreComercial.length > 120) {
+    errors.nombreComercial = 'No puede exceder 120 caracteres'
   }
 
   if (rfc) {
     if (rfc.length < 12 || rfc.length > 13) {
-      errors.value.rfc = true
-      ui.showToast('warning', 'El RFC debe tener entre 12 y 13 caracteres')
-      return
-    }
-
-    if (!isValidRFC(rfc)) {
-      errors.value.rfc = true
-      ui.showToast('warning', 'RFC inválido')
-      return
+      errors.rfc = 'Debe tener entre 12 y 13 caracteres'
+    } else if (!isValidRFC(rfc)) {
+      errors.rfc = 'El formato del RFC es inválido'
     }
   }
 
   if (email && !isValidEmail(email)) {
-    errors.value.email = true
-    ui.showToast('warning', 'Correo electrónico inválido')
+    errors.email = 'El correo electrónico es inválido'
+  }
+
+  if (telefonoDigits && !isValidPhone(telefonoDigits)) {
+    errors.telefono = 'Debe contener exactamente 10 dígitos'
+  }
+
+  if (Number.isNaN(diasCredito) || !Number.isInteger(diasCredito)) {
+    errors.diasCredito = 'Debe ser un número entero'
+  } else if (diasCredito < 0 || diasCredito > 365) {
+    errors.diasCredito = 'Debe estar entre 0 y 365'
+  }
+
+  if (Number.isNaN(limiteCredito)) {
+    errors.limiteCredito = 'Debe ser un número válido'
+  } else if (limiteCredito < 0) {
+    errors.limiteCredito = 'No puede ser negativo'
+  }
+
+  if (!['30', '45', '60', '90'].includes(condicionPago)) {
+    errors.condicionPago = 'Selecciona una condición de pago válida'
+  }
+
+  if (clasificacionFiscal.length > 120) {
+    errors.clasificacionFiscal = 'No puede exceder 120 caracteres'
+  }
+
+  if (regimenFiscal.length > 120) {
+    errors.regimenFiscal = 'No puede exceder 120 caracteres'
+  }
+
+  if (usoCfdiDefault.length > 120) {
+    errors.usoCfdiDefault = 'No puede exceder 120 caracteres'
+  }
+
+  if (comentarios.length > 2000) {
+    errors.comentarios = 'No puede exceder 2000 caracteres'
+  }
+
+  const firstError = Object.entries(errors).find(([, value]) => !!value)
+
+  if (firstError) {
+    const [key, message] = firstError
+    ui.showToast('warning', `${fieldLabels[key] || key}: ${message}`)
+    await focusFirstErrorField()
     return
   }
 
-  if (form.value.telefono && !isValidPhone(form.value.telefono)) {
-    errors.value.telefono = true
-    ui.showToast('warning', 'El teléfono debe tener 10 dígitos')
-    return
-  }
-
-  if (!Number.isInteger(diasCredito) || diasCredito < 0 || diasCredito > 365) {
-    errors.value.diasCredito = true
-    ui.showToast('warning', 'Los días de crédito deben ser un número entero entre 0 y 365')
-    return
-  }
-
-  if (isNaN(limiteCredito) || limiteCredito < 0) {
-    errors.value.limiteCredito = true
-    ui.showToast('warning', 'El límite de crédito no puede ser negativo')
-    return
-  }
-
-  if (form.value.comentarios && form.value.comentarios.length > 2000) {
-    errors.value.comentarios = true
-    ui.showToast('warning', 'Los comentarios no pueden exceder 2000 caracteres')
-    return
-  }
-
-  emit('submit', {
-    ...form.value,
+  const payload: CreateClientDto = {
+    tipo,
     razonSocial,
     nombreComercial,
-    email,
     diasCredito,
     limiteCredito,
-    rfc: rfc || undefined,
-    telefono: form.value.telefono ? `${countryCode.value}${form.value.telefono}` : '',
-  })
+    condicionPago,
+    aplicaRepse: !!form.aplicaRepse,
+    aplicaPortalFacturacion: !!form.aplicaPortalFacturacion,
+    activo: !!form.activo,
+    rfc: optionalString(rfc),
+    email: optionalString(email),
+    telefono: telefonoDigits ? `${COUNTRY_CODE}${telefonoDigits}` : undefined,
+    clasificacionFiscal: optionalString(clasificacionFiscal),
+    regimenFiscal: optionalString(regimenFiscal),
+    usoCfdiDefault: optionalString(usoCfdiDefault),
+    comentarios: optionalString(comentarios),
+  }
 
+  emit('submit', payload)
   open.value = false
 }
 </script>
-
-<template>
-  <UiDialog v-model="open" size="xl" hide-header hide-close>
-    <div
-      class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
-    >
-      <!-- =====================================================
-           HEADER
-      ====================================================== -->
-      <header
-        class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
-      >
-        <div class="flex items-center gap-4">
-          <div class="rounded-full bg-primary/10 p-3">
-            <Icon name="users" class="h-6 w-6 text-primary" />
-          </div>
-
-          <div>
-            <h2 class="text-xl font-bold text-primary">
-              {{ mode === 'create' ? 'Nuevo cliente' : 'Editar cliente' }}
-            </h2>
-
-            <p class="text-sm opacity-60">Gestión de clientes del sistema</p>
-          </div>
-        </div>
-
-        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
-          <Icon name="x" />
-        </button>
-      </header>
-
-      <!-- =====================================================
-           CONTENIDO SCROLL
-      ====================================================== -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-8">
-        <form class="space-y-8" @submit.prevent="submit">
-          <!-- =========================
-               DATOS GENERALES
-          ========================== -->
-          <section class="space-y-4">
-            <h3 class="font-semibold text-sm text-base-content/70">Datos generales</h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="form.razonSocial"
-                label="Razón social *"
-                :error="errors.razonSocial"
-              />
-
-              <UiInput
-                v-model="form.nombreComercial"
-                label="Nombre comercial"
-                :error="errors.nombreComercial"
-              />
-
-              <UiInput v-model="form.rfc" label="RFC" :error="errors.rfc" />
-
-              <UiInput v-model="form.email" label="Email" :error="errors.email" />
-
-              <UiInput v-model="form.telefono" label="Teléfono" :error="errors.telefono" />
-            </div>
-          </section>
-
-          <!-- =========================
-               FINANCIERO
-          ========================== -->
-          <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
-            <h3 class="font-semibold text-sm">Información financiera</h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <UiInput
-                v-model="form.diasCredito"
-                label="Días de crédito"
-                type="number"
-                :error="errors.diasCredito"
-              />
-
-              <UiInput
-                v-model="form.limiteCredito"
-                label="Límite de crédito"
-                type="number"
-                :error="errors.limiteCredito"
-              />
-
-              <div>
-                <label class="label text-sm">
-                  <span class="label-text">Condición de pago</span>
-                </label>
-
-                <select v-model="form.condicionPago" class="select select-bordered w-full">
-                  <option value="30">30 días</option>
-                  <option value="45">45 días</option>
-                  <option value="60">60 días</option>
-                  <option value="90">90 días</option>
-                </select>
-              </div>
-            </div>
-          </section>
-
-          <!-- =========================
-               CUMPLIMIENTO
-          ========================== -->
-          <section class="space-y-4">
-            <h3 class="font-semibold text-sm text-base-content/70">Cumplimiento</h3>
-
-            <div class="flex flex-col md:flex-row gap-4">
-              <UiToggle v-model="form.aplicaRepse" label="Aplica REPSE" />
-
-              <UiToggle
-                v-model="form.aplicaPortalFacturacion"
-                label="Aplica portal de facturación"
-              />
-            </div>
-          </section>
-
-          <!-- =========================
-               INFORMACIÓN FISCAL
-          ========================== -->
-          <section class="space-y-4">
-            <h3 class="font-semibold text-sm text-base-content/70">Información fiscal</h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- CLASIFICACIÓN -->
-              <div>
-                <label class="label text-sm">
-                  <span class="label-text">Clasificación fiscal</span>
-                </label>
-
-                <select v-model="form.clasificacionFiscal" class="select select-bordered w-full">
-                  <option value="">Seleccionar</option>
-
-                  <option v-for="o in CLASIFICACION_FISCAL_OPTIONS" :key="o.value" :value="o.value">
-                    {{ o.label }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- REGIMEN -->
-              <div>
-                <label class="label text-sm">
-                  <span class="label-text">Régimen fiscal</span>
-                </label>
-
-                <select v-model="form.regimenFiscal" class="select select-bordered w-full">
-                  <option value="">Seleccionar</option>
-
-                  <option v-for="o in REGIMEN_FISCAL_OPTIONS" :key="o.value" :value="o.value">
-                    {{ o.label }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- CFDI -->
-              <div>
-                <label class="label text-sm">
-                  <span class="label-text">Uso CFDI default</span>
-                </label>
-
-                <select v-model="form.usoCfdiDefault" class="select select-bordered w-full">
-                  <option value="">Seleccionar</option>
-
-                  <option v-for="o in USO_CFDI_OPTIONS" :key="o.value" :value="o.value">
-                    {{ o.label }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </section>
-
-          <!-- =========================
-               COMENTARIOS
-          ========================== -->
-          <section class="space-y-3">
-            <h3 class="font-semibold text-sm text-base-content/70">Comentarios</h3>
-
-            <textarea
-              v-model="form.comentarios"
-              maxlength="2000"
-              :class="[
-                'textarea w-full min-h-[120px]',
-                errors.comentarios ? 'textarea-error' : 'textarea-bordered',
-              ]"
-            />
-
-            <div class="text-xs text-right opacity-50">
-              {{ form.comentarios?.length || 0 }} / 2000
-            </div>
-          </section>
-        </form>
-      </section>
-
-      <!-- =====================================================
-           FOOTER
-      ====================================================== -->
-      <footer
-        class="sticky bottom-0 z-10 flex flex-col-reverse md:flex-row justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]"
-      >
-        <UiButton variant="ghost" type="button" class="w-full md:w-auto" @click="open = false">
-          Cancelar
-        </UiButton>
-
-        <UiButton variant="primary" class="w-full md:w-auto" @click="submit"> Guardar </UiButton>
-      </footer>
-    </div>
-  </UiDialog>
-</template>
