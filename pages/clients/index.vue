@@ -38,18 +38,13 @@ watch(openDialog, isOpen => {
 })
 
 async function handleSubmit(payload: CreateClientDto) {
-  try {
-    if (dialogMode.value === 'edit' && selectedClient.value?.id) {
-      await clients.update(selectedClient.value.id, payload)
-    } else {
-      await clients.create(payload)
-    }
-
-    openDialog.value = false
-    selectedClient.value = null
-  } catch (e) {
-    console.error(e)
+  if (dialogMode.value === 'edit' && selectedClient.value?.id) {
+    await clients.update(selectedClient.value.id, payload)
+  } else {
+    await clients.create(payload)
   }
+
+  selectedClient.value = null
 }
 
 onMounted(async () => {
@@ -89,7 +84,7 @@ onMounted(async () => {
       v-model="openDialog"
       :mode="dialogMode"
       :model="selectedClient"
-      @submit="handleSubmit"
+      :on-submit="handleSubmit"
     />
   </div>
 </template>

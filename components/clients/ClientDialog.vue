@@ -3,9 +3,6 @@
     <div
       class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <!-- =====================================================
-           HEADER
-      ====================================================== -->
       <header
         class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
       >
@@ -28,11 +25,7 @@
         </button>
       </header>
 
-      <!-- =====================================================
-           CONTENIDO SCROLL
-      ====================================================== -->
       <section class="flex-1 space-y-8 overflow-y-auto px-6 py-6 pb-10">
-        <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
           class="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm"
@@ -54,9 +47,6 @@
         </div>
 
         <form class="space-y-8" @submit.prevent="submit">
-          <!-- =========================
-               DATOS GENERALES
-          ========================== -->
           <section class="space-y-4">
             <h3 class="text-sm font-semibold text-base-content/70">Datos generales</h3>
 
@@ -131,9 +121,6 @@
             </div>
           </section>
 
-          <!-- =========================
-               USUARIOS / CONTACTOS
-          ========================== -->
           <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
             <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
@@ -143,11 +130,20 @@
                 </p>
               </div>
 
-              <button type="button" class="btn btn-sm btn-primary" @click="addUsuario">
+              <button
+                type="button"
+                class="btn btn-sm btn-primary"
+                :disabled="form.usuarios.length >= MAX_USUARIOS"
+                @click="addUsuario"
+              >
                 <Icon name="plus" class="h-4 w-4" />
                 <span>Agregar usuario</span>
               </button>
             </div>
+
+            <p class="text-xs opacity-60">
+              {{ form.usuarios.length }} / {{ MAX_USUARIOS }} usuarios capturados
+            </p>
 
             <div
               v-if="!form.usuarios.length"
@@ -224,9 +220,6 @@
             </div>
           </section>
 
-          <!-- =========================
-               FINANCIERO
-          ========================== -->
           <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
             <h3 class="text-sm font-semibold">Información financiera</h3>
 
@@ -281,15 +274,11 @@
             </div>
           </section>
 
-          <!-- =========================
-               CUMPLIMIENTO
-          ========================== -->
           <section class="space-y-4">
             <h3 class="text-sm font-semibold text-base-content/70">Cumplimiento</h3>
 
             <div class="flex flex-col gap-4 md:flex-row">
               <UiToggle v-model="form.aplicaRepse" label="Aplica REPSE" />
-
               <UiToggle
                 v-model="form.aplicaPortalFacturacion"
                 label="Aplica portal de facturación"
@@ -297,9 +286,6 @@
             </div>
           </section>
 
-          <!-- =========================
-               INFORMACIÓN FISCAL
-          ========================== -->
           <section class="space-y-4">
             <h3 class="text-sm font-semibold text-base-content/70">Información fiscal</h3>
 
@@ -315,7 +301,6 @@
                   :class="errors.clasificacionFiscal ? 'select-error' : 'select-bordered'"
                 >
                   <option value="">Seleccionar</option>
-
                   <option v-for="o in CLASIFICACION_FISCAL_OPTIONS" :key="o.value" :value="o.value">
                     {{ o.label }}
                   </option>
@@ -341,7 +326,6 @@
                   :class="errors.regimenFiscal ? 'select-error' : 'select-bordered'"
                 >
                   <option value="">Seleccionar</option>
-
                   <option v-for="o in REGIMEN_FISCAL_OPTIONS" :key="o.value" :value="o.value">
                     {{ o.label }}
                   </option>
@@ -367,7 +351,6 @@
                   :class="errors.usoCfdiDefault ? 'select-error' : 'select-bordered'"
                 >
                   <option value="">Seleccionar</option>
-
                   <option v-for="o in USO_CFDI_OPTIONS" :key="o.value" :value="o.value">
                     {{ o.label }}
                   </option>
@@ -384,9 +367,6 @@
             </div>
           </section>
 
-          <!-- =========================
-               COMENTARIOS
-          ========================== -->
           <section class="space-y-3">
             <h3 class="text-sm font-semibold text-base-content/70">Comentarios</h3>
 
@@ -417,24 +397,35 @@
         </form>
       </section>
 
-      <!-- =====================================================
-           FOOTER
-      ====================================================== -->
       <footer
         class="sticky bottom-0 z-10 flex flex-col-reverse justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] md:flex-row"
       >
-        <UiButton variant="ghost" type="button" class="w-full md:w-auto" @click="open = false">
+        <UiButton
+          variant="ghost"
+          type="button"
+          class="w-full md:w-auto"
+          :disabled="saving"
+          @click="open = false"
+        >
           Cancelar
         </UiButton>
 
-        <UiButton variant="primary" class="w-full md:w-auto" @click="submit"> Guardar </UiButton>
+        <UiButton
+          variant="primary"
+          class="w-full md:w-auto"
+          :loading="saving"
+          :disabled="saving"
+          @click="submit"
+        >
+          Guardar
+        </UiButton>
       </footer>
     </div>
   </UiDialog>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
@@ -478,16 +469,18 @@ const props = defineProps<{
   modelValue: boolean
   model?: Client | null
   mode: 'create' | 'edit'
+  onSubmit: (payload: CreateClientDto) => Promise<void>
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
-  (e: 'submit', payload: CreateClientDto): void
 }>()
 
 const ui = useUiStore()
 
 const COUNTRY_CODE = '+52'
+const MAX_USUARIOS = 100
+const saving = ref(false)
 
 const open = computed({
   get: () => props.modelValue,
@@ -584,6 +577,10 @@ const CLASIFICACION_FISCAL_OPTIONS = [
   { value: 'sin_obligaciones', label: 'Sin obligaciones fiscales' },
 ]
 
+const REGIMEN_FISCAL_VALUES = new Set(REGIMEN_FISCAL_OPTIONS.map(item => item.value))
+const USO_CFDI_VALUES = new Set(USO_CFDI_OPTIONS.map(item => item.value))
+const CLASIFICACION_FISCAL_VALUES = new Set(CLASIFICACION_FISCAL_OPTIONS.map(item => item.value))
+
 const fieldLabels: Record<string, string> = {
   tipo: 'Tipo de cliente',
   razonSocial: 'Razón social',
@@ -598,6 +595,7 @@ const fieldLabels: Record<string, string> = {
   regimenFiscal: 'Régimen fiscal',
   usoCfdiDefault: 'Uso CFDI default',
   comentarios: 'Comentarios',
+  usuarios: 'Usuarios',
   nombre: 'Nombre',
   puesto: 'Puesto',
 }
@@ -608,7 +606,6 @@ function getErrorLabel(key: string) {
     const index = Number(parts[1] || 0)
     const field = parts[2] || 'nombre'
     const fieldLabel = fieldLabels[field] || field
-
     return `Usuario ${index + 1} · ${fieldLabel}`
   }
 
@@ -697,6 +694,7 @@ watch(
       }
     } else {
       clearErrors()
+      saving.value = false
     }
   },
   { immediate: true }
@@ -718,15 +716,39 @@ function optionalString(value?: string | null) {
 }
 
 function addUsuario() {
+  if (form.usuarios.length >= MAX_USUARIOS) {
+    ui.showToast('warning', `Solo puedes agregar hasta ${MAX_USUARIOS} usuarios`)
+    return
+  }
+
   form.usuarios.push(createEmptyUsuario())
+}
+
+function reindexUsuarioErrors() {
+  const entries = Object.entries(errors)
+  clearErrors()
+
+  for (const [key, value] of entries) {
+    if (!key.startsWith('usuarios.')) {
+      errors[key] = value
+      continue
+    }
+
+    const match = key.match(/^usuarios\.(\d+)\.(.+)$/)
+    if (!match) continue
+
+    const originalIndex = Number(match[1])
+    const field = match[2]
+
+    if (originalIndex >= form.usuarios.length) continue
+
+    errors[`usuarios.${originalIndex}.${field}`] = value
+  }
 }
 
 function removeUsuario(index: number) {
   form.usuarios.splice(index, 1)
-
-  Object.keys(errors)
-    .filter(key => key.startsWith(`usuarios.${index}.`))
-    .forEach(key => delete errors[key])
+  reindexUsuarioErrors()
 }
 
 async function focusFirstErrorField() {
@@ -748,6 +770,8 @@ async function focusFirstErrorField() {
 }
 
 async function submit() {
+  if (saving.value) return
+
   clearErrors()
 
   const tipo = form.tipo
@@ -764,16 +788,17 @@ async function submit() {
   const usoCfdiDefault = form.usoCfdiDefault.trim()
   const comentarios = form.comentarios.trim()
 
-  const usuariosNormalizados = form.usuarios
-    .map(usuario => ({
-      nombre: usuario.nombre.trim(),
-      puesto: usuario.puesto.trim(),
-      email: usuario.email.trim().toLowerCase(),
-      telefonoDigits: usuario.telefono.replace(/\D/g, ''),
-    }))
-    .filter(
-      usuario => !!usuario.nombre || !!usuario.puesto || !!usuario.email || !!usuario.telefonoDigits
-    )
+  const usuariosConIndice = form.usuarios.map((usuario, index) => ({
+    index,
+    nombre: usuario.nombre.trim(),
+    puesto: usuario.puesto.trim(),
+    email: usuario.email.trim().toLowerCase(),
+    telefonoDigits: usuario.telefono.replace(/\D/g, ''),
+  }))
+
+  const usuariosNormalizados = usuariosConIndice.filter(
+    usuario => !!usuario.nombre || !!usuario.puesto || !!usuario.email || !!usuario.telefonoDigits
+  )
 
   if (!['empresa', 'persona'].includes(tipo)) {
     errors.tipo = 'Selecciona un tipo válido'
@@ -811,25 +836,41 @@ async function submit() {
     errors.telefono = 'Debe contener exactamente 10 dígitos'
   }
 
-  usuariosNormalizados.forEach((usuario, index) => {
+  if (usuariosNormalizados.length > MAX_USUARIOS) {
+    errors.usuarios = `No puedes registrar más de ${MAX_USUARIOS} usuarios`
+  }
+
+  const seenEmails = new Map<string, number>()
+
+  usuariosNormalizados.forEach(usuario => {
+    const originalIndex = usuario.index
+
     if (!usuario.nombre) {
-      errors[`usuarios.${index}.nombre`] = 'El nombre es obligatorio'
+      errors[`usuarios.${originalIndex}.nombre`] = 'El nombre es obligatorio'
     } else if (usuario.nombre.length < 2) {
-      errors[`usuarios.${index}.nombre`] = 'Debe tener al menos 2 caracteres'
+      errors[`usuarios.${originalIndex}.nombre`] = 'Debe tener al menos 2 caracteres'
     } else if (usuario.nombre.length > 120) {
-      errors[`usuarios.${index}.nombre`] = 'No puede exceder 120 caracteres'
+      errors[`usuarios.${originalIndex}.nombre`] = 'No puede exceder 120 caracteres'
     }
 
     if (usuario.puesto.length > 120) {
-      errors[`usuarios.${index}.puesto`] = 'No puede exceder 120 caracteres'
+      errors[`usuarios.${originalIndex}.puesto`] = 'No puede exceder 120 caracteres'
     }
 
     if (usuario.email && !isValidEmail(usuario.email)) {
-      errors[`usuarios.${index}.email`] = 'El correo electrónico es inválido'
+      errors[`usuarios.${originalIndex}.email`] = 'El correo electrónico es inválido'
+    }
+
+    if (usuario.email) {
+      if (seenEmails.has(usuario.email)) {
+        errors[`usuarios.${originalIndex}.email`] = 'El correo está duplicado'
+      } else {
+        seenEmails.set(usuario.email, originalIndex)
+      }
     }
 
     if (usuario.telefonoDigits && !isValidPhone(usuario.telefonoDigits)) {
-      errors[`usuarios.${index}.telefono`] = 'Debe contener exactamente 10 dígitos'
+      errors[`usuarios.${originalIndex}.telefono`] = 'Debe contener exactamente 10 dígitos'
     }
   })
 
@@ -851,14 +892,20 @@ async function submit() {
 
   if (clasificacionFiscal.length > 120) {
     errors.clasificacionFiscal = 'No puede exceder 120 caracteres'
+  } else if (clasificacionFiscal && !CLASIFICACION_FISCAL_VALUES.has(clasificacionFiscal)) {
+    errors.clasificacionFiscal = 'Selecciona una clasificación fiscal válida'
   }
 
   if (regimenFiscal.length > 120) {
     errors.regimenFiscal = 'No puede exceder 120 caracteres'
+  } else if (regimenFiscal && !REGIMEN_FISCAL_VALUES.has(regimenFiscal)) {
+    errors.regimenFiscal = 'Selecciona un régimen fiscal válido'
   }
 
   if (usoCfdiDefault.length > 120) {
     errors.usoCfdiDefault = 'No puede exceder 120 caracteres'
+  } else if (usoCfdiDefault && !USO_CFDI_VALUES.has(usoCfdiDefault)) {
+    errors.usoCfdiDefault = 'Selecciona un uso CFDI válido'
   }
 
   if (comentarios.length > 2000) {
@@ -901,6 +948,15 @@ async function submit() {
     comentarios: optionalString(comentarios),
   }
 
-  emit('submit', payload)
+  try {
+    saving.value = true
+    await props.onSubmit(payload)
+    clearErrors()
+    open.value = false
+  } catch (error) {
+    console.error(error)
+  } finally {
+    saving.value = false
+  }
 }
 </script>
