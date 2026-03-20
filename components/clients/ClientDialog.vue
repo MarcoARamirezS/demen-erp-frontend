@@ -31,7 +31,7 @@
       <!-- =====================================================
            CONTENIDO SCROLL
       ====================================================== -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-8">
+      <section class="flex-1 space-y-8 overflow-y-auto px-6 py-6 pb-10">
         <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
@@ -132,6 +132,99 @@
           </section>
 
           <!-- =========================
+               USUARIOS / CONTACTOS
+          ========================== -->
+          <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 class="text-sm font-semibold">Usuarios de contacto</h3>
+                <p class="mt-1 text-xs opacity-60">
+                  Agrega uno o varios usuarios relacionados con este cliente.
+                </p>
+              </div>
+
+              <button type="button" class="btn btn-sm btn-primary" @click="addUsuario">
+                <Icon name="plus" class="h-4 w-4" />
+                <span>Agregar usuario</span>
+              </button>
+            </div>
+
+            <div
+              v-if="!form.usuarios.length"
+              class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-5 text-sm opacity-70"
+            >
+              Aún no hay usuarios capturados para este cliente.
+            </div>
+
+            <div v-else class="space-y-4">
+              <div
+                v-for="(usuario, index) in form.usuarios"
+                :key="usuario.localId"
+                class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
+              >
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="rounded-full bg-primary/10 p-2">
+                      <Icon name="users" class="h-4 w-4 text-primary" />
+                    </div>
+
+                    <div>
+                      <p class="font-semibold">Usuario {{ index + 1 }}</p>
+                      <p class="text-xs opacity-60">Contacto del cliente</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn btn-circle btn-sm btn-ghost text-error"
+                    @click="removeUsuario(index)"
+                  >
+                    <Icon name="x" />
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div :data-error-field="`usuarios.${index}.nombre`">
+                    <UiInput
+                      v-model="usuario.nombre"
+                      label="Nombre *"
+                      placeholder="Ej: Juan Pérez"
+                      :error="errors[`usuarios.${index}.nombre`]"
+                    />
+                  </div>
+
+                  <div :data-error-field="`usuarios.${index}.puesto`">
+                    <UiInput
+                      v-model="usuario.puesto"
+                      label="Puesto"
+                      placeholder="Ej: Jefe de compras"
+                      :error="errors[`usuarios.${index}.puesto`]"
+                    />
+                  </div>
+
+                  <div :data-error-field="`usuarios.${index}.email`">
+                    <UiInput
+                      v-model="usuario.email"
+                      label="Email"
+                      placeholder="Ej: juan.perez@empresa.com"
+                      :error="errors[`usuarios.${index}.email`]"
+                    />
+                  </div>
+
+                  <div :data-error-field="`usuarios.${index}.telefono`">
+                    <UiInput
+                      v-model="usuario.telefono"
+                      label="Teléfono"
+                      placeholder="Ej: 4641234567"
+                      :error="errors[`usuarios.${index}.telefono`]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- =========================
                FINANCIERO
           ========================== -->
           <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
@@ -168,6 +261,9 @@
                   class="select w-full"
                   :class="errors.condicionPago ? 'select-error' : 'select-bordered'"
                 >
+                  <option value="0">Contado</option>
+                  <option value="7">7 días</option>
+                  <option value="15">15 días</option>
                   <option value="30">30 días</option>
                   <option value="45">45 días</option>
                   <option value="60">60 días</option>
@@ -300,7 +396,7 @@
                 maxlength="2000"
                 placeholder="Ej: Cliente con crédito autorizado, requiere portal de facturación y atención los martes."
                 :class="[
-                  'textarea w-full min-h-[120px]',
+                  'textarea min-h-[120px] w-full',
                   errors.comentarios ? 'textarea-error' : 'textarea-bordered',
                 ]"
               />
@@ -345,10 +441,18 @@ import UiInput from '~/components/ui/UiInput.vue'
 import UiButton from '~/components/ui/UiButton.vue'
 import UiToggle from '~/components/ui/UiToggle.vue'
 import { useUiStore } from '~/stores/ui.store'
-import type { Client, CreateClientDto } from '~/types/client'
+import type { Client, ClientUsuario, CreateClientDto } from '~/types/client'
 
 type ClientTipo = 'empresa' | 'persona'
-type CondicionPago = '30' | '45' | '60' | '90'
+type CondicionPago = '0' | '7' | '15' | '30' | '45' | '60' | '90'
+
+type ClientUsuarioForm = {
+  localId: string
+  nombre: string
+  puesto: string
+  email: string
+  telefono: string
+}
 
 type ClientForm = {
   tipo: ClientTipo
@@ -357,6 +461,7 @@ type ClientForm = {
   rfc: string
   email: string
   telefono: string
+  usuarios: ClientUsuarioForm[]
   diasCredito: number | string
   limiteCredito: number | string
   condicionPago: CondicionPago
@@ -389,6 +494,16 @@ const open = computed({
   set: v => emit('update:modelValue', v),
 })
 
+function createEmptyUsuario(): ClientUsuarioForm {
+  return {
+    localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    nombre: '',
+    puesto: '',
+    email: '',
+    telefono: '',
+  }
+}
+
 function getDefaultForm(): ClientForm {
   return {
     tipo: 'empresa',
@@ -397,6 +512,7 @@ function getDefaultForm(): ClientForm {
     rfc: '',
     email: '',
     telefono: '',
+    usuarios: [],
     diasCredito: 0,
     limiteCredito: 0,
     condicionPago: '30',
@@ -482,6 +598,21 @@ const fieldLabels: Record<string, string> = {
   regimenFiscal: 'Régimen fiscal',
   usoCfdiDefault: 'Uso CFDI default',
   comentarios: 'Comentarios',
+  nombre: 'Nombre',
+  puesto: 'Puesto',
+}
+
+function getErrorLabel(key: string) {
+  if (key.startsWith('usuarios.')) {
+    const parts = key.split('.')
+    const index = Number(parts[1] || 0)
+    const field = parts[2] || 'nombre'
+    const fieldLabel = fieldLabels[field] || field
+
+    return `Usuario ${index + 1} · ${fieldLabel}`
+  }
+
+  return fieldLabels[key] || key
 }
 
 const errorSummary = computed(() =>
@@ -489,7 +620,7 @@ const errorSummary = computed(() =>
     .filter(([, message]) => !!message)
     .map(([key, message]) => ({
       key,
-      label: fieldLabels[key] || key,
+      label: getErrorLabel(key),
       message,
     }))
 )
@@ -513,6 +644,18 @@ function clearErrors() {
   Object.keys(errors).forEach(key => delete errors[key])
 }
 
+function normalizeUsuarios(usuarios?: ClientUsuario[] | null): ClientUsuarioForm[] {
+  if (!Array.isArray(usuarios) || !usuarios.length) return []
+
+  return usuarios.map(usuario => ({
+    localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    nombre: usuario.nombre ?? '',
+    puesto: usuario.puesto ?? '',
+    email: usuario.email ?? '',
+    telefono: (usuario.telefono ?? '').replace(/^\+52/, '').replace(/\D/g, ''),
+  }))
+}
+
 function hydrateForm(client?: Client | null) {
   clearErrors()
 
@@ -529,6 +672,7 @@ function hydrateForm(client?: Client | null) {
     rfc: client.rfc ?? '',
     email: client.email ?? '',
     telefono: (client.telefono ?? '').replace(/^\+52/, '').replace(/\D/g, ''),
+    usuarios: normalizeUsuarios(client.usuarios),
     diasCredito: client.diasCredito ?? 0,
     limiteCredito: client.limiteCredito ?? 0,
     condicionPago: (client.condicionPago as CondicionPago) ?? '30',
@@ -573,6 +717,18 @@ function optionalString(value?: string | null) {
   return clean ? clean : undefined
 }
 
+function addUsuario() {
+  form.usuarios.push(createEmptyUsuario())
+}
+
+function removeUsuario(index: number) {
+  form.usuarios.splice(index, 1)
+
+  Object.keys(errors)
+    .filter(key => key.startsWith(`usuarios.${index}.`))
+    .forEach(key => delete errors[key])
+}
+
 async function focusFirstErrorField() {
   const firstKey = Object.keys(errors).find(key => errors[key])
   if (!firstKey) return
@@ -607,6 +763,17 @@ async function submit() {
   const regimenFiscal = form.regimenFiscal.trim()
   const usoCfdiDefault = form.usoCfdiDefault.trim()
   const comentarios = form.comentarios.trim()
+
+  const usuariosNormalizados = form.usuarios
+    .map(usuario => ({
+      nombre: usuario.nombre.trim(),
+      puesto: usuario.puesto.trim(),
+      email: usuario.email.trim().toLowerCase(),
+      telefonoDigits: usuario.telefono.replace(/\D/g, ''),
+    }))
+    .filter(
+      usuario => !!usuario.nombre || !!usuario.puesto || !!usuario.email || !!usuario.telefonoDigits
+    )
 
   if (!['empresa', 'persona'].includes(tipo)) {
     errors.tipo = 'Selecciona un tipo válido'
@@ -644,6 +811,28 @@ async function submit() {
     errors.telefono = 'Debe contener exactamente 10 dígitos'
   }
 
+  usuariosNormalizados.forEach((usuario, index) => {
+    if (!usuario.nombre) {
+      errors[`usuarios.${index}.nombre`] = 'El nombre es obligatorio'
+    } else if (usuario.nombre.length < 2) {
+      errors[`usuarios.${index}.nombre`] = 'Debe tener al menos 2 caracteres'
+    } else if (usuario.nombre.length > 120) {
+      errors[`usuarios.${index}.nombre`] = 'No puede exceder 120 caracteres'
+    }
+
+    if (usuario.puesto.length > 120) {
+      errors[`usuarios.${index}.puesto`] = 'No puede exceder 120 caracteres'
+    }
+
+    if (usuario.email && !isValidEmail(usuario.email)) {
+      errors[`usuarios.${index}.email`] = 'El correo electrónico es inválido'
+    }
+
+    if (usuario.telefonoDigits && !isValidPhone(usuario.telefonoDigits)) {
+      errors[`usuarios.${index}.telefono`] = 'Debe contener exactamente 10 dígitos'
+    }
+  })
+
   if (Number.isNaN(diasCredito) || !Number.isInteger(diasCredito)) {
     errors.diasCredito = 'Debe ser un número entero'
   } else if (diasCredito < 0 || diasCredito > 365) {
@@ -656,7 +845,7 @@ async function submit() {
     errors.limiteCredito = 'No puede ser negativo'
   }
 
-  if (!['30', '45', '60', '90'].includes(condicionPago)) {
+  if (!['0', '7', '15', '30', '45', '60', '90'].includes(condicionPago)) {
     errors.condicionPago = 'Selecciona una condición de pago válida'
   }
 
@@ -680,10 +869,17 @@ async function submit() {
 
   if (firstError) {
     const [key, message] = firstError
-    ui.showToast('warning', `${fieldLabels[key] || key}: ${message}`)
+    ui.showToast('warning', `${getErrorLabel(key)}: ${message}`)
     await focusFirstErrorField()
     return
   }
+
+  const usuariosPayload: ClientUsuario[] = usuariosNormalizados.map(usuario => ({
+    nombre: usuario.nombre,
+    puesto: optionalString(usuario.puesto),
+    email: optionalString(usuario.email),
+    telefono: usuario.telefonoDigits ? `${COUNTRY_CODE}${usuario.telefonoDigits}` : undefined,
+  }))
 
   const payload: CreateClientDto = {
     tipo,
@@ -698,6 +894,7 @@ async function submit() {
     rfc: optionalString(rfc),
     email: optionalString(email),
     telefono: telefonoDigits ? `${COUNTRY_CODE}${telefonoDigits}` : undefined,
+    usuarios: usuariosPayload,
     clasificacionFiscal: optionalString(clasificacionFiscal),
     regimenFiscal: optionalString(regimenFiscal),
     usoCfdiDefault: optionalString(usoCfdiDefault),
@@ -705,6 +902,5 @@ async function submit() {
   }
 
   emit('submit', payload)
-  open.value = false
 }
 </script>

@@ -65,7 +65,7 @@ export const sidebarMenu: SidebarMenuItem[] = [
   // INVENTARIO
   // =====================
   {
-    label: 'Inventario',
+    label: 'Almacen',
     icon: 'home',
     permission: 'products:list',
     children: [
