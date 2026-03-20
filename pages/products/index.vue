@@ -1,18 +1,10 @@
 <template>
   <div class="space-y-6">
-    <!-- =====================================================
-     HEADER
-===================================================== -->
-    <!-- =====================================================
-     HEADER
-===================================================== -->
     <div class="space-y-4">
-      <!-- Title -->
       <div class="flex items-start justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Productos</h1>
-
-          <p class="text-sm opacity-60 mt-1">Catálogo general de productos</p>
+          <p class="mt-1 text-sm opacity-60">Catálogo general de productos</p>
         </div>
 
         <ClientOnly>
@@ -28,19 +20,18 @@
         </ClientOnly>
       </div>
 
-      <!-- Filters -->
       <div
-        class="flex flex-col lg:flex-row lg:items-end gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+        class="flex flex-col gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4 lg:flex-row lg:items-end"
       >
-        <!-- Search -->
         <div class="w-full lg:w-[40%]">
-          <label class="text-xs opacity-70 block mb-1"> Buscar </label>
+          <label class="mb-1 block text-xs opacity-70">Buscar</label>
 
           <UiInput
-            v-model="search"
+            :model-value="search"
             size="sm"
             placeholder="Producto, número de parte o marca..."
             class="w-full"
+            @update:model-value="updateSearch"
           >
             <template #prefix>
               <Icon name="search" size="sm" />
@@ -48,9 +39,8 @@
           </UiInput>
         </div>
 
-        <!-- Family -->
         <div class="w-full lg:w-[25%]">
-          <label class="text-xs opacity-70 block mb-1"> Familia </label>
+          <label class="mb-1 block text-xs opacity-70">Familia</label>
 
           <UiSelect
             v-model="selectedFamilyId"
@@ -61,9 +51,8 @@
           />
         </div>
 
-        <!-- Category -->
         <div class="w-full lg:w-[25%]">
-          <label class="text-xs opacity-70 block mb-1"> Categoría </label>
+          <label class="mb-1 block text-xs opacity-70">Categoría</label>
 
           <UiSelect
             v-model="selectedCategoryId"
@@ -75,8 +64,7 @@
           />
         </div>
 
-        <!-- Clear -->
-        <div class="w-full lg:w-[10%] flex items-end">
+        <div class="flex w-full items-end lg:w-[10%]">
           <UiButton size="sm" variant="outline" class="w-full" @click="clearFilters">
             Limpiar
           </UiButton>
@@ -86,7 +74,7 @@
 
     <ProductsTable
       :items="filteredItems"
-      :loading="store.loading"
+      :loading="store.loading || relationsLoading"
       :has-more="store.hasMore"
       @edit="openEdit"
       @delete="confirmDelete"
@@ -106,14 +94,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { useProductsStore } from '~/stores/products.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
-import { useDebounceFn } from '@vueuse/core'
-
 import ProductsTable from '~/components/products/ProductsTable.vue'
 import ProductDialog from '~/components/products/ProductDialog.vue'
 import type { Product } from '~/types/product'
@@ -124,14 +111,33 @@ definePageMeta({
   permission: 'products:list',
 })
 
+const store = useProductsStore()
+const auth = useAuthStore()
+const ui = useUiStore()
+const familiesStore = useProductFamiliesStore()
+const categoriesStore = useProductCategoriesStore()
+
+const relationsLoading = ref(false)
+
 const search = ref('')
+const selectedFamilyId = ref('')
+const selectedCategoryId = ref('')
 
-const runSearch = useDebounceFn(async (v: string) => {
-  store.setSearch(v)
-  await store.fetch()
-}, 400)
+const dialogOpen = ref(false)
+const dialogMode = ref<'create' | 'edit'>('create')
+const selected = ref<Product | null>(null)
 
-watch(search, runSearch)
+function normalizeText(value: unknown) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim()
+}
+
+function updateSearch(value: string | number | null | undefined) {
+  search.value = String(value ?? '').toUpperCase()
+}
 
 const familyOptions = computed(() => [
   { label: 'Todas las familias', value: '' },
@@ -143,60 +149,73 @@ const familyOptions = computed(() => [
 
 const categoryOptions = computed(() => [
   { label: 'Todas las categorías', value: '' },
-  ...categoriesStore.items.map(c => ({
-    label: c.name,
-    value: c.id,
-  })),
+  ...categoriesStore.items
+    .filter(c => !selectedFamilyId.value || c.familyId === selectedFamilyId.value)
+    .map(c => ({
+      label: c.name,
+      value: c.id,
+    })),
 ])
 
-const store = useProductsStore()
-const auth = useAuthStore()
-const ui = useUiStore()
-const familiesStore = useProductFamiliesStore()
-const categoriesStore = useProductCategoriesStore()
+const runSearch = useDebounceFn(async (value: string) => {
+  const normalized = normalizeText(value)
 
-const selectedFamilyId = ref('')
-const selectedCategoryId = ref('')
+  store.setSearch(normalized)
+  await store.fetch()
+  await ensureCategoryRelations()
+}, 400)
 
-const dialogOpen = ref(false)
-const dialogMode = ref<'create' | 'edit'>('create')
-const selected = ref<Product | null>(null)
-
-onMounted(async () => {
-  store.reset()
-  await Promise.all([store.fetch(), familiesStore.fetch()])
+watch(search, value => {
+  runSearch(value)
 })
 
 watch(selectedFamilyId, async id => {
   selectedCategoryId.value = ''
+
   if (id) {
-    await categoriesStore.fetchByFamily(id)
+    await categoriesStore.fetchByFamily(id, true)
   } else {
-    categoriesStore.clear()
+    await ensureCategoryRelations()
   }
 })
 
-watch(search, async v => {
-  store.setSearch(v)
-  await store.fetch()
-})
-
 const filteredItems = computed(() => {
-  return store.items.filter(p => {
+  return store.items.filter((p: Product) => {
     if (selectedFamilyId.value && p.familyId !== selectedFamilyId.value) return false
     if (selectedCategoryId.value && p.categoryId !== selectedCategoryId.value) return false
     return true
   })
 })
 
+async function ensureCategoryRelations() {
+  try {
+    relationsLoading.value = true
+
+    const familyIds = Array.from(
+      new Set(store.items.map((item: Product) => item?.familyId).filter(Boolean))
+    ) as string[]
+
+    if (!familyIds.length) return
+
+    await categoriesStore.fetchManyFamilies(familyIds, false)
+  } catch (error) {
+    console.error('Error loading category relations:', error)
+  } finally {
+    relationsLoading.value = false
+  }
+}
+
 function clearFilters() {
+  search.value = ''
   selectedFamilyId.value = ''
   selectedCategoryId.value = ''
-  categoriesStore.clear()
+
+  store.setSearch('')
+  store.fetch().then(() => ensureCategoryRelations())
 }
 
 function loadMore() {
-  store.fetch()
+  store.fetch().then(() => ensureCategoryRelations())
 }
 
 function openCreate() {
@@ -230,4 +249,12 @@ async function handleSubmit() {
     dialogMode.value === 'create' ? 'Producto creado' : 'Producto actualizado'
   )
 }
+
+onMounted(async () => {
+  store.reset()
+  categoriesStore.reset()
+
+  await Promise.all([store.fetch(), familiesStore.fetch()])
+  await ensureCategoryRelations()
+})
 </script>

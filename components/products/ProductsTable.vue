@@ -1,8 +1,5 @@
 <template>
   <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <!-- =========================
-         DESKTOP TABLE (md+)
-    ========================== -->
     <div class="hidden overflow-x-auto rounded-2xl border border-base-300 md:block">
       <table class="table w-full text-sm">
         <thead class="bg-base-200 text-xs uppercase tracking-wider">
@@ -27,7 +24,6 @@
           <tr v-for="p in items" :key="p.id" class="transition hover:bg-base-200/40">
             <td>
               <div class="flex items-start gap-4">
-                <!-- Imagen -->
                 <div class="shrink-0">
                   <div
                     class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-sm"
@@ -43,7 +39,6 @@
                     <div
                       v-else
                       class="flex h-full w-full items-center justify-center bg-gradient-to-br from-base-200 to-base-300/60"
-                      aria-label="Sin imagen"
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -53,7 +48,6 @@
                         stroke-width="1.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        aria-hidden="true"
                       >
                         <rect x="3" y="5" width="18" height="14" rx="2"></rect>
                         <circle cx="9" cy="10" r="1.5"></circle>
@@ -63,7 +57,6 @@
                   </div>
                 </div>
 
-                <!-- Info -->
                 <div class="min-w-0 flex-1">
                   <div
                     class="truncate text-sm font-semibold text-base-content md:text-[15px]"
@@ -102,14 +95,6 @@
                     </span>
 
                     <span
-                      v-else-if="shouldShowCategoryLoading(p)"
-                      class="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-3 py-1 text-[11px] font-medium text-warning shadow-sm"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-                      Cargando categoría...
-                    </span>
-
-                    <span
                       v-else
                       class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
                     >
@@ -132,9 +117,9 @@
             <td>
               <div
                 class="inline-flex max-w-[240px] items-center rounded-xl border border-base-300 bg-base-200/60 px-3 py-2 font-mono text-xs"
-                :title="p.sku"
+                :title="p.partNumber"
               >
-                <span class="truncate">{{ p.sku || '—' }}</span>
+                <span class="truncate">{{ p.partNumber || '—' }}</span>
               </div>
             </td>
 
@@ -178,7 +163,6 @@
       </table>
     </div>
 
-    <!-- MOBILE -->
     <div class="space-y-3 md:hidden">
       <div
         v-if="loading"
@@ -217,7 +201,6 @@
               <div
                 v-else
                 class="flex h-full w-full items-center justify-center bg-gradient-to-br from-base-200 to-base-300/60"
-                aria-label="Sin imagen"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -227,7 +210,6 @@
                   stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  aria-hidden="true"
                 >
                   <rect x="3" y="5" width="18" height="14" rx="2"></rect>
                   <circle cx="9" cy="10" r="1.5"></circle>
@@ -248,7 +230,7 @@
               <div
                 class="inline-flex max-w-full items-center rounded-xl border border-base-300 bg-base-200/60 px-3 py-1.5 font-mono text-[11px]"
               >
-                <span class="truncate">{{ p.sku || '—' }}</span>
+                <span class="truncate">{{ p.partNumber || '—' }}</span>
               </div>
             </div>
 
@@ -278,27 +260,11 @@
               </span>
 
               <span
-                v-else-if="shouldShowCategoryLoading(p)"
-                class="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-3 py-1 text-[11px] font-medium text-warning shadow-sm"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-warning"></span>
-                Cargando categoría...
-              </span>
-
-              <span
                 v-else
                 class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
               >
                 <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
                 Sin categoría
-              </span>
-
-              <span
-                v-if="!productImage(p)"
-                class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
-                Sin imagen
               </span>
             </div>
 
@@ -335,12 +301,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed } from 'vue'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
+import type { Product, ProductImage } from '~/types/product'
 
-const props = defineProps<{
-  items: any[]
+defineProps<{
+  items: Product[]
   loading: boolean
   hasMore: boolean
 }>()
@@ -351,110 +318,25 @@ const familiesStore = useProductFamiliesStore()
 const categoriesStore = useProductCategoriesStore()
 
 const familyMap = computed(() => {
-  return new Map((familiesStore.items || []).map((item: any) => [item.id, item.name]))
+  return new Map((familiesStore.items || []).map(item => [item.id, item.name]))
 })
 
 const categoryMap = computed(() => {
-  return new Map((categoriesStore.items || []).map((item: any) => [item.id, item.name]))
+  return new Map((categoriesStore.items || []).map(item => [item.id, item.name]))
 })
 
-function getInlineFamilyName(product: any): string | null {
-  return product?.familyName || product?.family?.name || null
+function familyName(product: Product): string | null {
+  return familyMap.value.get(product.familyId) || null
 }
 
-function getInlineCategoryName(product: any): string | null {
-  return product?.categoryName || product?.category?.name || null
+function categoryName(product: Product): string | null {
+  return categoryMap.value.get(product.categoryId) || null
 }
 
-function familyName(product: any): string | null {
-  return getInlineFamilyName(product) || familyMap.value.get(product?.familyId) || null
-}
+function productImage(product: Product): string | null {
+  if (!Array.isArray(product.images) || !product.images.length) return null
 
-function categoryName(product: any): string | null {
-  return getInlineCategoryName(product) || categoryMap.value.get(product?.categoryId) || null
-}
-
-function shouldShowCategoryLoading(product: any): boolean {
-  if (!product?.categoryId) return false
-  if (categoryName(product)) return false
-  if (!product?.familyId) return false
-
-  return !categoriesStore.wasFamilyTried?.(product.familyId)
-}
-
-async function ensureRelationsLoaded() {
-  try {
-    const familiesAction = (familiesStore as any).fetch
-    if (!familiesStore.items?.length && typeof familiesAction === 'function') {
-      await familiesAction.call(familiesStore)
-    }
-
-    const missingFamilyIds = Array.from(
-      new Set(
-        (props.items || [])
-          .filter((item: any) => item?.familyId && item?.categoryId && !categoryName(item))
-          .map((item: any) => item.familyId)
-      )
-    )
-
-    if (!missingFamilyIds.length) return
-
-    if (typeof categoriesStore.fetchManyFamilies === 'function') {
-      await categoriesStore.fetchManyFamilies(missingFamilyIds)
-      return
-    }
-
-    const fetchByFamily = (categoriesStore as any).fetchByFamily || (categoriesStore as any).fetch
-    if (typeof fetchByFamily === 'function') {
-      await Promise.allSettled(
-        missingFamilyIds.map((familyId: string) => fetchByFamily.call(categoriesStore, familyId))
-      )
-    }
-  } catch (error) {
-    console.error('Error loading product relations:', error)
-  }
-}
-
-onMounted(async () => {
-  await ensureRelationsLoaded()
-})
-
-watch(
-  () => props.items,
-  async () => {
-    await ensureRelationsLoaded()
-  },
-  { deep: true, immediate: true }
-)
-
-function productImage(product: any): string | null {
-  if (!product || typeof product !== 'object') return null
-
-  const candidates = [
-    product.imageUrl,
-    product.image,
-    product.photoUrl,
-    product.thumbnailUrl,
-    product.thumbnail,
-    product.previewUrl,
-    Array.isArray(product.images) ? product.images[0] : null,
-  ]
-
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate.trim()
-    }
-
-    if (
-      candidate &&
-      typeof candidate === 'object' &&
-      typeof candidate.url === 'string' &&
-      candidate.url.trim()
-    ) {
-      return candidate.url.trim()
-    }
-  }
-
-  return null
+  const main = product.images.find((img: ProductImage) => img.isMain)
+  return main?.url || product.images[0]?.url || null
 }
 </script>
