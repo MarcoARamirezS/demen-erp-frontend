@@ -7,6 +7,8 @@ export const useClientsStore = defineStore('clients', {
     selected: null as Client | null,
     loading: false,
     cursor: null as string | null,
+    lastLimit: 10,
+    lastSearch: '',
   }),
 
   actions: {
@@ -17,14 +19,19 @@ export const useClientsStore = defineStore('clients', {
       this.loading = true
 
       try {
-        const params: Record<string, any> = { limit }
+        this.lastLimit = limit
+        this.lastSearch = search
 
-        if (this.cursor) params.cursor = this.cursor
-        if (search) params.search = search
+        const query: Record<string, any> = { limit }
 
-        const res = await useApi('/clients', { query: params })
+        if (this.cursor) query.cursor = this.cursor
+        if (search) query.search = search
 
-        this.items = res.items
+        const res = await useApi<{ items: Client[]; nextCursor?: string | null }>('/clients', {
+          query,
+        })
+
+        this.items = res.items ?? []
         this.cursor = res.nextCursor ?? null
       } finally {
         this.loading = false
@@ -41,30 +48,54 @@ export const useClientsStore = defineStore('clients', {
     },
 
     async getById(id: string) {
-      const api = useApi
-      this.selected = await api(`/clients/${id}`)
+      this.selected = await useApi<Client>(`/clients/${id}`)
+      return this.selected
     },
 
     async create(payload: CreateClientDto) {
       this.loading = true
+
       try {
-        await useApi('/clients', {
+        const created = await useApi<Client>('/clients', {
           method: 'POST',
           body: payload,
         })
-        this.reset()
-        await this.fetch()
+
+        this.selected = created
+        this.cursor = null
+        await this.fetch(this.lastLimit, this.lastSearch)
+
+        return created
       } finally {
         this.loading = false
       }
     },
 
     async update(id: string, payload: Partial<CreateClientDto>) {
-      const api = useApi
-      await api(`/clients/${id}`, {
-        method: 'PATCH',
-        body: payload,
-      })
+      this.loading = true
+
+      try {
+        const updated = await useApi<Client>(`/clients/${id}`, {
+          method: 'PATCH',
+          body: payload,
+        })
+
+        const idx = this.items.findIndex(c => c.id === id)
+        if (idx !== -1) {
+          this.items[idx] = updated
+        }
+
+        if (this.selected?.id === id) {
+          this.selected = updated
+        }
+
+        this.cursor = null
+        await this.fetch(this.lastLimit, this.lastSearch)
+
+        return updated
+      } finally {
+        this.loading = false
+      }
     },
 
     async toggleActive(id: string, activo: boolean) {

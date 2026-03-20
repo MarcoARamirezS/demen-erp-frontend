@@ -1,13 +1,33 @@
-export type CondicionPago = '30' | '45' | '60' | '90'
+export type ClientTipo = 'empresa' | 'persona'
+export type CondicionPago = '0' | '7' | '15' | '30' | '45' | '60' | '90'
 
-export interface Client {
-  id: string
-  tipo: 'empresa' | 'persona'
+export type FireTimestamp =
+  | Date
+  | string
+  | number
+  | {
+      _seconds?: number
+      _nanoseconds?: number
+      seconds?: number
+      nanoseconds?: number
+    }
+  | null
+
+export interface ClientUsuario {
+  nombre: string
+  puesto?: string
+  email?: string
+  telefono?: string
+}
+
+export interface CreateClientDto {
+  tipo: ClientTipo
   nombreComercial: string
   razonSocial: string
   rfc?: string
   telefono?: string
   email?: string
+  usuarios?: ClientUsuario[]
 
   diasCredito: number
   limiteCredito: number
@@ -17,11 +37,15 @@ export interface Client {
   regimenFiscal?: string
   usoCfdiDefault?: string
 
-  aplicaRepse: boolean
-  aplicaPortalFacturacion: boolean
+  aplicaRepse?: boolean
+  aplicaPortalFacturacion?: boolean
 
-  comentarios?: string | null
-  activo: boolean
+  comentarios?: string
+  activo?: boolean
 }
 
-export type CreateClientDto = Omit<Client, 'id'>
+export interface Client extends CreateClientDto {
+  id: string
+  createdAt?: FireTimestamp
+  updatedAt?: FireTimestamp
+}
