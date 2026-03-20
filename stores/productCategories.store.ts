@@ -4,60 +4,98 @@ import { useApi } from '~/composables/useApi'
 export interface ProductCategory {
   id: string
   name: string
-  familyId: string
+  familyId?: string
   active?: boolean
 }
+
+type FetchResponse =
+  | ProductCategory[]
+  | {
+      items?: ProductCategory[]
+      nextCursor?: string | null
+    }
 
 export const useProductCategoriesStore = defineStore('productCategories', {
   state: () => ({
     items: [] as ProductCategory[],
     loading: false,
-    currentFamilyId: null as string | null,
+    loadedFamilyIds: [] as string[],
+    triedFamilyIds: [] as string[],
+    allLoaded: false,
   }),
 
   actions: {
-    async fetchByFamily(familyId: string) {
-      if (!familyId) {
-        this.items = []
-        this.currentFamilyId = null
-        return
+    normalizeResponse(res: FetchResponse): ProductCategory[] {
+      if (Array.isArray(res)) return res
+      return res?.items ?? []
+    },
+
+    upsertMany(categories: ProductCategory[]) {
+      const map = new Map(this.items.map(item => [item.id, item]))
+
+      for (const category of categories) {
+        map.set(category.id, category)
+      }
+
+      this.items = Array.from(map.values())
+    },
+
+    markFamilyLoaded(familyId: string) {
+      if (!this.loadedFamilyIds.includes(familyId)) this.loadedFamilyIds.push(familyId)
+      if (!this.triedFamilyIds.includes(familyId)) this.triedFamilyIds.push(familyId)
+    },
+
+    markFamilyTried(familyId: string) {
+      if (!this.triedFamilyIds.includes(familyId)) this.triedFamilyIds.push(familyId)
+    },
+
+    wasFamilyTried(familyId?: string) {
+      if (!familyId) return false
+      return this.triedFamilyIds.includes(familyId)
+    },
+
+    async fetchByFamily(familyId: string, force = false) {
+      if (!familyId) return []
+
+      if (!force && this.loadedFamilyIds.includes(familyId)) {
+        return this.items.filter(item => item.familyId === familyId)
       }
 
       this.loading = true
-      const data = await useApi<ProductCategory[]>('/product-categories', {
-        query: { familyId },
-      })
-      this.items = data
-      this.currentFamilyId = familyId
-      this.loading = false
+
+      try {
+        const res = await useApi<FetchResponse>('/product-categories', {
+          query: {
+            familyId,
+            limit: 100,
+          },
+        })
+
+        const incoming = this.normalizeResponse(res)
+        this.upsertMany(incoming)
+        this.markFamilyLoaded(familyId)
+
+        return incoming
+      } catch (error) {
+        this.markFamilyTried(familyId)
+        throw error
+      } finally {
+        this.loading = false
+      }
     },
 
-    async create(payload: Partial<ProductCategory>) {
-      const category = await useApi<ProductCategory>('/product-categories', {
-        method: 'POST',
-        body: payload,
-      })
-      this.items.unshift(category)
-      return category
+    async fetchManyFamilies(familyIds: string[], force = false) {
+      const uniqueIds = Array.from(new Set(familyIds.filter(Boolean)))
+
+      await Promise.allSettled(uniqueIds.map(familyId => this.fetchByFamily(familyId, force)))
     },
 
-    async update(id: string, payload: Partial<ProductCategory>) {
-      const updated = await useApi<ProductCategory>(`/product-categories/${id}`, {
-        method: 'PATCH',
-        body: payload,
-      })
-      const idx = this.items.findIndex(i => i.id === id)
-      if (idx !== -1) this.items[idx] = updated
-    },
-
-    async remove(id: string) {
-      await useApi(`/product-categories/${id}`, { method: 'DELETE' })
-      this.items = this.items.filter(i => i.id !== id)
-    },
-
-    clear() {
+    reset() {
       this.items = []
-      this.currentFamilyId = null
+      this.loading = false
+      this.loadedFamilyIds = []
+      this.triedFamilyIds = []
+      this.allLoaded = false
     },
   },
 })

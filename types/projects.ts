@@ -1,70 +1,69 @@
-export interface ProjectImage {
-  publicId: string
-  url: string
-  secureUrl: string
-  isMain: boolean
-  uploadedAt: any
+export type FireTimestamp =
+  | Date
+  | string
+  | number
+  | {
+      _seconds?: number
+      _nanoseconds?: number
+      seconds?: number
+      nanoseconds?: number
+    }
+  | null
+
+export interface ProductImageRef {
+  url?: string
+  secureUrl?: string
+  thumbnailUrl?: string
+  publicId?: string
+  alt?: string
 }
 
-export type ProjectStatus =
-  | 'AUTH_PENDING'
-  | 'AUTHORIZED'
-  | 'IN_EXECUTION'
-  | 'COMPLETED'
-  | 'NOT_ASSIGNED'
-  | 'IN_QUOTATION'
-
-export type ProjectSortBy = 'createdAt' | 'clientName' | 'projectNumber' | 'fecha'
-export type ProjectSortDir = 'asc' | 'desc'
-
-export interface ProjectRelatedRef {
+export interface Product {
   id: string
   name: string
+  sku: string
+  unit: string
+
+  brand?: string
+  description?: string
+
+  familyId?: string
+  categoryId?: string
+
+  activo?: boolean
+
+  imageUrl?: string
+  image?: string
+  photoUrl?: string
+  thumbnailUrl?: string
+  thumbnail?: string
+  previewUrl?: string
+  images?: Array<string | ProductImageRef>
+
+  createdAt?: FireTimestamp
+  updatedAt?: FireTimestamp
 }
 
-export interface Project {
-  id: string
-  projectNumber: string
+export interface CreateProductDto {
+  name: string
+  sku: string
+  unit: string
 
-  clientId: string
-  branchId: string
+  brand?: string
+  description?: string
 
-  plantaCliente?: string | null
-  objetivoFuncionalCliente?: string | null
-  realizaLevantamiento?: string | null
-  personaAQuienVisita?: string | null
+  familyId?: string
+  categoryId?: string
 
-  fecha?: string | null
-  visitDate?: any
+  activo?: boolean
 
-  status: ProjectStatus
-  statusHistory?: any[]
-
-  isActive: boolean
-
-  images?: ProjectImage[]
-
-  client?: ProjectRelatedRef | null
-  branch?: ProjectRelatedRef | null
-
-  createdAt?: any
-  updatedAt?: any
+  imageUrl?: string
+  image?: string
+  photoUrl?: string
+  thumbnailUrl?: string
+  thumbnail?: string
+  previewUrl?: string
+  images?: Array<string | ProductImageRef>
 }
 
-export interface CreateProjectDto {
-  clientId: string
-  branchId: string
-  plantaCliente?: string | null
-  objetivoFuncionalCliente?: string | null
-  realizaLevantamiento?: string | null
-  personaAQuienVisita?: string | null
-  fecha?: string | null
-}
-
-export interface ProjectListFilters {
-  status?: ProjectStatus
-  clientId?: string
-  search?: string
-  sortBy?: ProjectSortBy
-  sortDir?: ProjectSortDir
-}
+export type UpdateProductDto = Partial<CreateProductDto>

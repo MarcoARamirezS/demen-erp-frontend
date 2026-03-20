@@ -12,18 +12,18 @@
           <p class="text-sm opacity-60">Catálogo dependiente de familias</p>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row">
           <UiSelect
             v-model="selectedFamilyId"
             size="sm"
-            class="min-w-[220px]"
+            class="min-w-[240px]"
             placeholder="Selecciona una familia"
             :options="familyOptions"
           />
 
           <ClientOnly>
             <UiButton
-              v-if="selectedFamilyId && auth.hasPermission('product_categories:create')"
+              v-if="auth.hasPermission('product_categories:create')"
               icon="plus"
               variant="primary"
               @click="openCreate"
@@ -51,14 +51,13 @@
           <Icon name="search" class="absolute left-3 top-2.5 h-4 w-4 opacity-50" />
           <input
             v-model="search"
-            class="input input-sm input-bordered w-40 md:w-56 pl-9"
+            class="input input-sm input-bordered w-40 pl-9 md:w-56"
             placeholder="Buscar categoría..."
-            :disabled="!selectedFamilyId"
           />
         </div>
 
         <button class="btn btn-sm btn-outline" @click="resetFilters">
-          <Icon name="x-circle" class="h-4 w-4 mr-1" />
+          <Icon name="x-circle" class="mr-1 h-4 w-4" />
           Limpiar
         </button>
       </div>
@@ -71,14 +70,15 @@
           <thead class="bg-base-200 text-xs uppercase tracking-wider">
             <tr>
               <th>Nombre</th>
-              <th class="text-right w-[100px]">Acciones</th>
+              <th class="hidden md:table-cell">Familia</th>
+              <th class="w-[100px] text-right">Acciones</th>
             </tr>
           </thead>
 
           <!-- LOADING -->
-          <tbody v-if="categoriesStore.loading && selectedFamilyId">
+          <tbody v-if="categoriesStore.loading">
             <tr v-for="i in 5" :key="i">
-              <td colspan="2">
+              <td colspan="3">
                 <div class="h-10 w-full animate-pulse rounded bg-base-200"></div>
               </td>
             </tr>
@@ -89,20 +89,28 @@
             <tr
               v-for="c in filtered"
               :key="c.id"
-              class="border-b border-base-200 hover:bg-base-200/40 transition"
+              class="border-b border-base-200 transition hover:bg-base-200/40"
             >
               <td>
                 <div class="flex items-center gap-3">
                   <div
-                    class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold"
+                    class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
                   >
                     {{ c.name?.charAt(0) || '?' }}
                   </div>
 
-                  <div class="font-semibold truncate max-w-[300px]">
+                  <div class="max-w-[320px] truncate font-semibold">
                     {{ c.name }}
                   </div>
                 </div>
+              </td>
+
+              <td class="hidden md:table-cell">
+                <span
+                  class="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                >
+                  {{ familyName(c.familyId) || 'Sin familia' }}
+                </span>
               </td>
 
               <td class="text-right">
@@ -129,22 +137,10 @@
             </tr>
           </tbody>
 
-          <!-- EMPTY: SIN RESULTADOS -->
-          <tbody v-else-if="selectedFamilyId">
-            <tr>
-              <td colspan="2" class="p-6 text-center opacity-70">No hay categorías registradas</td>
-            </tr>
-          </tbody>
-
-          <!-- EMPTY: NO SELECCIONADO -->
+          <!-- EMPTY -->
           <tbody v-else>
             <tr>
-              <td colspan="2" class="p-10 text-center opacity-60">
-                <div class="flex flex-col items-center gap-2">
-                  <Icon name="layers" class="h-6 w-6 opacity-50" />
-                  <span>Selecciona una familia para ver sus categorías</span>
-                </div>
-              </td>
+              <td colspan="3" class="p-10 text-center opacity-60">No hay categorías registradas</td>
             </tr>
           </tbody>
         </table>
@@ -153,33 +149,42 @@
       <!-- =========================
       MOBILE CARDS
       ========================== -->
-      <div v-if="selectedFamilyId" class="md:hidden space-y-3">
+      <div class="space-y-3 md:hidden">
         <div
           v-for="c in filtered"
           :key="c.id"
-          class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm flex justify-between items-center"
+          class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
         >
-          <div class="flex items-center gap-3">
-            <div
-              class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold"
-            >
-              {{ c.name?.charAt(0) || '?' }}
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-3">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
+              >
+                {{ c.name?.charAt(0) || '?' }}
+              </div>
+
+              <div class="min-w-0">
+                <div class="truncate font-medium">{{ c.name }}</div>
+                <div class="mt-1 text-xs opacity-60">
+                  {{ familyName(c.familyId) || 'Sin familia' }}
+                </div>
+              </div>
             </div>
 
-            <div class="font-medium">
-              {{ c.name }}
+            <div class="flex gap-2">
+              <button class="btn btn-circle btn-sm btn-ghost" @click="openEdit(c)">
+                <Icon name="edit" />
+              </button>
+
+              <button class="btn btn-circle btn-sm btn-ghost text-error" @click="confirmDelete(c)">
+                <Icon name="trash" />
+              </button>
             </div>
           </div>
+        </div>
 
-          <div class="flex gap-2">
-            <button class="btn btn-circle btn-sm btn-ghost" @click="openEdit(c)">
-              <Icon name="edit" />
-            </button>
-
-            <button class="btn btn-circle btn-sm btn-ghost text-error" @click="confirmDelete(c)">
-              <Icon name="trash" />
-            </button>
-          </div>
+        <div v-if="!categoriesStore.loading && !filtered.length" class="p-6 text-center opacity-60">
+          No hay categorías registradas
         </div>
       </div>
     </div>
@@ -201,12 +206,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useProductFamiliesStore } from '~/stores/productFamilies.store'
 import { useProductCategoriesStore } from '~/stores/productCategories.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
-
 import ProductCategoryDialog from '~/components/product-categories/ProductCategoryDialog.vue'
 
 definePageMeta({
@@ -215,48 +219,57 @@ definePageMeta({
   permission: 'product_categories:list',
 })
 
-const familyOptions = computed(() => [
-  { label: 'Selecciona una familia', value: '' },
-  ...familiesStore.items.map(f => ({
-    label: f.name,
-    value: f.id,
-  })),
-])
-
 const familiesStore = useProductFamiliesStore()
 const categoriesStore = useProductCategoriesStore()
 const auth = useAuthStore()
 const ui = useUiStore()
 
 const selectedFamilyId = ref<string>('')
-
 const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const selected = ref<any | null>(null)
-
 const search = ref('')
 
-const filtered = computed(() => {
-  if (!search.value) return categoriesStore.items
+const familyOptions = computed(() => [
+  { label: 'Todas las familias', value: '' },
+  ...familiesStore.items.map(f => ({
+    label: f.name,
+    value: f.id,
+  })),
+])
 
-  return categoriesStore.items.filter(c =>
-    c.name.toLowerCase().includes(search.value.toLowerCase())
-  )
+const filtered = computed(() => {
+  const base = selectedFamilyId.value
+    ? categoriesStore.items.filter(c => c.familyId === selectedFamilyId.value)
+    : categoriesStore.items
+
+  if (!search.value.trim()) return base
+
+  const q = search.value.toLowerCase().trim()
+  return base.filter(c => c.name?.toLowerCase().includes(q))
 })
+
+function familyName(id?: string) {
+  return familiesStore.items.find(f => f.id === id)?.name
+}
 
 function resetFilters() {
   search.value = ''
+  selectedFamilyId.value = ''
 }
 
-onMounted(() => {
-  familiesStore.fetch()
+onMounted(async () => {
+  await familiesStore.fetch()
+  await categoriesStore.fetchAll()
 })
 
 watch(selectedFamilyId, async id => {
+  search.value = ''
+
   if (id) {
     await categoriesStore.fetchByFamily(id)
   } else {
-    categoriesStore.clear()
+    await categoriesStore.fetchAll()
   }
 })
 
@@ -290,6 +303,13 @@ async function handleSubmit(payload: any) {
   } else if (selected.value) {
     await categoriesStore.update(selected.value.id, payload)
   }
+
+  if (selectedFamilyId.value) {
+    await categoriesStore.fetchByFamily(selectedFamilyId.value, true)
+  } else {
+    await categoriesStore.fetchAll(true)
+  }
+
   dialogOpen.value = false
 }
 </script>
