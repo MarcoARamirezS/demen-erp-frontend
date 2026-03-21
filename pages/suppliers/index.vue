@@ -1,15 +1,10 @@
 <template>
   <div class="space-y-6">
-    <!-- =====================================================
-     HEADER
-===================================================== -->
     <div class="space-y-4">
-      <!-- Title -->
       <div class="flex items-start justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Proveedores</h1>
-
-          <p class="text-sm opacity-60 mt-1">Catálogo de proveedores del sistema</p>
+          <p class="mt-1 text-sm opacity-60">Catálogo de proveedores del sistema</p>
         </div>
 
         <ClientOnly>
@@ -25,18 +20,18 @@
         </ClientOnly>
       </div>
 
-      <!-- Search -->
       <div
-        class="flex flex-col lg:flex-row lg:items-end gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4"
+        class="flex flex-col gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4 lg:flex-row lg:items-end"
       >
         <div class="w-full lg:w-[40%]">
-          <label class="text-xs opacity-70 block mb-1"> Buscar proveedor </label>
+          <label class="mb-1 block text-xs opacity-70">Buscar proveedor</label>
 
           <UiInput
-            v-model="search"
+            :model-value="search"
             size="sm"
-            placeholder="Nombre, RFC, código, email..."
-            class="w-full"
+            placeholder="NOMBRE, RFC, CÓDIGO, EMAIL..."
+            class="w-full uppercase"
+            @update:model-value="handleSearchInput"
           >
             <template #prefix>
               <Icon name="search" size="sm" />
@@ -51,7 +46,7 @@
       :loading="store.loading"
       :has-more="store.hasMore"
       @edit="openEdit"
-      @delete="confirmDelete"
+      @remove="confirmDelete"
       @load-more="loadMore"
     />
 
@@ -75,18 +70,6 @@ import { useUiStore } from '~/stores/ui.store'
 import SuppliersTable from '~/components/suppliers/SuppliersTable.vue'
 import SupplierDialog from '~/components/suppliers/SupplierDialog.vue'
 import type { Supplier } from '~/types/supplier'
-const search = ref('')
-
-let searchTimeout: any = null
-
-watch(search, value => {
-  clearTimeout(searchTimeout)
-
-  searchTimeout = setTimeout(async () => {
-    store.setSearch(value)
-    await store.fetch()
-  }, 400)
-})
 
 definePageMeta({
   layout: 'default',
@@ -98,17 +81,56 @@ const store = useSuppliersStore()
 const auth = useAuthStore()
 const ui = useUiStore()
 
+const search = ref('')
 const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const selected = ref<Supplier | null>(null)
 
-onMounted(() => {
-  store.reset()
-  store.fetch()
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+function handleSearchInput(value: string | number) {
+  search.value = String(value ?? '').toUpperCase()
+}
+
+watch(search, value => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+
+  searchTimeout = setTimeout(async () => {
+    try {
+      store.setSearch(value)
+      await store.fetch()
+    } catch (error: any) {
+      ui.showToast(
+        'error',
+        error?.data?.message || error?.message || 'No se pudo cargar la lista de proveedores'
+      )
+    }
+  }, 250)
 })
 
-function loadMore() {
-  store.fetch()
+onMounted(async () => {
+  try {
+    store.reset()
+    await store.fetch()
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo cargar la lista de proveedores'
+    )
+  }
+})
+
+async function loadMore() {
+  if (store.loading || !store.hasMore) return
+
+  try {
+    await store.fetch()
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo cargar más proveedores'
+    )
+  }
 }
 
 function openCreate() {
@@ -126,21 +148,38 @@ function openEdit(item: Supplier) {
 function confirmDelete(item: Supplier) {
   ui.confirm({
     title: 'Eliminar proveedor',
-    message: `¿Eliminar el proveedor "${item.name}"?`,
+    message: `¿Eliminar el proveedor "${item.name}"? Esta acción no se puede deshacer.`,
     variant: 'danger',
     onConfirm: async () => {
-      await store.remove(item.id)
-      ui.showToast('success', 'Proveedor eliminado')
+      try {
+        await store.remove(item.id)
+        ui.showToast('success', 'Proveedor eliminado correctamente')
+      } catch (error: any) {
+        ui.showToast(
+          'error',
+          error?.data?.message || error?.message || 'No se pudo eliminar el proveedor'
+        )
+      }
     },
   })
 }
 
 async function handleSubmit(payload: any) {
-  if (dialogMode.value === 'create') {
-    await store.create(payload)
-  } else if (selected.value) {
-    await store.update(selected.value.id, payload)
+  try {
+    if (dialogMode.value === 'create') {
+      const created = await store.create(payload)
+      ui.showToast('success', `Proveedor creado correctamente: ${created?.code || ''}`.trim())
+    } else if (selected.value) {
+      await store.update(selected.value.id, payload)
+      ui.showToast('success', 'Proveedor actualizado correctamente')
+    }
+
+    dialogOpen.value = false
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo guardar el proveedor'
+    )
   }
-  dialogOpen.value = false
 }
 </script>

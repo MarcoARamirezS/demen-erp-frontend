@@ -21,13 +21,13 @@
           </div>
         </div>
 
-        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+        <button type="button" class="btn btn-circle btn-ghost btn-sm" @click="open = false">
           <Icon name="x" />
         </button>
       </header>
 
       <!-- CONTENT -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-8">
+      <section class="flex-1 space-y-8 overflow-y-auto px-6 py-6 pb-10">
         <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
@@ -54,13 +54,23 @@
           <h3 class="mb-4 text-sm font-semibold">Datos generales</h3>
 
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div data-error-field="code">
+            <div>
               <UiInput
-                v-model="form.code"
-                label="Código *"
-                placeholder="Ej: PROV-001"
-                :error="errors.code"
+                :model-value="form.code"
+                label="Código"
+                placeholder="Se generará automáticamente"
+                disabled
+                readonly
               />
+              <p class="mt-1 text-xs opacity-60">
+                <span v-if="mode === 'create' && nextCodeLoading">
+                  Consultando siguiente código disponible…
+                </span>
+                <span v-else-if="mode === 'create'">
+                  Vista previa del siguiente código. El definitivo se asigna al guardar.
+                </span>
+                <span v-else> Código autogenerado del proveedor. </span>
+              </p>
             </div>
 
             <div data-error-field="name">
@@ -258,7 +268,19 @@
               </div>
 
               <div :data-error-field="`account_number_${i}`">
-                <UiInput v-model="b.accountNumber" label="Cuenta" placeholder="Ej: 0123456789" />
+                <UiInput
+                  :model-value="b.accountNumber"
+                  label="Cuenta"
+                  placeholder="Ej: 0123456789"
+                  inputmode="numeric"
+                  maxlength="10"
+                  :error="errors[`account_number_${i}`]"
+                  @update:model-value="value => handleAccountNumberInput(i, value)"
+                  @blur="handleBankFieldBlur(i)"
+                />
+                <p class="mt-1 text-xs opacity-60">
+                  Solo números · {{ String(b.accountNumber || '').length }}/10
+                </p>
               </div>
 
               <div :data-error-field="`bank_currency_${i}`">
@@ -267,11 +289,18 @@
 
               <div class="md:col-span-2" :data-error-field="`clabe_${i}`">
                 <UiInput
-                  v-model="b.clabe"
+                  :model-value="b.clabe"
                   label="CLABE"
                   placeholder="Ej: 012180001234567890"
+                  inputmode="numeric"
+                  maxlength="18"
                   :error="errors[`clabe_${i}`]"
+                  @update:model-value="value => handleClabeInput(i, value)"
+                  @blur="handleBankFieldBlur(i)"
                 />
+                <p class="mt-1 text-xs opacity-60">
+                  Solo números · {{ String(b.clabe || '').length }}/18
+                </p>
               </div>
             </div>
           </div>
@@ -306,10 +335,11 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed, nextTick } from 'vue'
+import { reactive, watch, computed, nextTick, ref } from 'vue'
 import { useUiStore } from '~/stores/ui.store'
 
 type Currency = 'MXN' | 'USD'
+type DialogMode = 'create' | 'edit'
 
 type SupplierContactForm = {
   name: string
@@ -346,20 +376,35 @@ type SupplierForm = {
   active: boolean
 }
 
+type SupplierDialogModel = Partial<SupplierForm> | null
+
 const ui = useUiStore()
 
-const props = defineProps({
-  modelValue: Boolean,
-  mode: String,
-  model: Object,
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    mode?: DialogMode
+    model?: SupplierDialogModel
+  }>(),
+  {
+    modelValue: false,
+    mode: 'create',
+    model: null,
+  }
+)
 
-const emit = defineEmits(['update:modelValue', 'submit'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void
+  (e: 'submit', payload: Omit<SupplierForm, 'code'>): void
+}>()
 
 const open = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v),
 })
+
+const nextCodeLoading = ref(false)
+const nextCodeLoaded = ref(false)
 
 function getDefaultForm(): SupplierForm {
   return {
@@ -383,6 +428,7 @@ function getDefaultForm(): SupplierForm {
 
 const form = reactive<SupplierForm>(getDefaultForm())
 const errors = reactive<Record<string, string>>({})
+const limitWarningShown = reactive<Record<string, boolean>>({})
 
 watch(
   () => props.model,
@@ -411,6 +457,20 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => [props.modelValue, props.mode] as const,
+  async ([isOpen, mode]) => {
+    if (!isOpen) return
+
+    if (mode === 'create') {
+      await loadNextCodePreview()
+    } else {
+      nextCodeLoaded.value = false
+    }
+  },
+  { immediate: true }
+)
+
 const currencyOptions = [
   { label: 'MXN – Peso mexicano', value: 'MXN' },
   { label: 'USD – Dólar americano', value: 'USD' },
@@ -422,7 +482,6 @@ const bankCurrencyOptions = [
 ]
 
 const fieldLabels: Record<string, string> = {
-  code: 'Código',
   name: 'Nombre comercial',
   legalName: 'Razón social',
   rfc: 'RFC',
@@ -459,6 +518,9 @@ function getFieldLabel(key: string): string {
   const accountHolderMatch = key.match(/^account_holder_(\d+)$/)
   if (accountHolderMatch) return `Cuenta bancaria ${Number(accountHolderMatch[1]) + 1} · Titular`
 
+  const accountNumberMatch = key.match(/^account_number_(\d+)$/)
+  if (accountNumberMatch) return `Cuenta bancaria ${Number(accountNumberMatch[1]) + 1} · Cuenta`
+
   const clabeMatch = key.match(/^clabe_(\d+)$/)
   if (clabeMatch) return `Cuenta bancaria ${Number(clabeMatch[1]) + 1} · CLABE`
 
@@ -467,6 +529,30 @@ function getFieldLabel(key: string): string {
 
 function clearErrors() {
   Object.keys(errors).forEach(key => delete errors[key])
+}
+
+async function loadNextCodePreview() {
+  if (props.mode !== 'create') return
+
+  nextCodeLoading.value = true
+
+  try {
+    const response = await $fetch<{ nextCode?: string; nextSequence?: number }>(
+      '/api/suppliers/next-code'
+    )
+
+    form.code = response?.nextCode || ''
+    nextCodeLoaded.value = true
+  } catch (error) {
+    form.code = ''
+    nextCodeLoaded.value = false
+    ui.showToast(
+      'warning',
+      'No se pudo consultar el siguiente código. Se asignará automáticamente al guardar.'
+    )
+  } finally {
+    nextCodeLoading.value = false
+  }
 }
 
 function addContact() {
@@ -520,6 +606,66 @@ function isValidUrl(value: string) {
   }
 }
 
+function keepOnlyDigits(value: unknown) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
+function notifyDigitLimit(key: string, label: string, max: number) {
+  if (limitWarningShown[key]) return
+  limitWarningShown[key] = true
+  ui.showToast('warning', `${label}: máximo ${max} dígitos`)
+}
+
+function handleAccountNumberInput(index: number, value: unknown) {
+  const digits = keepOnlyDigits(value)
+  const fieldKey = `account_number_${index}`
+
+  if (digits.length > 10) {
+    notifyDigitLimit(fieldKey, `Cuenta bancaria ${index + 1} · Cuenta`, 10)
+  } else {
+    limitWarningShown[fieldKey] = false
+  }
+
+  form.bankAccounts[index].accountNumber = digits.slice(0, 10)
+
+  if (errors[fieldKey]) {
+    validateBankAccountRow(index)
+  }
+}
+
+function handleClabeInput(index: number, value: unknown) {
+  const digits = keepOnlyDigits(value)
+  const fieldKey = `clabe_${index}`
+
+  if (digits.length > 18) {
+    notifyDigitLimit(fieldKey, `Cuenta bancaria ${index + 1} · CLABE`, 18)
+  } else {
+    limitWarningShown[fieldKey] = false
+  }
+
+  form.bankAccounts[index].clabe = digits.slice(0, 18)
+
+  if (errors[fieldKey]) {
+    validateBankAccountRow(index)
+  }
+}
+
+function isValidClabe(value: string) {
+  if (!/^\d{18}$/.test(value)) return false
+
+  const factors = [3, 7, 1]
+  let sum = 0
+
+  for (let i = 0; i < 17; i += 1) {
+    const digit = Number(value[i])
+    const factor = factors[i % 3]
+    sum += (digit * factor) % 10
+  }
+
+  const checkDigit = (10 - (sum % 10)) % 10
+  return checkDigit === Number(value[17])
+}
+
 function hasAnyContactValue(contact: SupplierContactForm) {
   return !!(contact.name || contact.role || contact.email || contact.phone || contact.notes)
 }
@@ -550,13 +696,79 @@ function sanitizeBankAccounts(bankAccounts: SupplierBankAccountForm[]) {
   return bankAccounts.filter(hasAnyBankValue).map(bank => ({
     bankName: bank.bankName?.trim() || '',
     accountHolder: bank.accountHolder?.trim() || '',
-    accountNumber: bank.accountNumber?.trim() || '',
-    clabe: bank.clabe?.trim() || '',
+    accountNumber: keepOnlyDigits(bank.accountNumber).slice(0, 10),
+    clabe: keepOnlyDigits(bank.clabe).slice(0, 18),
     swift: bank.swift?.trim() || '',
     iban: bank.iban?.trim() || '',
     currency: bank.currency || 'MXN',
     notes: bank.notes?.trim() || '',
   }))
+}
+
+function validateBankAccountRow(index: number) {
+  delete errors[`bank_name_${index}`]
+  delete errors[`account_holder_${index}`]
+  delete errors[`account_number_${index}`]
+  delete errors[`clabe_${index}`]
+
+  const bank = form.bankAccounts[index]
+  const sanitized = {
+    bankName: bank.bankName?.trim() || '',
+    accountHolder: bank.accountHolder?.trim() || '',
+    accountNumber: keepOnlyDigits(bank.accountNumber),
+    clabe: keepOnlyDigits(bank.clabe),
+  }
+
+  const hasValue = !!(
+    sanitized.bankName ||
+    sanitized.accountHolder ||
+    sanitized.accountNumber ||
+    sanitized.clabe ||
+    bank.swift ||
+    bank.iban ||
+    bank.notes
+  )
+
+  if (!hasValue) return true
+
+  if (!sanitized.bankName) {
+    errors[`bank_name_${index}`] = 'El banco es obligatorio'
+  } else if (sanitized.bankName.length < 2) {
+    errors[`bank_name_${index}`] = 'Debe tener al menos 2 caracteres'
+  } else if (sanitized.bankName.length > 120) {
+    errors[`bank_name_${index}`] = 'No debe exceder 120 caracteres'
+  }
+
+  if (!sanitized.accountHolder) {
+    errors[`account_holder_${index}`] = 'El titular es obligatorio'
+  } else if (sanitized.accountHolder.length < 2) {
+    errors[`account_holder_${index}`] = 'Debe tener al menos 2 caracteres'
+  } else if (sanitized.accountHolder.length > 180) {
+    errors[`account_holder_${index}`] = 'No debe exceder 180 caracteres'
+  }
+
+  if (sanitized.accountNumber && !/^\d{1,10}$/.test(sanitized.accountNumber)) {
+    errors[`account_number_${index}`] = 'Debe contener solo números y máximo 10 dígitos'
+  }
+
+  if (sanitized.clabe) {
+    if (!/^\d{18}$/.test(sanitized.clabe)) {
+      errors[`clabe_${index}`] = 'Debe contener exactamente 18 dígitos'
+    } else if (!isValidClabe(sanitized.clabe)) {
+      errors[`clabe_${index}`] = 'La CLABE no es válida'
+    }
+  }
+
+  return !(
+    errors[`bank_name_${index}`] ||
+    errors[`account_holder_${index}`] ||
+    errors[`account_number_${index}`] ||
+    errors[`clabe_${index}`]
+  )
+}
+
+function handleBankFieldBlur(index: number) {
+  validateBankAccountRow(index)
 }
 
 async function focusFirstErrorField() {
@@ -581,7 +793,6 @@ async function submit() {
   clearErrors()
 
   const payload = {
-    code: form.code?.trim() || '',
     name: form.name?.trim() || '',
     legalName: form.legalName?.trim() || '',
     rfc: form.rfc?.trim() || '',
@@ -594,15 +805,6 @@ async function submit() {
     bankAccounts: sanitizeBankAccounts(form.bankAccounts),
     notes: form.notes?.trim() || '',
     active: !!form.active,
-  }
-
-  // Datos generales
-  if (!payload.code) {
-    errors.code = 'El código es obligatorio'
-  } else if (payload.code.length < 2) {
-    errors.code = 'Debe tener al menos 2 caracteres'
-  } else if (payload.code.length > 40) {
-    errors.code = 'No debe exceder 40 caracteres'
   }
 
   if (!payload.name) {
@@ -633,14 +835,12 @@ async function submit() {
     errors.website = 'La URL no es válida'
   }
 
-  // Condiciones comerciales
   if (Number.isNaN(payload.paymentTermsDays)) {
     errors.paymentTermsDays = 'Debe ser un número válido'
   } else if (payload.paymentTermsDays < 0 || payload.paymentTermsDays > 365) {
     errors.paymentTermsDays = 'Debe estar entre 0 y 365'
   }
 
-  // Contactos
   payload.contacts.forEach((contact, i) => {
     if (!contact.name) {
       errors[`contact_name_${i}`] = 'El nombre del contacto es obligatorio'
@@ -655,7 +855,6 @@ async function submit() {
     }
   })
 
-  // Cuentas bancarias
   payload.bankAccounts.forEach((bank, i) => {
     if (!bank.bankName) {
       errors[`bank_name_${i}`] = 'El banco es obligatorio'
@@ -673,8 +872,16 @@ async function submit() {
       errors[`account_holder_${i}`] = 'No debe exceder 180 caracteres'
     }
 
-    if (bank.clabe && bank.clabe.length > 30) {
-      errors[`clabe_${i}`] = 'No debe exceder 30 caracteres'
+    if (bank.accountNumber && !/^\d{1,10}$/.test(bank.accountNumber)) {
+      errors[`account_number_${i}`] = 'Debe contener solo números y máximo 10 dígitos'
+    }
+
+    if (bank.clabe) {
+      if (!/^\d{18}$/.test(bank.clabe)) {
+        errors[`clabe_${i}`] = 'Debe contener exactamente 18 dígitos'
+      } else if (!isValidClabe(bank.clabe)) {
+        errors[`clabe_${i}`] = 'La CLABE no es válida'
+      }
     }
   })
 
@@ -692,6 +899,5 @@ async function submit() {
   }
 
   emit('submit', payload)
-  open.value = false
 }
 </script>

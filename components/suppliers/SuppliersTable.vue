@@ -3,7 +3,7 @@
     <!-- =========================
          DESKTOP TABLE (md+)
     ========================== -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-base-300">
+    <div class="hidden overflow-x-auto rounded-2xl border border-base-300 md:block">
       <table class="table w-full text-sm">
         <thead class="bg-base-200 text-xs uppercase">
           <tr>
@@ -26,19 +26,19 @@
 
         <!-- Rows -->
         <tbody v-else-if="items.length">
-          <tr v-for="s in items" :key="s.id" class="hover:bg-base-200/40 transition">
+          <tr v-for="s in items" :key="s.id" class="transition hover:bg-base-200/40">
             <!-- Proveedor -->
             <td>
-              <div class="font-semibold truncate max-w-[420px]" :title="s.name">
+              <div class="max-w-[420px] truncate font-semibold" :title="s.name">
                 {{ s.name }}
               </div>
-              <div class="text-xs opacity-60 truncate max-w-[420px]">
+              <div class="max-w-[420px] truncate text-xs opacity-60">
                 {{ s.code }}
               </div>
             </td>
 
             <!-- Contacto -->
-            <td class="text-sm truncate max-w-[260px]">
+            <td class="max-w-[260px] truncate text-sm">
               <div>{{ s.email || '—' }}</div>
               <div class="text-xs opacity-60">{{ s.phone || '' }}</div>
             </td>
@@ -51,8 +51,9 @@
               <div class="flex items-center justify-center gap-1">
                 <div class="tooltip" data-tip="Editar">
                   <button
+                    type="button"
                     class="btn btn-circle btn-sm btn-ghost text-primary"
-                    @click="$emit('edit', s)"
+                    @click.stop="emit('edit', s)"
                   >
                     <Icon name="edit" size="sm" />
                   </button>
@@ -60,8 +61,9 @@
 
                 <div class="tooltip" data-tip="Eliminar">
                   <button
+                    type="button"
                     class="btn btn-circle btn-sm btn-ghost text-error"
-                    @click="$emit('delete', s)"
+                    @click.stop="emit('remove', s)"
                   >
                     <Icon name="trash" size="sm" />
                   </button>
@@ -83,11 +85,11 @@
     <!-- =========================
          MOBILE CARDS (<md)
     ========================== -->
-    <div class="md:hidden space-y-3">
+    <div class="space-y-3 md:hidden">
       <!-- Loading -->
       <div
         v-if="loading"
-        class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm flex items-center justify-center gap-2"
+        class="flex items-center justify-center gap-2 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
         <span class="loading loading-spinner loading-sm"></span>
         <span class="text-sm opacity-70">Cargando proveedores…</span>
@@ -96,7 +98,7 @@
       <!-- Empty -->
       <div
         v-else-if="!items.length"
-        class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm text-center opacity-70"
+        class="rounded-2xl border border-base-300 bg-base-100 p-6 text-center opacity-70 shadow-sm"
       >
         No hay proveedores registrados
       </div>
@@ -106,13 +108,13 @@
         v-else
         v-for="s in items"
         :key="s.id"
-        class="w-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm overflow-hidden"
+        class="w-full overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
       >
-        <div class="font-semibold truncate">
+        <div class="truncate font-semibold">
           {{ s.name }}
         </div>
 
-        <div class="text-xs opacity-60 truncate mt-1">
+        <div class="mt-1 truncate text-xs opacity-60">
           {{ s.code }}
         </div>
 
@@ -135,12 +137,16 @@
 
         <!-- Actions -->
         <div class="mt-4 flex gap-2">
-          <button class="btn btn-sm btn-outline flex-1" @click="$emit('edit', s)">
+          <button type="button" class="btn btn-sm btn-outline flex-1" @click.stop="emit('edit', s)">
             <Icon name="edit" size="sm" />
             Editar
           </button>
 
-          <button class="btn btn-sm btn-outline btn-error flex-1" @click="$emit('delete', s)">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline btn-error flex-1"
+            @click.stop="emit('remove', s)"
+          >
             <Icon name="trash" size="sm" />
             Eliminar
           </button>
@@ -152,7 +158,7 @@
          LOAD MORE
     ========================== -->
     <div v-if="hasMore" class="mt-4 flex justify-center">
-      <UiButton size="sm" variant="outline" :loading="loading" @click="$emit('load-more')">
+      <UiButton size="sm" variant="outline" :loading="loading" @click="emit('load-more')">
         Cargar más
       </UiButton>
     </div>
@@ -160,11 +166,24 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  items: any[]
-  loading: boolean
-  hasMore: boolean
-}>()
+import type { Supplier } from '~/types/supplier'
 
-defineEmits(['edit', 'delete', 'load-more'])
+withDefaults(
+  defineProps<{
+    items: Supplier[]
+    loading: boolean
+    hasMore: boolean
+  }>(),
+  {
+    items: () => [],
+    loading: false,
+    hasMore: false,
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'edit', item: Supplier): void
+  (e: 'remove', item: Supplier): void
+  (e: 'load-more'): void
+}>()
 </script>

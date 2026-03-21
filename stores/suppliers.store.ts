@@ -1,76 +1,112 @@
 import { defineStore } from 'pinia'
-import type { Supplier, CreateSupplierDto } from '~/types/supplier'
+import type { Supplier } from '~/types/supplier'
+
+type SuppliersListResponse = {
+  items: Supplier[]
+  nextCursor: string | null
+}
+
+function normalizeSearchText(value: string) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 export const useSuppliersStore = defineStore('suppliers', {
   state: () => ({
     items: [] as Supplier[],
-    selected: null as Supplier | null,
     loading: false,
     cursor: null as string | null,
     hasMore: true,
-    search: '', // ⭐ NUEVO
+    search: '',
+    limit: 25,
   }),
 
   actions: {
+    normalizeSearch(value: string) {
+      return normalizeSearchText(value)
+    },
+
     reset() {
       this.items = []
+      this.loading = false
       this.cursor = null
       this.hasMore = true
+      this.search = ''
     },
 
     setSearch(value: string) {
-      this.search = value
-      this.reset()
+      const normalized = normalizeSearchText(value)
+
+      this.search = normalized
+      this.cursor = null
+      this.hasMore = true
+      this.items = []
     },
 
-    async fetch(limit = 10) {
-      if (!this.hasMore || this.loading) return
+    async fetch() {
+      if (this.loading) return
+      if (!this.hasMore && this.cursor) return
 
       this.loading = true
 
-      const res = await useApi<any>('/suppliers', {
-        query: {
-          limit,
-          cursor: this.cursor,
-          search: this.search || undefined, // ⭐ NUEVO
-        },
-      })
+      try {
+        const response = await $fetch<SuppliersListResponse>('/api/suppliers', {
+          query: {
+            limit: this.limit,
+            ...(this.cursor ? { cursor: this.cursor } : {}),
+            ...(this.search ? { search: this.search } : {}),
+          },
+        })
 
-      this.items.push(...res.items)
-      this.cursor = res.nextCursor
-      this.hasMore = !!res.nextCursor
-      this.loading = false
+        const incoming = Array.isArray(response?.items) ? response.items : []
+
+        this.items = this.cursor ? [...this.items, ...incoming] : incoming
+        this.cursor = response?.nextCursor ?? null
+        this.hasMore = Boolean(response?.nextCursor)
+      } finally {
+        this.loading = false
+      }
     },
 
-    async create(payload: CreateSupplierDto) {
-      const supplier = await useApi<Supplier>('/suppliers', {
+    async create(payload: any) {
+      const created = await $fetch<Supplier>('/api/suppliers', {
         method: 'POST',
         body: payload,
       })
-      this.items.unshift(supplier)
+
+      this.cursor = null
+      this.hasMore = true
+      await this.fetch()
+
+      return created
     },
 
-    async update(id: string, payload: Partial<CreateSupplierDto>) {
-      const updated = await useApi<Supplier>(`/suppliers/${id}`, {
+    async update(id: string, payload: any) {
+      const updated = await $fetch<Supplier>(`/api/suppliers/${id}`, {
         method: 'PATCH',
         body: payload,
       })
 
-      const idx = this.items.findIndex(i => i.id === id)
-      if (idx !== -1) this.items[idx] = updated
+      this.cursor = null
+      this.hasMore = true
+      await this.fetch()
+
+      return updated
     },
 
     async remove(id: string) {
-      await useApi(`/suppliers/${id}`, { method: 'DELETE' })
-      this.items = this.items.filter(i => i.id !== id)
-    },
+      const out = await $fetch<{ ok: boolean }>(`/api/suppliers/${id}`, {
+        method: 'DELETE',
+      })
 
-    async get(id: string) {
-      this.selected = await useApi<Supplier>(`/suppliers/${id}`)
-    },
+      this.items = this.items.filter(item => item.id !== id)
 
-    clearSelected() {
-      this.selected = null
+      return out
     },
   },
 })
