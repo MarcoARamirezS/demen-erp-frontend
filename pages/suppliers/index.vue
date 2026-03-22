@@ -89,7 +89,7 @@ const selected = ref<Supplier | null>(null)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 function handleSearchInput(value: string | number) {
-  search.value = String(value ?? '').toUpperCase()
+  search.value = store.normalizeSearch(String(value ?? ''))
 }
 
 watch(search, value => {
@@ -124,7 +124,7 @@ async function loadMore() {
   if (store.loading || !store.hasMore) return
 
   try {
-    await store.fetch()
+    await store.fetchMore()
   } catch (error: any) {
     ui.showToast(
       'error',
