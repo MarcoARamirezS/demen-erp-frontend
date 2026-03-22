@@ -66,8 +66,11 @@
                 <span v-if="mode === 'create' && nextCodeLoading">
                   Consultando siguiente código disponible…
                 </span>
-                <span v-else-if="mode === 'create'">
+                <span v-else-if="mode === 'create' && nextCodeLoaded">
                   Vista previa del siguiente código. El definitivo se asigna al guardar.
+                </span>
+                <span v-else-if="mode === 'create'">
+                  El código se generará automáticamente al guardar.
                 </span>
                 <span v-else> Código autogenerado del proveedor. </span>
               </p>
@@ -337,6 +340,7 @@
 <script setup lang="ts">
 import { reactive, watch, computed, nextTick, ref } from 'vue'
 import { useUiStore } from '~/stores/ui.store'
+import { useSuppliersStore } from '~/stores/suppliers.store'
 
 type Currency = 'MXN' | 'USD'
 type DialogMode = 'create' | 'edit'
@@ -379,6 +383,7 @@ type SupplierForm = {
 type SupplierDialogModel = Partial<SupplierForm> | null
 
 const ui = useUiStore()
+const suppliersStore = useSuppliersStore()
 
 const props = withDefaults(
   defineProps<{
@@ -463,6 +468,8 @@ watch(
     if (!isOpen) return
 
     if (mode === 'create') {
+      form.code = ''
+      nextCodeLoaded.value = false
       await loadNextCodePreview()
     } else {
       nextCodeLoaded.value = false
@@ -537,12 +544,9 @@ async function loadNextCodePreview() {
   nextCodeLoading.value = true
 
   try {
-    const response = await $fetch<{ nextCode?: string; nextSequence?: number }>(
-      '/api/suppliers/next-code'
-    )
-
+    const response = await suppliersStore.fetchNextCode()
     form.code = response?.nextCode || ''
-    nextCodeLoaded.value = true
+    nextCodeLoaded.value = !!response?.nextCode
   } catch (error) {
     form.code = ''
     nextCodeLoaded.value = false
