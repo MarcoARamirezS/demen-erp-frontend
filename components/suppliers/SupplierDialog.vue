@@ -294,7 +294,7 @@
                 <UiInput
                   :model-value="b.clabe"
                   label="CLABE"
-                  placeholder="Ej: 012180001234567890"
+                  placeholder="Ej: 032180000118359719"
                   inputmode="numeric"
                   maxlength="18"
                   :error="errors[`clabe_${i}`]"
@@ -431,6 +431,37 @@ function getDefaultForm(): SupplierForm {
   }
 }
 
+function normalizeContacts(value: unknown): SupplierContactForm[] {
+  if (!Array.isArray(value) || !value.length) {
+    return [{ name: '', role: '', email: '', phone: '' }]
+  }
+
+  return value.map((contact: any) => ({
+    name: String(contact?.name ?? ''),
+    role: String(contact?.role ?? ''),
+    email: String(contact?.email ?? ''),
+    phone: String(contact?.phone ?? ''),
+    notes: String(contact?.notes ?? ''),
+  }))
+}
+
+function normalizeBankAccounts(value: unknown): SupplierBankAccountForm[] {
+  if (!Array.isArray(value) || !value.length) {
+    return [{ bankName: '', accountHolder: '', accountNumber: '', clabe: '', currency: 'MXN' }]
+  }
+
+  return value.map((bank: any) => ({
+    bankName: String(bank?.bankName ?? ''),
+    accountHolder: String(bank?.accountHolder ?? ''),
+    accountNumber: String(bank?.accountNumber ?? ''),
+    clabe: String(bank?.clabe ?? ''),
+    swift: String(bank?.swift ?? ''),
+    iban: String(bank?.iban ?? ''),
+    currency: bank?.currency === 'USD' ? 'USD' : 'MXN',
+    notes: String(bank?.notes ?? ''),
+  }))
+}
+
 const form = reactive<SupplierForm>(getDefaultForm())
 const errors = reactive<Record<string, string>>({})
 const limitWarningShown = reactive<Record<string, boolean>>({})
@@ -446,14 +477,8 @@ watch(
       Object.assign(form, {
         ...getDefaultForm(),
         ...cloned,
-        contacts:
-          Array.isArray(cloned.contacts) && cloned.contacts.length
-            ? cloned.contacts
-            : [{ name: '', role: '', email: '', phone: '' }],
-        bankAccounts:
-          Array.isArray(cloned.bankAccounts) && cloned.bankAccounts.length
-            ? cloned.bankAccounts
-            : [{ bankName: '', accountHolder: '', accountNumber: '', clabe: '', currency: 'MXN' }],
+        contacts: normalizeContacts(cloned.contacts),
+        bankAccounts: normalizeBankAccounts(cloned.bankAccounts),
       })
     } else {
       Object.assign(form, getDefaultForm())
@@ -759,7 +784,8 @@ function validateBankAccountRow(index: number) {
     if (!/^\d{18}$/.test(sanitized.clabe)) {
       errors[`clabe_${index}`] = 'Debe contener exactamente 18 dígitos'
     } else if (!isValidClabe(sanitized.clabe)) {
-      errors[`clabe_${index}`] = 'La CLABE no es válida'
+      errors[`clabe_${index}`] =
+        'La CLABE no es válida. Verifica los 18 dígitos y el dígito verificador.'
     }
   }
 
@@ -884,7 +910,8 @@ async function submit() {
       if (!/^\d{18}$/.test(bank.clabe)) {
         errors[`clabe_${i}`] = 'Debe contener exactamente 18 dígitos'
       } else if (!isValidClabe(bank.clabe)) {
-        errors[`clabe_${i}`] = 'La CLABE no es válida'
+        errors[`clabe_${i}`] =
+          'La CLABE no es válida. Verifica los 18 dígitos y el dígito verificador.'
       }
     }
   })
