@@ -41,6 +41,7 @@ const ui = useUiStore()
 
 const showClientDialog = ref(false)
 const showAddressDialog = ref(false)
+const clientDialogMode = ref<'create' | 'edit'>('create')
 
 /* =========================
    OPTIONS
@@ -48,17 +49,92 @@ const showAddressDialog = ref(false)
 
 const clientOptions = computed(() =>
   clientsStore.items.map(c => ({
-    label: c.razonSocial || c.nombreComercial,
+    label: (c as any).razonSocial || (c as any).nombreComercial || (c as any).name || 'Cliente',
     value: c.id,
   }))
 )
 
 const branchOptions = computed(() =>
   addressesStore.items.map(a => ({
-    label: a.nombre,
+    label: (a as any).nombre,
     value: a.id,
   }))
 )
+
+/* =========================
+   CLIENTE ACTUAL / PERSONAS
+========================= */
+
+const selectedClientDetail = ref<any | null>(null)
+
+const currentClient = computed<any | null>(() => {
+  if (selectedClientDetail.value?.id === form.clientId) return selectedClientDetail.value
+
+  return clientsStore.items.find(c => c.id === form.clientId) || null
+})
+
+function normalizeClientPeople(client: any) {
+  const raw =
+    (Array.isArray(client?.contacts) && client.contacts) ||
+    (Array.isArray(client?.contactos) && client.contactos) ||
+    (Array.isArray(client?.users) && client.users) ||
+    (Array.isArray(client?.usuarios) && client.usuarios) ||
+    []
+
+  const mapped = raw
+    .map((person: any, index: number) => {
+      const name = String(
+        person?.name ?? person?.nombre ?? person?.fullName ?? person?.nombreCompleto ?? ''
+      ).trim()
+
+      const role = String(person?.role ?? person?.puesto ?? person?.position ?? '').trim()
+
+      const email = String(person?.email ?? '').trim()
+      const phone = String(person?.phone ?? person?.telefono ?? '').trim()
+
+      const labelBase = name || email || phone || `Usuario ${index + 1}`
+      const detail = role || email || phone
+      const label = detail ? `${labelBase} / ${detail}` : labelBase
+
+      const value = name || email || phone || String(person?.id ?? person?.uid ?? index)
+
+      return {
+        label,
+        value,
+      }
+    })
+    .filter((item: any) => !!item.value)
+
+  return mapped.filter(
+    (item: any, index: number, arr: any[]) =>
+      arr.findIndex(entry => entry.value === item.value) === index
+  )
+}
+
+const visitPersonOptionsBase = computed(() => normalizeClientPeople(currentClient.value))
+
+const visitPersonOptions = computed(() => {
+  const options = [...visitPersonOptionsBase.value]
+
+  if (
+    form.personaAQuienVisita &&
+    !options.some(option => option.value === form.personaAQuienVisita)
+  ) {
+    options.unshift({
+      label: `Actual: ${form.personaAQuienVisita}`,
+      value: form.personaAQuienVisita,
+    })
+  }
+
+  return options
+})
+
+const hasVisitPeople = computed(() => visitPersonOptionsBase.value.length > 0)
+
+const clientDialogModel = computed(() => {
+  if (clientDialogMode.value !== 'edit') return null
+  return currentClient.value ?? null
+})
 
 /* =========================
    IMÁGENES
@@ -162,6 +238,7 @@ function resetForm() {
   clearErrors()
   resetImages()
   addressesStore.items = []
+  selectedClientDetail.value = null
 }
 
 function hydrateForm(model?: Project | null) {
@@ -171,6 +248,7 @@ function hydrateForm(model?: Project | null) {
   if (!model) {
     Object.assign(form, getDefaultForm())
     addressesStore.items = []
+    selectedClientDetail.value = null
     return
   }
 
@@ -221,6 +299,39 @@ async function loadAddressesByClient(clientId: string) {
   await addressesStore.fetchByClient(clientId)
 }
 
+async function loadClientDetail(clientId: string) {
+  if (!clientId) {
+    selectedClientDetail.value = null
+    return
+  }
+
+  try {
+    const fullClient = await clientsStore.getById(clientId)
+    selectedClientDetail.value = fullClient ?? null
+  } catch {
+    selectedClientDetail.value = clientsStore.items.find(c => c.id === clientId) || null
+  }
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+function openCreateClientDialog() {
+  clientDialogMode.value = 'create'
+  showClientDialog.value = true
+}
+
+function openEditClientUsersDialog() {
+  if (!form.clientId) {
+    ui.showToast('warning', 'Primero debes seleccionar un cliente')
+    return
+  }
+
+  clientDialogMode.value = 'edit'
+  showClientDialog.value = true
+}
+
 /* =========================
    LIFECYCLE
 ========================= */
@@ -229,7 +340,10 @@ onMounted(async () => {
   await ensureClientsLoaded()
 
   if (props.modelValue && props.model?.clientId) {
-    await loadAddressesByClient(props.model.clientId)
+    await Promise.all([
+      loadAddressesByClient(props.model.clientId),
+      loadClientDetail(props.model.clientId),
+    ])
   }
 })
 
@@ -249,9 +363,13 @@ watch(
       hydrateForm(props.model ?? null)
 
       if (props.model?.clientId) {
-        await loadAddressesByClient(props.model.clientId)
+        await Promise.all([
+          loadAddressesByClient(props.model.clientId),
+          loadClientDetail(props.model.clientId),
+        ])
       } else {
         addressesStore.items = []
+        selectedClientDetail.value = null
       }
     } else {
       clearErrors()
@@ -273,9 +391,10 @@ watch(
     hydrateForm(val ?? null)
 
     if (val?.clientId) {
-      await loadAddressesByClient(val.clientId)
+      await Promise.all([loadAddressesByClient(val.clientId), loadClientDetail(val.clientId)])
     } else {
       addressesStore.items = []
+      selectedClientDetail.value = null
     }
   },
   { immediate: false }
@@ -292,46 +411,67 @@ watch(
 
     if (!val) {
       addressesStore.items = []
+      selectedClientDetail.value = null
       form.branchId = ''
+      form.personaAQuienVisita = ''
       return
     }
 
-    await loadAddressesByClient(val)
+    await Promise.all([loadAddressesByClient(val), loadClientDetail(val)])
 
     if (oldVal && oldVal !== val) {
       form.branchId = ''
+      form.personaAQuienVisita = ''
     }
   }
 )
 
 /* =========================
-   CLIENT CREATED
+   CLIENT CREATED / UPDATED
 ========================= */
 
 async function handleClientSubmit(payload: any) {
   try {
-    const created = await clientsStore.create(payload)
+    const isEdit = clientDialogMode.value === 'edit' && !!currentClient.value?.id
+
+    const savedClient = isEdit
+      ? await clientsStore.update(currentClient.value.id, payload)
+      : await clientsStore.create(payload)
 
     const newClientId =
-      created?.id ||
+      savedClient?.id ||
       clientsStore.items.find(
         c =>
-          c.rfc === payload?.rfc &&
-          (c.razonSocial === payload?.razonSocial || c.nombreComercial === payload?.nombreComercial)
+          (c as any).rfc === payload?.rfc &&
+          ((c as any).razonSocial === payload?.razonSocial ||
+            (c as any).nombreComercial === payload?.nombreComercial)
       )?.id ||
       clientsStore.items[0]?.id ||
       ''
 
     if (newClientId) {
       form.clientId = newClientId
-      form.branchId = ''
-      await loadAddressesByClient(newClientId)
-      ui.showToast('success', 'Cliente creado correctamente')
+
+      if (!isEdit) {
+        form.branchId = ''
+      }
+
+      await Promise.all([loadAddressesByClient(newClientId), loadClientDetail(newClientId)])
+
+      ui.showToast(
+        'success',
+        isEdit ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente'
+      )
     }
 
     showClientDialog.value = false
   } catch {
-    ui.showToast('error', 'No fue posible crear el cliente')
+    ui.showToast(
+      'error',
+      clientDialogMode.value === 'edit'
+        ? 'No fue posible actualizar el cliente'
+        : 'No fue posible crear el cliente'
+    )
   }
 }
 
@@ -355,7 +495,7 @@ async function handleAddressSubmit(payload: any) {
 
     const newAddressId =
       created?.id ||
-      addressesStore.items.find(a => a.nombre === payload?.nombre)?.id ||
+      addressesStore.items.find(a => (a as any).nombre === payload?.nombre)?.id ||
       addressesStore.items.at(-1)?.id ||
       ''
 
@@ -460,7 +600,7 @@ async function save() {
       </header>
 
       <!-- CONTENT -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-6">
+      <section class="space-y-6 overflow-y-auto px-6 py-6 pb-10 flex-1">
         <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
@@ -493,14 +633,14 @@ async function save() {
               placeholder="Selecciona el cliente al que pertenece el proyecto"
             />
             <p class="mt-1 text-xs opacity-60">
-              Primero elige el cliente para poder cargar sus sucursales disponibles.
+              Primero elige el cliente para poder cargar sus sucursales y contactos disponibles.
             </p>
           </div>
 
           <button
             class="btn btn-circle btn-outline btn-sm mb-1"
             type="button"
-            @click="showClientDialog = true"
+            @click="openCreateClientDialog"
           >
             <Icon name="plus" class="h-4 w-4" />
           </button>
@@ -541,12 +681,62 @@ async function save() {
           />
         </div>
 
-        <div data-error-field="personaAQuienVisita">
-          <UiInput
-            v-model="form.personaAQuienVisita"
-            label="Persona a quien visita"
-            placeholder="Ej: Ing. Juan Pérez / Supervisor de mantenimiento"
-          />
+        <!-- PERSONA A QUIEN VISITA -->
+        <div data-error-field="personaAQuienVisita" class="space-y-2">
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <UiSelect
+                v-if="form.clientId && hasVisitPeople"
+                v-model="form.personaAQuienVisita"
+                label="Persona a quien visita"
+                :options="visitPersonOptions"
+                placeholder="Selecciona una persona registrada del cliente"
+              />
+
+              <UiInput
+                v-else
+                v-model="form.personaAQuienVisita"
+                label="Persona a quien visita"
+                :disabled="!!form.clientId"
+                :readonly="!!form.clientId"
+                :placeholder="
+                  form.clientId
+                    ? 'Este cliente aún no tiene usuarios/contactos registrados'
+                    : 'Primero selecciona un cliente'
+                "
+              />
+
+              <p v-if="!form.clientId" class="mt-1 text-xs opacity-60">
+                Primero selecciona un cliente para mostrar sus usuarios/contactos.
+              </p>
+
+              <p v-else-if="hasVisitPeople" class="mt-1 text-xs opacity-60">
+                Se muestran los usuarios/contactos registrados del cliente seleccionado.
+              </p>
+
+              <p v-else class="mt-1 text-xs opacity-60">
+                Este cliente no tiene usuarios/contactos registrados. Agrégalos para poder
+                seleccionarlos aquí.
+              </p>
+            </div>
+
+            <UiButton
+              v-if="form.clientId"
+              variant="outline"
+              icon="plus"
+              class="mb-1"
+              @click="openEditClientUsersDialog"
+            >
+              Agregar usuario
+            </UiButton>
+          </div>
+
+          <div
+            v-if="form.clientId"
+            class="rounded-xl border border-base-300 bg-base-200/40 px-4 py-3 text-xs opacity-70"
+          >
+            Puedes agregar un nuevo usuario/contacto para este cliente aunque ya existan registros.
+          </div>
         </div>
 
         <div data-error-field="fecha">
@@ -622,7 +812,12 @@ async function save() {
 
   <!-- CLIENT DIALOG -->
   <ClientOnly>
-    <ClientDialog v-model="showClientDialog" mode="create" @submit="handleClientSubmit" />
+    <ClientDialog
+      v-model="showClientDialog"
+      :mode="clientDialogMode"
+      :model="clientDialogModel"
+      @submit="handleClientSubmit"
+    />
   </ClientOnly>
 
   <!-- ADDRESS DIALOG -->
