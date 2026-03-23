@@ -25,13 +25,26 @@
           </div>
         </div>
 
-        <button class="btn btn-circle btn-ghost btn-sm" @click="open = false">
+        <button
+          class="btn btn-circle btn-ghost btn-sm"
+          :disabled="props.saving"
+          @click="open = false"
+        >
           <Icon name="x" />
         </button>
       </header>
 
       <!-- CONTENT -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-6">
+      <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6 pb-10">
+        <!-- LOADING CATALOGS -->
+        <div
+          v-if="loadingCatalogs"
+          class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-200/40 p-4 text-sm"
+        >
+          <span class="loading loading-spinner loading-sm"></span>
+          Cargando proveedores y productos…
+        </div>
+
         <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
@@ -53,7 +66,33 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-2">
+        <!-- RESUMEN -->
+        <div
+          v-if="selectedSupplier || selectedProduct"
+          class="grid grid-cols-1 gap-3 rounded-2xl border border-base-300 bg-gradient-to-br from-base-200/50 to-base-100 p-4 md:grid-cols-2"
+        >
+          <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide opacity-60">Proveedor</p>
+            <p class="mt-1 text-sm font-semibold">
+              {{ selectedSupplierName || 'Sin seleccionar' }}
+            </p>
+            <p v-if="selectedSupplierMeta" class="mt-1 text-xs opacity-60">
+              {{ selectedSupplierMeta }}
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide opacity-60">Producto</p>
+            <p class="mt-1 text-sm font-semibold">
+              {{ selectedProductName || 'Sin seleccionar' }}
+            </p>
+            <p v-if="selectedProductMeta" class="mt-1 text-xs opacity-60">
+              {{ selectedProductMeta }}
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
           <!-- PROVEEDOR -->
           <div data-error-field="supplierId">
             <UiSelect
@@ -61,7 +100,7 @@
               label="Proveedor *"
               placeholder="Selecciona el proveedor que surtirá este producto"
               :error="errors.supplierId"
-              :disabled="mode === 'edit' || !!lockSupplier"
+              :disabled="mode === 'edit' || !!lockSupplier || loadingCatalogs || props.saving"
               :options="supplierOptions"
             />
             <p class="mt-1 text-xs text-base-content/60">
@@ -76,7 +115,7 @@
               label="Producto *"
               placeholder="Selecciona el producto que se relacionará con el proveedor"
               :error="errors.productId"
-              :disabled="mode === 'edit' || !!lockProduct"
+              :disabled="mode === 'edit' || !!lockProduct || loadingCatalogs || props.saving"
               :options="productOptions"
             />
             <p class="mt-1 text-xs text-base-content/60">
@@ -91,6 +130,7 @@
               label="SKU del proveedor"
               placeholder="Ej: PROV-ABC-001 o código interno del proveedor"
               :error="errors.supplierSku"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
               Déjalo vacío si el proveedor no maneja un SKU específico.
@@ -107,6 +147,7 @@
               step="0.01"
               placeholder="Ej: 125.50"
               :error="errors.currentPrice"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
               Captura el precio vigente que ofrece el proveedor.
@@ -121,6 +162,7 @@
               placeholder="Selecciona la moneda del precio"
               :options="currencyOptions"
               :error="errors.currency"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
               Define si el precio está pactado en pesos o dólares.
@@ -136,6 +178,7 @@
               min="0"
               placeholder="Ej: 7"
               :error="errors.leadTimeDays"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
               Tiempo estimado que tarda el proveedor en entregar.
@@ -151,6 +194,7 @@
               min="0"
               placeholder="Ej: 10"
               :error="errors.moq"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
               Cantidad mínima que debes comprar al proveedor.
@@ -161,22 +205,28 @@
           <div data-error-field="packSize">
             <UiInput
               v-model="form.packSize"
-              label="Número de piezas"
+              label="Piezas por empaque"
               type="number"
               min="0"
               placeholder="Ej: 24"
               :error="errors.packSize"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
-              Unidades que vienen en cada caja o empaque.
+              Unidades que vienen en cada caja o presentación.
             </p>
           </div>
 
-          <UiToggle
-            v-model="form.preferred"
-            label="Proveedor preferido para este producto"
-            class="md:col-span-2"
-          />
+          <div class="md:col-span-2 rounded-xl border border-base-300 bg-base-100 p-4">
+            <UiToggle
+              v-model="form.preferred"
+              label="Proveedor preferido para este producto"
+              :disabled="props.saving"
+            />
+            <p class="mt-2 text-xs text-base-content/60">
+              Márcalo cuando este proveedor sea la referencia principal para surtir el producto.
+            </p>
+          </div>
 
           <div class="md:col-span-2" data-error-field="notes">
             <UiInput
@@ -185,6 +235,7 @@
               type="textarea"
               placeholder="Ej: Precio negociado hasta fin de mes, entrega martes y jueves, contacto directo con compras"
               :error="errors.notes"
+              :disabled="props.saving"
             />
             <p class="mt-1 text-xs text-base-content/60">
               Agrega condiciones especiales, acuerdos comerciales u observaciones importantes.
@@ -197,16 +248,25 @@
       <footer
         class="sticky bottom-0 z-10 flex flex-col-reverse justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row"
       >
-        <UiButton variant="ghost" @click="open = false">Cancelar</UiButton>
+        <UiButton variant="ghost" :disabled="props.saving" @click="open = false">
+          Cancelar
+        </UiButton>
 
-        <UiButton variant="primary" @click="submit">Guardar</UiButton>
+        <UiButton
+          variant="primary"
+          :disabled="loadingCatalogs || props.saving"
+          :loading="props.saving"
+          @click="submit"
+        >
+          Guardar
+        </UiButton>
       </footer>
     </div>
   </UiDialog>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed, onMounted, nextTick } from 'vue'
+import { reactive, watch, computed, nextTick, ref } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
@@ -235,12 +295,21 @@ type SupplierProductForm = {
 }
 
 const ui = useUiStore()
+const suppliersStore = useSuppliersStore()
+const productsStore = useProductsStore()
 
-const props = defineProps<{
-  modelValue: boolean
-  mode: Mode
-  model?: any
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    mode: Mode
+    model?: any
+    saving?: boolean
+  }>(),
+  {
+    model: null,
+    saving: false,
+  }
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
@@ -267,25 +336,27 @@ const open = computed({
   set: v => emit('update:modelValue', v),
 })
 
-const suppliersStore = useSuppliersStore()
-const productsStore = useProductsStore()
+const loadingCatalogs = ref(false)
 
-const suppliers = computed(() => suppliersStore.items)
-const products = computed(() => productsStore.items)
+const suppliers = computed(() => suppliersStore.items ?? [])
+const products = computed(() => productsStore.items ?? [])
 
 const supplierOptions = computed(() =>
-  suppliers.value.map(s => ({
-    label: s.name ?? s.razonSocial ?? 'Proveedor',
+  suppliers.value.map((s: any) => ({
+    label: resolveSupplierName(s),
     value: s.id,
   }))
 )
 
 const productOptions = computed(() =>
-  products.value.map(p => ({
-    label: p.name ?? p.partNumber ?? 'Producto',
+  products.value.map((p: any) => ({
+    label: resolveProductName(p),
     value: p.id,
   }))
 )
+
+const supplierIdSet = computed(() => new Set(supplierOptions.value.map(option => option.value)))
+const productIdSet = computed(() => new Set(productOptions.value.map(option => option.value)))
 
 const currencyOptions = [
   { label: 'MXN – Peso mexicano', value: 'MXN' },
@@ -294,6 +365,64 @@ const currencyOptions = [
 
 const lockSupplier = computed(() => !!props.model?.supplierId && props.mode === 'create')
 const lockProduct = computed(() => !!props.model?.productId && props.mode === 'create')
+
+function resolveSupplierName(supplier: any) {
+  return (
+    String(supplier?.name ?? '').trim() ||
+    String(supplier?.legalName ?? '').trim() ||
+    String(supplier?.razonSocial ?? '').trim() ||
+    'Proveedor'
+  )
+}
+
+function resolveProductName(product: any) {
+  return (
+    String(product?.name ?? '').trim() ||
+    String(product?.description ?? '').trim() ||
+    String(product?.partNumber ?? '').trim() ||
+    'Producto'
+  )
+}
+
+const selectedSupplier = computed(
+  () => suppliers.value.find((supplier: any) => supplier.id === form.supplierId) ?? null
+)
+
+const selectedProduct = computed(
+  () => products.value.find((product: any) => product.id === form.productId) ?? null
+)
+
+const selectedSupplierName = computed(() =>
+  selectedSupplier.value ? resolveSupplierName(selectedSupplier.value) : ''
+)
+
+const selectedSupplierMeta = computed(() => {
+  const supplier = selectedSupplier.value
+  if (!supplier) return ''
+
+  return (
+    String(supplier?.code ?? '').trim() ||
+    String(supplier?.rfc ?? '').trim() ||
+    String(supplier?.email ?? '').trim() ||
+    ''
+  )
+})
+
+const selectedProductName = computed(() =>
+  selectedProduct.value ? resolveProductName(selectedProduct.value) : ''
+)
+
+const selectedProductMeta = computed(() => {
+  const product = selectedProduct.value
+  if (!product) return ''
+
+  return (
+    String(product?.partNumber ?? '').trim() ||
+    String(product?.internalCode ?? '').trim() ||
+    String(product?.brand ?? '').trim() ||
+    ''
+  )
+})
 
 function getDefaultForm(): SupplierProductForm {
   return {
@@ -322,7 +451,7 @@ const fieldLabels: Record<string, string> = {
   currency: 'Moneda',
   leadTimeDays: 'Lead time',
   moq: 'MOQ',
-  packSize: 'Número de piezas',
+  packSize: 'Piezas por empaque',
   notes: 'Notas',
 }
 
@@ -373,6 +502,24 @@ function hydrateForm(model?: any) {
   })
 }
 
+async function ensureCatalogsLoaded() {
+  loadingCatalogs.value = true
+
+  try {
+    await Promise.all([
+      suppliersStore.items?.length ? Promise.resolve() : suppliersStore.fetch(100),
+      productsStore.items?.length ? Promise.resolve() : productsStore.fetch(100),
+    ])
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudieron cargar proveedores y productos'
+    )
+  } finally {
+    loadingCatalogs.value = false
+  }
+}
+
 async function focusFirstErrorField() {
   const firstKey = Object.keys(errors).find(key => errors[key])
   if (!firstKey) return
@@ -386,20 +533,14 @@ async function focusFirstErrorField() {
     wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
-  if (target?.focus) {
-    target.focus()
-  }
+  target?.focus?.()
 }
-
-onMounted(async () => {
-  if (!suppliersStore.items.length) await suppliersStore.fetch()
-  if (!productsStore.items.length) await productsStore.fetch()
-})
 
 watch(
   () => props.modelValue,
-  isOpen => {
+  async isOpen => {
     if (isOpen) {
+      await ensureCatalogsLoaded()
       hydrateForm(props.model)
     } else {
       clearErrors()
@@ -430,11 +571,15 @@ async function submit() {
   const packSize = Number(form.packSize)
   const notes = form.notes.trim()
 
-  if (!supplierId || supplierId.length < 20) {
+  if (!supplierId) {
+    errors.supplierId = 'Debes seleccionar un proveedor'
+  } else if (supplierOptions.value.length && !supplierIdSet.value.has(supplierId)) {
     errors.supplierId = 'Debes seleccionar un proveedor válido'
   }
 
-  if (!productId || productId.length < 20) {
+  if (!productId) {
+    errors.productId = 'Debes seleccionar un producto'
+  } else if (productOptions.value.length && !productIdSet.value.has(productId)) {
     errors.productId = 'Debes seleccionar un producto válido'
   }
 
@@ -493,7 +638,5 @@ async function submit() {
     notes: optionalString(notes),
     active: !!form.active,
   })
-
-  open.value = false
 }
 </script>

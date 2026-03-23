@@ -59,6 +59,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useSupplierProductsStore } from '~/stores/supplier-products.store'
+import { useSuppliersStore } from '~/stores/suppliers.store'
+import { useProductsStore } from '~/stores/products.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useUiStore } from '~/stores/ui.store'
 
@@ -74,6 +76,8 @@ definePageMeta({
 })
 
 const store = useSupplierProductsStore()
+const suppliersStore = useSuppliersStore()
+const productsStore = useProductsStore()
 const auth = useAuthStore()
 const ui = useUiStore()
 
@@ -81,9 +85,20 @@ const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const selected = ref<SupplierProduct | null>(null)
 
+async function loadSupportCatalogs() {
+  await Promise.all([suppliersStore.fetch(100), productsStore.fetch(100)])
+}
+
 onMounted(async () => {
-  store.reset()
-  await store.fetch()
+  try {
+    store.reset()
+    await Promise.all([store.fetch(), loadSupportCatalogs()])
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo cargar la información'
+    )
+  }
 })
 
 function openCreate() {
@@ -99,18 +114,35 @@ function openEdit(item: SupplierProduct) {
 }
 
 async function handleSubmit(payload: any) {
-  if (dialogMode.value === 'create') {
-    await store.create(payload)
-    ui.showToast('success', 'Proveedor asignado')
-  } else if (selected.value) {
-    await store.update(selected.value.id, payload)
-    ui.showToast('success', 'Relación actualizada')
+  try {
+    if (dialogMode.value === 'create') {
+      await store.create(payload)
+      ui.showToast('success', 'Proveedor asignado')
+    } else if (selected.value) {
+      await store.update(selected.value.id, payload)
+      ui.showToast('success', 'Relación actualizada')
+    }
+
+    dialogOpen.value = false
+    await Promise.all([store.refreshLastQuery(), loadSupportCatalogs()])
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo guardar la relación'
+    )
   }
 }
 
-function refresh() {
-  store.refreshLastQuery()
-  ui.showToast('success', 'Listado actualizado')
+async function refresh() {
+  try {
+    await Promise.all([store.refreshLastQuery(), loadSupportCatalogs()])
+    ui.showToast('success', 'Listado actualizado')
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo actualizar el listado'
+    )
+  }
 }
 
 function loadMore() {
@@ -118,14 +150,24 @@ function loadMore() {
 }
 
 async function remove(item: SupplierProduct) {
-  ui.confirm({
+  const confirmed = await ui.confirm({
     title: 'Eliminar relación',
     message: '¿Deseas eliminar esta relación proveedor-producto?',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
     variant: 'danger',
-    onConfirm: async () => {
-      await store.remove(item.id)
-      ui.showToast('success', 'Relación eliminada')
-    },
   })
+
+  if (!confirmed) return
+
+  try {
+    await store.remove(item.id)
+    ui.showToast('success', 'Relación eliminada')
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo eliminar la relación'
+    )
+  }
 }
 </script>
