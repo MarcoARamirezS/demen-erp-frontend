@@ -12,7 +12,7 @@
           {{ confirm.cancelText || 'Cancelar' }}
         </UiButton>
 
-        <UiButton variant="primary" @click="confirmAction">
+        <UiButton :variant="confirm.variant || 'primary'" @click="confirmAction">
           {{ confirm.confirmText || 'Confirmar' }}
         </UiButton>
       </div>

@@ -145,23 +145,25 @@ function openEdit(item: Supplier) {
   dialogOpen.value = true
 }
 
-function confirmDelete(item: Supplier) {
-  ui.confirm({
+async function confirmDelete(item: Supplier) {
+  const confirmed = await ui.confirm({
     title: 'Eliminar proveedor',
     message: `¿Eliminar el proveedor "${item.name}"? Esta acción no se puede deshacer.`,
-    variant: 'danger',
-    onConfirm: async () => {
-      try {
-        await store.remove(item.id)
-        ui.showToast('success', 'Proveedor eliminado correctamente')
-      } catch (error: any) {
-        ui.showToast(
-          'error',
-          error?.data?.message || error?.message || 'No se pudo eliminar el proveedor'
-        )
-      }
-    },
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
   })
+
+  if (!confirmed) return
+
+  try {
+    await store.remove(item.id)
+    ui.showToast('success', 'Proveedor eliminado correctamente')
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo eliminar el proveedor'
+    )
+  }
 }
 
 async function handleSubmit(payload: any) {

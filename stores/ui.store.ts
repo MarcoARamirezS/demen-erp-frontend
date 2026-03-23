@@ -12,6 +12,7 @@ export interface ConfirmState {
   message?: string
   confirmText?: string
   cancelText?: string
+  variant?: 'primary' | 'danger' | 'warning'
   onConfirm?: () => void
 }
 
@@ -26,6 +27,7 @@ export const useUiStore = defineStore('ui', {
       message: '',
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
+      variant: 'primary',
       onConfirm: undefined,
     } as ConfirmState,
 
@@ -72,6 +74,7 @@ export const useUiStore = defineStore('ui', {
         this.confirmState.message = payload.message
         this.confirmState.confirmText = payload.confirmText ?? 'Confirmar'
         this.confirmState.cancelText = payload.cancelText ?? 'Cancelar'
+        this.confirmState.variant = payload.variant ?? 'primary'
 
         this.confirmState.onConfirm = () => {
           if (this._confirmResolve) {
@@ -93,6 +96,7 @@ export const useUiStore = defineStore('ui', {
 
       this.confirmState.visible = false
       this.confirmState.onConfirm = undefined
+      this.confirmState.variant = 'primary'
     },
   },
 })

@@ -26,7 +26,7 @@
       </header>
 
       <!-- CONTENT -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 pb-10 space-y-6">
+      <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6 pb-10">
         <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
@@ -52,7 +52,7 @@
         <section class="space-y-4">
           <h3 class="text-sm font-semibold text-base-content/70">Datos generales</h3>
 
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 items-start">
+          <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
             <div data-error-field="partNumber">
               <UiInput
                 v-model="form.partNumber"
@@ -113,20 +113,29 @@
 
             <div data-error-field="categoryId" class="space-y-1">
               <UiSelect
+                :key="form.familyId || 'no-family'"
                 v-model="form.categoryId"
                 label="Categoría *"
                 :options="categoryOptions"
-                :disabled="!form.familyId"
+                :disabled="!form.familyId || categoriesLoading"
                 :error="errors.categoryId"
                 placeholder="Selecciona una categoría de la familia elegida"
               />
 
-              <p class="text-xs opacity-60">La categoría depende de la familia seleccionada.</p>
+              <p class="text-xs opacity-60">
+                {{
+                  !form.familyId
+                    ? 'La categoría depende de la familia seleccionada.'
+                    : categoriesLoading
+                      ? 'Cargando categorías de la familia seleccionada...'
+                      : 'Solo se muestran categorías de la familia elegida.'
+                }}
+              </p>
 
               <button
                 type="button"
                 class="btn btn-xs btn-ghost w-full justify-start"
-                :disabled="!form.familyId"
+                :disabled="!form.familyId || categoriesLoading"
                 @click="openCreateCategory"
               >
                 ➕ Crear nueva categoría
@@ -190,7 +199,7 @@
         <section class="space-y-4">
           <h3 class="text-sm font-semibold text-base-content/70">Inventario</h3>
 
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-4 items-start">
+          <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-4">
             <div data-error-field="stockOnHand">
               <UiInput
                 v-model="form.stockOnHand"
@@ -400,14 +409,20 @@ const familyOptions = computed(() =>
   }))
 )
 
-const categoryOptions = computed(() => {
+const filteredCategories = computed(() => {
   if (!form.familyId) return []
 
-  return categories.value.map(c => ({
-    label: c.name,
-    value: c.id,
-  }))
+  return categories.value.filter(
+    category => String(category.familyId ?? '') === String(form.familyId)
+  )
 })
+
+const categoryOptions = computed(() =>
+  filteredCategories.value.map(category => ({
+    label: category.name,
+    value: category.id,
+  }))
+)
 
 const unitOptions = [
   { label: 'm', value: 'm' },
@@ -469,6 +484,8 @@ const errorSummary = computed(() =>
 const familyDialogOpen = ref(false)
 const categoryDialogOpen = ref(false)
 const hydrating = ref(false)
+const categoriesLoading = ref(false)
+const categoriesRequestToken = ref(0)
 
 const selectedImages = ref<File[]>([])
 const previews = ref<string[]>([])
@@ -539,7 +556,17 @@ async function ensureFamiliesLoaded() {
 
 async function loadCategoriesByFamily(familyId: string) {
   if (!familyId) return
-  await categoriesStore.fetchByFamily(familyId)
+
+  const requestToken = ++categoriesRequestToken.value
+  categoriesLoading.value = true
+
+  try {
+    await categoriesStore.fetchByFamily(familyId)
+  } finally {
+    if (requestToken === categoriesRequestToken.value) {
+      categoriesLoading.value = false
+    }
+  }
 }
 
 async function hydrateForm(model?: any) {
@@ -582,7 +609,10 @@ async function hydrateForm(model?: any) {
       await loadCategoriesByFamily(next.familyId)
     }
 
-    form.categoryId = model.categoryId ?? ''
+    const hydratedCategoryId = String(model.categoryId ?? '')
+    form.categoryId = filteredCategories.value.some(category => category.id === hydratedCategoryId)
+      ? hydratedCategoryId
+      : ''
   } finally {
     hydrating.value = false
   }
@@ -627,6 +657,8 @@ async function handleFamilyCreated(payload: any) {
 
   form.familyId = familyId
   form.categoryId = ''
+  await loadCategoriesByFamily(familyId)
+
   familyDialogOpen.value = false
 }
 
@@ -636,9 +668,13 @@ async function handleCategoryCreated(payload: any) {
     familyId: form.familyId,
   })
 
-  await categoriesStore.fetchByFamily(form.familyId)
+  await loadCategoriesByFamily(form.familyId)
 
-  form.categoryId = category?.id || ''
+  const createdCategoryId = String(category?.id ?? '')
+  form.categoryId = filteredCategories.value.some(item => item.id === createdCategoryId)
+    ? createdCategoryId
+    : ''
+
   categoryDialogOpen.value = false
 }
 
@@ -699,14 +735,16 @@ watch(
       return
     }
 
-    await loadCategoriesByFamily(newFamilyId)
-
-    if (oldFamilyId && oldFamilyId !== newFamilyId) {
+    if (oldFamilyId !== newFamilyId) {
       form.categoryId = ''
-      return
     }
 
-    if (form.categoryId && !categoriesStore.items.some(c => c.id === form.categoryId)) {
+    await loadCategoriesByFamily(newFamilyId)
+
+    if (
+      form.categoryId &&
+      !filteredCategories.value.some(category => category.id === form.categoryId)
+    ) {
       form.categoryId = ''
     }
   }
@@ -810,6 +848,10 @@ async function submit() {
 
   if (tags.some(tag => tag.length > 40)) {
     errors.tags = 'Cada etiqueta debe tener máximo 40 caracteres'
+  }
+
+  if (categoryId && !filteredCategories.value.some(category => category.id === categoryId)) {
+    errors.categoryId = 'La categoría seleccionada no pertenece a la familia elegida'
   }
 
   const firstError = Object.entries(errors).find(([, value]) => !!value)
