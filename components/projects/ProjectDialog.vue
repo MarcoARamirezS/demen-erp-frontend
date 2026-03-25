@@ -44,15 +44,76 @@ const showAddressDialog = ref(false)
 const clientDialogMode = ref<'create' | 'edit'>('create')
 
 /* =========================
+   CLIENT SEARCH
+========================= */
+
+const clientSearch = ref('')
+let clientSearchTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearClientSearchTimer() {
+  if (clientSearchTimer) {
+    clearTimeout(clientSearchTimer)
+    clientSearchTimer = null
+  }
+}
+
+async function searchClients(search = '') {
+  clientsStore.cursor = null
+  await clientsStore.fetch(20, search)
+}
+
+function handleClientSearch(value: string) {
+  clientSearch.value = String(value || '')
+    .trim()
+    .toUpperCase()
+
+  clearClientSearchTimer()
+
+  clientSearchTimer = setTimeout(async () => {
+    if (!open.value) return
+    await searchClients(clientSearch.value)
+  }, 300)
+}
+
+/* =========================
    OPTIONS
 ========================= */
 
-const clientOptions = computed(() =>
-  clientsStore.items.map(c => ({
-    label: (c as any).razonSocial || (c as any).nombreComercial || (c as any).name || 'Cliente',
+function getClientLabel(client: any) {
+  return (
+    String(client?.razonSocial || client?.nombreComercial || client?.name || 'Cliente').trim() ||
+    'Cliente'
+  )
+}
+
+function getClientImage(client: any) {
+  return client?.logo?.secureUrl || client?.logo?.url || ''
+}
+
+const selectedClientDetail = ref<any | null>(null)
+
+const currentClient = computed<any | null>(() => {
+  if (selectedClientDetail.value?.id === form.clientId) return selectedClientDetail.value
+  return clientsStore.items.find(c => c.id === form.clientId) || null
+})
+
+const clientOptions = computed(() => {
+  const options = clientsStore.items.map(c => ({
+    label: getClientLabel(c),
     value: c.id,
+    image: getClientImage(c) || undefined,
   }))
-)
+
+  if (currentClient.value?.id && !options.some(option => option.value === currentClient.value.id)) {
+    options.unshift({
+      label: getClientLabel(currentClient.value),
+      value: currentClient.value.id,
+      image: getClientImage(currentClient.value) || undefined,
+    })
+  }
+
+  return options
+})
 
 const branchOptions = computed(() =>
   addressesStore.items.map(a => ({
@@ -64,14 +125,6 @@ const branchOptions = computed(() =>
 /* =========================
    CLIENTE ACTUAL / PERSONAS
 ========================= */
-
-const selectedClientDetail = ref<any | null>(null)
-
-const currentClient = computed<any | null>(() => {
-  if (selectedClientDetail.value?.id === form.clientId) return selectedClientDetail.value
-
-  return clientsStore.items.find(c => c.id === form.clientId) || null
-})
 
 function normalizeClientPeople(client: any) {
   const raw =
@@ -269,7 +322,9 @@ async function focusFirstErrorField() {
   await nextTick()
 
   const wrapper = document.querySelector(`[data-error-field="${firstKey}"]`)
-  const target = wrapper?.querySelector('input, textarea, select, button') as HTMLElement | null
+  const target = wrapper?.querySelector(
+    'input, textarea, select, button, [tabindex]'
+  ) as HTMLElement | null
 
   if (wrapper) {
     wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -284,9 +339,9 @@ async function focusFirstErrorField() {
    LOADERS
 ========================= */
 
-async function ensureClientsLoaded() {
-  if (!clientsStore.items.length) {
-    await clientsStore.fetch(100)
+async function ensureClientsLoaded(force = false) {
+  if (force || !clientsStore.items.length) {
+    await searchClients('')
   }
 }
 
@@ -349,6 +404,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   revokePreviews()
+  clearClientSearchTimer()
 })
 
 /* =========================
@@ -359,7 +415,8 @@ watch(
   () => props.modelValue,
   async isOpen => {
     if (isOpen) {
-      await ensureClientsLoaded()
+      clientSearch.value = ''
+      await ensureClientsLoaded(true)
       hydrateForm(props.model ?? null)
 
       if (props.model?.clientId) {
@@ -374,6 +431,8 @@ watch(
     } else {
       clearErrors()
       resetImages()
+      clearClientSearchTimer()
+      clientSearch.value = ''
     }
   },
   { immediate: true }
@@ -465,6 +524,7 @@ async function handleClientSubmit(payload: any) {
     }
 
     showClientDialog.value = false
+    return savedClient
   } catch {
     ui.showToast(
       'error',
@@ -472,6 +532,7 @@ async function handleClientSubmit(payload: any) {
         ? 'No fue posible actualizar el cliente'
         : 'No fue posible crear el cliente'
     )
+    throw new Error('No fue posible guardar el cliente')
   }
 }
 
@@ -600,7 +661,7 @@ async function save() {
       </header>
 
       <!-- CONTENT -->
-      <section class="space-y-6 overflow-y-auto px-6 py-6 pb-10 flex-1">
+      <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6 pb-10">
         <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
@@ -630,10 +691,16 @@ async function save() {
               label="Cliente *"
               :options="clientOptions"
               :error="errors.clientId"
+              :loading="clientsStore.loading"
+              searchable
+              search-placeholder="Escribe para buscar clientes..."
+              empty-text="No se encontraron clientes"
               placeholder="Selecciona el cliente al que pertenece el proyecto"
+              @search="handleClientSearch"
             />
             <p class="mt-1 text-xs opacity-60">
-              Primero elige el cliente para poder cargar sus sucursales y contactos disponibles.
+              Busca por razón social o nombre comercial. Primero elige el cliente para poder cargar
+              sus sucursales y contactos disponibles.
             </p>
           </div>
 
@@ -751,7 +818,7 @@ async function save() {
           </p>
         </div>
 
-        <!-- IMÁGENES -->
+        <!-- IMÁGENES
         <div data-error-field="images">
           <label class="label">
             <span class="label-text">Imágenes del proyecto</span>
@@ -787,6 +854,7 @@ async function save() {
             </div>
           </div>
         </div>
+        -->
       </section>
 
       <!-- FOOTER -->
