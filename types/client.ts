@@ -13,6 +13,14 @@ export type FireTimestamp =
     }
   | null
 
+export interface ClientLogo {
+  publicId?: string
+  url?: string
+  secureUrl?: string
+  originalName?: string
+  uploadedAt?: FireTimestamp
+}
+
 export interface ClientUsuario {
   nombre: string
   puesto?: string
@@ -46,6 +54,7 @@ export interface CreateClientDto {
 
 export interface Client extends CreateClientDto {
   id: string
+  logo?: ClientLogo | null
   createdAt?: FireTimestamp
   updatedAt?: FireTimestamp
 }

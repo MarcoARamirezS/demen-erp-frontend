@@ -38,13 +38,16 @@ watch(openDialog, isOpen => {
 })
 
 async function handleSubmit(payload: CreateClientDto) {
+  let saved: Client
+
   if (dialogMode.value === 'edit' && selectedClient.value?.id) {
-    await clients.update(selectedClient.value.id, payload)
+    saved = await clients.update(selectedClient.value.id, payload)
   } else {
-    await clients.create(payload)
+    saved = await clients.create(payload)
   }
 
   selectedClient.value = null
+  return saved
 }
 
 onMounted(async () => {

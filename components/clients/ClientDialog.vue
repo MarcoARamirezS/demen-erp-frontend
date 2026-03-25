@@ -124,6 +124,90 @@
           <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
             <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
+                <h3 class="text-sm font-semibold">Logo / imagen del cliente</h3>
+                <p class="mt-1 text-xs opacity-60">
+                  Puedes cargar el logotipo del cliente para mostrarlo en proyectos y vistas
+                  relacionadas.
+                </p>
+              </div>
+
+              <div class="text-xs opacity-60">PNG, JPG o WEBP · Máximo 5MB</div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
+              <div
+                class="flex h-[180px] items-center justify-center overflow-hidden rounded-2xl border border-dashed border-base-300 bg-base-100 p-4"
+              >
+                <img
+                  v-if="selectedLogoPreview || existingLogoUrl"
+                  :src="selectedLogoPreview || existingLogoUrl"
+                  class="h-full w-full object-contain"
+                />
+
+                <div v-else class="text-center text-sm opacity-60">
+                  <div class="mb-2 flex justify-center">
+                    <div class="rounded-full bg-base-200 p-3">
+                      <Icon name="upload" class="h-5 w-5" />
+                    </div>
+                  </div>
+                  <p>Sin logo capturado</p>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <div data-error-field="logo">
+                  <input
+                    :key="logoInputKey"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/jpg"
+                    class="file-input file-input-bordered w-full"
+                    @change="onLogoSelected"
+                  />
+
+                  <p class="mt-2 text-xs opacity-60">
+                    El logo se sube al guardar el cliente. Si estás editando, reemplazará el logo
+                    actual.
+                  </p>
+
+                  <p v-if="errors.logo" class="mt-1 text-xs text-error">
+                    {{ errors.logo }}
+                  </p>
+                </div>
+
+                <div v-if="selectedLogoFile" class="rounded-xl border border-success/20 bg-success/10 p-3 text-sm">
+                  <p class="font-medium text-success">Nuevo archivo listo para subir</p>
+                  <p class="mt-1 break-all text-xs text-base-content/70">
+                    {{ selectedLogoFile.name }}
+                  </p>
+                </div>
+
+                <div
+                  v-else-if="existingLogoUrl"
+                  class="rounded-xl border border-base-300 bg-base-100 p-3 text-sm"
+                >
+                  <p class="font-medium">Logo actual</p>
+                  <p class="mt-1 text-xs opacity-60">
+                    Ya existe una imagen guardada para este cliente.
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <UiButton
+                    variant="ghost"
+                    type="button"
+                    :disabled="!selectedLogoFile"
+                    @click="removeSelectedLogo"
+                  >
+                    Quitar selección
+                  </UiButton>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-4 rounded-xl border border-base-300 bg-base-200/40 p-5">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
                 <h3 class="text-sm font-semibold">Usuarios de contacto</h3>
                 <p class="mt-1 text-xs opacity-60">
                   Agrega uno o varios usuarios relacionados con este cliente.
@@ -432,6 +516,7 @@ import UiInput from '~/components/ui/UiInput.vue'
 import UiButton from '~/components/ui/UiButton.vue'
 import UiToggle from '~/components/ui/UiToggle.vue'
 import { useUiStore } from '~/stores/ui.store'
+import { useClientsStore } from '~/stores/clients.store'
 import type { Client, ClientUsuario, CreateClientDto } from '~/types/client'
 
 type ClientTipo = 'empresa' | 'persona'
@@ -469,7 +554,7 @@ const props = defineProps<{
   modelValue: boolean
   model?: Client | null
   mode: 'create' | 'edit'
-  onSubmit: (payload: CreateClientDto) => Promise<void>
+  onSubmit: (payload: CreateClientDto) => Promise<Client | void>
 }>()
 
 const emit = defineEmits<{
@@ -477,9 +562,11 @@ const emit = defineEmits<{
 }>()
 
 const ui = useUiStore()
+const clientsStore = useClientsStore()
 
 const COUNTRY_CODE = '+52'
 const MAX_USUARIOS = 100
+const MAX_LOGO_SIZE_MB = 5
 const saving = ref(false)
 
 const open = computed({
@@ -521,6 +608,14 @@ function getDefaultForm(): ClientForm {
 
 const form = reactive<ClientForm>(getDefaultForm())
 const errors = reactive<Record<string, string>>({})
+
+const selectedLogoFile = ref<File | null>(null)
+const selectedLogoPreview = ref('')
+const logoInputKey = ref(0)
+
+const existingLogoUrl = computed(
+  () => props.model?.logo?.secureUrl || props.model?.logo?.url || ''
+)
 
 const REGIMEN_FISCAL_OPTIONS = [
   { value: '601', label: '601 - General de Ley Personas Morales' },
@@ -598,6 +693,7 @@ const fieldLabels: Record<string, string> = {
   usuarios: 'Usuarios',
   nombre: 'Nombre',
   puesto: 'Puesto',
+  logo: 'Logo',
 }
 
 function getErrorLabel(key: string) {
@@ -641,6 +737,51 @@ function clearErrors() {
   Object.keys(errors).forEach(key => delete errors[key])
 }
 
+function revokeSelectedLogoPreview() {
+  if (selectedLogoPreview.value) {
+    URL.revokeObjectURL(selectedLogoPreview.value)
+  }
+  selectedLogoPreview.value = ''
+}
+
+function resetSelectedLogo() {
+  revokeSelectedLogoPreview()
+  selectedLogoFile.value = null
+  logoInputKey.value++
+}
+
+function onLogoSelected(event: Event) {
+  const file = (event.target as HTMLInputElement)?.files?.[0]
+  delete errors.logo
+
+  if (!file) {
+    resetSelectedLogo()
+    return
+  }
+
+  if (!file.type.startsWith('image/')) {
+    errors.logo = 'Selecciona un archivo de imagen válido'
+    resetSelectedLogo()
+    return
+  }
+
+  if (file.size > MAX_LOGO_SIZE_MB * 1024 * 1024) {
+    errors.logo = `La imagen no puede exceder ${MAX_LOGO_SIZE_MB}MB`
+    resetSelectedLogo()
+    return
+  }
+
+  revokeSelectedLogoPreview()
+  selectedLogoFile.value = file
+  selectedLogoPreview.value = URL.createObjectURL(file)
+  logoInputKey.value++
+}
+
+function removeSelectedLogo() {
+  delete errors.logo
+  resetSelectedLogo()
+}
+
 function normalizeUsuarios(usuarios?: ClientUsuario[] | null): ClientUsuarioForm[] {
   if (!Array.isArray(usuarios) || !usuarios.length) return []
 
@@ -658,6 +799,7 @@ function hydrateForm(client?: Client | null) {
 
   if (!client) {
     Object.assign(form, getDefaultForm())
+    resetSelectedLogo()
     return
   }
 
@@ -681,6 +823,8 @@ function hydrateForm(client?: Client | null) {
     comentarios: client.comentarios ?? '',
     activo: client.activo ?? true,
   })
+
+  resetSelectedLogo()
 }
 
 watch(
@@ -695,6 +839,7 @@ watch(
     } else {
       clearErrors()
       saving.value = false
+      resetSelectedLogo()
     }
   },
   { immediate: true }
@@ -950,8 +1095,23 @@ async function submit() {
 
   try {
     saving.value = true
-    await props.onSubmit(payload)
+
+    const savedClient =
+      (await props.onSubmit(payload)) ??
+      clientsStore.selected ??
+      props.model ??
+      null
+
+    if (selectedLogoFile.value && savedClient?.id) {
+      try {
+        await clientsStore.uploadLogo(savedClient.id, selectedLogoFile.value)
+      } catch {
+        ui.showToast('warning', 'Cliente guardado, pero no fue posible subir el logo')
+      }
+    }
+
     clearErrors()
+    resetSelectedLogo()
     open.value = false
   } catch (error) {
     console.error(error)

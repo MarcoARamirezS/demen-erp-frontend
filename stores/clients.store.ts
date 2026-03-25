@@ -12,9 +12,6 @@ export const useClientsStore = defineStore('clients', {
   }),
 
   actions: {
-    /**
-     * Carga inicial y paginación
-     */
     async fetch(limit = 10, search = '') {
       this.loading = true
 
@@ -38,9 +35,6 @@ export const useClientsStore = defineStore('clients', {
       }
     },
 
-    /**
-     * Limpia estado al salir/entrar a la vista
-     */
     reset() {
       this.items = []
       this.cursor = null
@@ -96,6 +90,27 @@ export const useClientsStore = defineStore('clients', {
       } finally {
         this.loading = false
       }
+    },
+
+    async uploadLogo(id: string, file: File) {
+      const form = new FormData()
+      form.append('logo', file)
+
+      const updated = await useApi<Client>(`/clients/${id}/logo`, {
+        method: 'POST',
+        body: form,
+      })
+
+      const idx = this.items.findIndex(c => c.id === id)
+      if (idx !== -1) {
+        this.items[idx] = updated
+      }
+
+      if (this.selected?.id === id) {
+        this.selected = updated
+      }
+
+      return updated
     },
 
     async toggleActive(id: string, activo: boolean) {
