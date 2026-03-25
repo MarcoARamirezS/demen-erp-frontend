@@ -3,49 +3,34 @@
     <div
       class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <!-- HEADER -->
       <header
         class="sticky top-0 z-10 flex flex-col gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row md:items-center md:justify-between"
       >
         <div class="flex items-center gap-4">
           <div class="rounded-full bg-primary/10 p-3">
-            <Icon name="truck" class="h-6 w-6 text-primary" />
+            <Icon name="link" class="h-6 w-6 text-primary" />
           </div>
 
           <div>
             <h2 class="text-xl font-bold text-primary">
               {{
-                mode === 'create' ? 'Asignar proveedor a producto' : 'Editar proveedor del producto'
+                mode === 'create'
+                  ? 'Nueva relación proveedor-producto'
+                  : 'Editar relación proveedor-producto'
               }}
             </h2>
-
             <p class="text-sm opacity-60">
-              Condiciones comerciales del proveedor para este producto
+              Vincula productos con proveedores y define condiciones comerciales.
             </p>
           </div>
         </div>
 
-        <button
-          class="btn btn-circle btn-ghost btn-sm"
-          :disabled="props.saving"
-          @click="open = false"
-        >
+        <button class="btn btn-circle btn-ghost btn-sm" type="button" @click="open = false">
           <Icon name="x" />
         </button>
       </header>
 
-      <!-- CONTENT -->
       <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6 pb-10">
-        <!-- LOADING CATALOGS -->
-        <div
-          v-if="loadingCatalogs"
-          class="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-200/40 p-4 text-sm"
-        >
-          <span class="loading loading-spinner loading-sm"></span>
-          Cargando proveedores y productos…
-        </div>
-
-        <!-- ALERTA DE VALIDACIÓN -->
         <div
           v-if="errorSummary.length"
           class="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm"
@@ -55,7 +40,6 @@
 
             <div class="flex-1">
               <p class="font-semibold text-error">Revisa los siguientes campos:</p>
-
               <ul class="mt-2 list-disc space-y-1 pl-5 text-base-content/80">
                 <li v-for="item in errorSummary" :key="item.key">
                   <span class="font-medium">{{ item.label }}:</span>
@@ -66,196 +50,228 @@
           </div>
         </div>
 
-        <!-- RESUMEN -->
         <div
-          v-if="selectedSupplier || selectedProduct"
-          class="grid grid-cols-1 gap-3 rounded-2xl border border-base-300 bg-gradient-to-br from-base-200/50 to-base-100 p-4 md:grid-cols-2"
+          v-if="selectedSupplier && selectedSupplier.active === false"
+          class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm"
         >
-          <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide opacity-60">Proveedor</p>
-            <p class="mt-1 text-sm font-semibold">
-              {{ selectedSupplierName || 'Sin seleccionar' }}
-            </p>
-            <p v-if="selectedSupplierMeta" class="mt-1 text-xs opacity-60">
-              {{ selectedSupplierMeta }}
-            </p>
-          </div>
-
-          <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide opacity-60">Producto</p>
-            <p class="mt-1 text-sm font-semibold">
-              {{ selectedProductName || 'Sin seleccionar' }}
-            </p>
-            <p v-if="selectedProductMeta" class="mt-1 text-xs opacity-60">
-              {{ selectedProductMeta }}
-            </p>
+          <div class="flex items-start gap-3">
+            <Icon name="alert-circle" class="mt-0.5 h-5 w-5 text-warning" />
+            <div class="flex-1">
+              <p class="font-semibold text-warning">Proveedor inactivo</p>
+              <p class="mt-1 text-base-content/80">
+                El proveedor seleccionado está inactivo. Esta relación no debería usarse para nuevas
+                operaciones.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
-          <!-- PROVEEDOR -->
-          <div data-error-field="supplierId">
-            <UiSelect
-              v-model="form.supplierId"
-              label="Proveedor *"
-              placeholder="Selecciona el proveedor que surtirá este producto"
-              :error="errors.supplierId"
-              :disabled="mode === 'edit' || !!lockSupplier || loadingCatalogs || props.saving"
-              :options="supplierOptions"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Elige el proveedor con el que se negociará este producto.
-            </p>
-          </div>
-
-          <!-- PRODUCTO -->
-          <div data-error-field="productId">
-            <UiSelect
-              v-model="form.productId"
-              label="Producto *"
-              placeholder="Selecciona el producto que se relacionará con el proveedor"
-              :error="errors.productId"
-              :disabled="mode === 'edit' || !!lockProduct || loadingCatalogs || props.saving"
-              :options="productOptions"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Selecciona el producto exacto que este proveedor puede surtir.
-            </p>
-          </div>
-
-          <!-- SKU -->
-          <div data-error-field="supplierSku">
-            <UiInput
-              v-model="form.supplierSku"
-              label="SKU del proveedor"
-              placeholder="Ej: PROV-ABC-001 o código interno del proveedor"
-              :error="errors.supplierSku"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Déjalo vacío si el proveedor no maneja un SKU específico.
-            </p>
-          </div>
-
-          <!-- PRECIO -->
-          <div data-error-field="currentPrice">
-            <UiInput
-              v-model="form.currentPrice"
-              label="Precio *"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Ej: 125.50"
-              :error="errors.currentPrice"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Captura el precio vigente que ofrece el proveedor.
-            </p>
-          </div>
-
-          <!-- MONEDA -->
-          <div data-error-field="currency">
-            <UiSelect
-              v-model="form.currency"
-              label="Moneda"
-              placeholder="Selecciona la moneda del precio"
-              :options="currencyOptions"
-              :error="errors.currency"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Define si el precio está pactado en pesos o dólares.
-            </p>
-          </div>
-
-          <!-- LEAD TIME -->
-          <div data-error-field="leadTimeDays">
-            <UiInput
-              v-model="form.leadTimeDays"
-              label="Lead time (días)"
-              type="number"
-              min="0"
-              placeholder="Ej: 7"
-              :error="errors.leadTimeDays"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Tiempo estimado que tarda el proveedor en entregar.
-            </p>
-          </div>
-
-          <!-- MOQ -->
-          <div data-error-field="moq">
-            <UiInput
-              v-model="form.moq"
-              label="MOQ"
-              type="number"
-              min="0"
-              placeholder="Ej: 10"
-              :error="errors.moq"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Cantidad mínima que debes comprar al proveedor.
-            </p>
-          </div>
-
-          <!-- PACK SIZE -->
-          <div data-error-field="packSize">
-            <UiInput
-              v-model="form.packSize"
-              label="Piezas por empaque"
-              type="number"
-              min="0"
-              placeholder="Ej: 24"
-              :error="errors.packSize"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Unidades que vienen en cada caja o presentación.
-            </p>
-          </div>
-
-          <div class="md:col-span-2 rounded-xl border border-base-300 bg-base-100 p-4">
-            <UiToggle
-              v-model="form.preferred"
-              label="Proveedor preferido para este producto"
-              :disabled="props.saving"
-            />
-            <p class="mt-2 text-xs text-base-content/60">
-              Márcalo cuando este proveedor sea la referencia principal para surtir el producto.
-            </p>
-          </div>
-
-          <div class="md:col-span-2" data-error-field="notes">
-            <UiInput
-              v-model="form.notes"
-              label="Notas"
-              type="textarea"
-              placeholder="Ej: Precio negociado hasta fin de mes, entrega martes y jueves, contacto directo con compras"
-              :error="errors.notes"
-              :disabled="props.saving"
-            />
-            <p class="mt-1 text-xs text-base-content/60">
-              Agrega condiciones especiales, acuerdos comerciales u observaciones importantes.
-            </p>
+        <div
+          v-if="selectedProduct && selectedProduct.active === false"
+          class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm"
+        >
+          <div class="flex items-start gap-3">
+            <Icon name="alert-circle" class="mt-0.5 h-5 w-5 text-warning" />
+            <div class="flex-1">
+              <p class="font-semibold text-warning">Producto inactivo</p>
+              <p class="mt-1 text-base-content/80">
+                El producto seleccionado está inactivo. Esta relación no debería usarse para nuevas
+                operaciones.
+              </p>
+            </div>
           </div>
         </div>
+
+        <form class="space-y-8" @submit.prevent="submit">
+          <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-base-content/70">Relación base</h3>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div data-error-field="supplierId">
+                <UiSelect
+                  v-model="form.supplierId"
+                  label="Proveedor *"
+                  :options="supplierOptions"
+                  :error="errors.supplierId"
+                  placeholder="Selecciona un proveedor"
+                />
+                <p class="mt-1 text-xs opacity-60">
+                  Solo selecciona proveedores vigentes para compras nuevas.
+                </p>
+              </div>
+
+              <div data-error-field="productId">
+                <UiSelect
+                  v-model="form.productId"
+                  label="Producto *"
+                  :options="productOptions"
+                  :error="errors.productId"
+                  placeholder="Selecciona un producto"
+                />
+                <p class="mt-1 text-xs opacity-60">
+                  El producto vinculado podrá tener precio, lead time y proveedor preferido.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div data-error-field="preferred">
+                <label class="label">
+                  <span class="label-text">Proveedor preferido</span>
+                </label>
+
+                <div class="rounded-xl border border-base-300 bg-base-200/40 px-4 py-3">
+                  <UiToggle v-model="form.preferred" />
+                  <p class="mt-2 text-xs opacity-60">
+                    Si activas esta opción, este proveedor se considera el preferido para el
+                    producto.
+                  </p>
+                </div>
+              </div>
+
+              <div data-error-field="active">
+                <label class="label">
+                  <span class="label-text">Relación activa</span>
+                </label>
+
+                <div class="rounded-xl border border-base-300 bg-base-200/40 px-4 py-3">
+                  <UiToggle v-model="form.active" />
+                  <p class="mt-2 text-xs opacity-60">
+                    Desactiva la relación cuando ya no deba usarse, sin perder historial.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-base-content/70">Condiciones comerciales</h3>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div data-error-field="currentPrice">
+                <UiInput
+                  v-model="form.currentPrice"
+                  label="Precio actual *"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Ej: 1250.50"
+                  :error="errors.currentPrice"
+                />
+              </div>
+
+              <div data-error-field="currency">
+                <UiSelect
+                  v-model="form.currency"
+                  label="Moneda *"
+                  :options="currencyOptions"
+                  :error="errors.currency"
+                  placeholder="Selecciona moneda"
+                />
+              </div>
+
+              <div data-error-field="leadTimeDays">
+                <UiInput
+                  v-model="form.leadTimeDays"
+                  label="Lead time (días)"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Ej: 15"
+                  :error="errors.leadTimeDays"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div data-error-field="supplierSku">
+                <UiInput
+                  v-model="form.supplierSku"
+                  label="SKU / código del proveedor"
+                  placeholder="Ej: PROV-AX-204"
+                  :error="errors.supplierSku"
+                />
+              </div>
+
+              <div class="rounded-xl border border-base-300 bg-base-200/40 p-4">
+                <p class="text-sm font-semibold">Resumen operativo</p>
+
+                <div class="mt-3 space-y-2 text-sm">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="opacity-60">Proveedor</span>
+                    <span class="truncate text-right font-medium">
+                      {{ selectedSupplier?.name || selectedSupplier?.legalName || '—' }}
+                    </span>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="opacity-60">Producto</span>
+                    <span class="truncate text-right font-medium">
+                      {{ selectedProduct?.name || '—' }}
+                    </span>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="opacity-60">Estado operativo</span>
+                    <span
+                      class="badge badge-sm border font-semibold"
+                      :class="operationalBadgeClass"
+                    >
+                      {{ operationalStatusText }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div data-error-field="notes">
+              <label class="label">
+                <span class="label-text">Notas</span>
+              </label>
+
+              <textarea
+                v-model="form.notes"
+                rows="4"
+                maxlength="1000"
+                placeholder="Ej: Precio sujeto a volumen, entrega parcial permitida, requiere orden abierta."
+                :class="[
+                  'textarea min-h-[120px] w-full',
+                  errors.notes ? 'textarea-error' : 'textarea-bordered',
+                ]"
+              />
+
+              <p class="mt-1 text-xs opacity-60">
+                Registra observaciones comerciales o logísticas de esta relación.
+              </p>
+
+              <p v-if="errors.notes" class="mt-1 text-xs text-error">
+                {{ errors.notes }}
+              </p>
+
+              <div class="mt-1 text-right text-xs opacity-50">{{ form.notes.length }} / 1000</div>
+            </div>
+          </section>
+        </form>
       </section>
 
-      <!-- FOOTER -->
       <footer
-        class="sticky bottom-0 z-10 flex flex-col-reverse justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 md:flex-row"
+        class="sticky bottom-0 z-10 flex flex-col-reverse justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] md:flex-row"
       >
-        <UiButton variant="ghost" :disabled="props.saving" @click="open = false">
+        <UiButton
+          variant="ghost"
+          type="button"
+          class="w-full md:w-auto"
+          :disabled="saving"
+          @click="open = false"
+        >
           Cancelar
         </UiButton>
 
         <UiButton
           variant="primary"
-          :disabled="loadingCatalogs || props.saving"
-          :loading="props.saving"
+          class="w-full md:w-auto"
+          :loading="saving"
+          :disabled="saving || hasInactiveSelection"
           @click="submit"
         >
           Guardar
@@ -266,192 +282,116 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, computed, nextTick, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import Icon from '~/components/ui/Icon.vue'
 import UiDialog from '~/components/ui/UiDialog.vue'
 import UiInput from '~/components/ui/UiInput.vue'
-import UiSelect from '~/components/ui/UiSelect.vue'
-import UiToggle from '~/components/ui/UiToggle.vue'
 import UiButton from '~/components/ui/UiButton.vue'
-import { useSuppliersStore } from '~/stores/suppliers.store'
-import { useProductsStore } from '~/stores/products.store'
+import UiToggle from '~/components/ui/UiToggle.vue'
+import UiSelect from '~/components/ui/UiSelect.vue'
 import { useUiStore } from '~/stores/ui.store'
 
-type Mode = 'create' | 'edit'
-type Currency = 'MXN' | 'USD'
+type SupplierRef = {
+  id: string
+  code?: string
+  name?: string
+  legalName?: string
+  active?: boolean
+}
+
+type ProductRef = {
+  id: string
+  internalCode?: string
+  partNumber?: string
+  name?: string
+  active?: boolean
+}
+
+type SupplierProduct = {
+  id: string
+  supplierId: string
+  productId: string
+  currentPrice: number
+  currency: string
+  leadTimeDays?: number | null
+  supplierSku?: string | null
+  notes?: string | null
+  preferred?: boolean
+  active?: boolean
+  supplier?: SupplierRef | null
+  product?: ProductRef | null
+}
 
 type SupplierProductForm = {
   supplierId: string
   productId: string
+  currentPrice: number | string
+  currency: string
+  leadTimeDays: number | string
   supplierSku: string
-  currentPrice: string
-  currency: Currency
-  leadTimeDays: string
-  moq: string
-  packSize: string
-  preferred: boolean
   notes: string
+  preferred: boolean
   active: boolean
 }
 
-const ui = useUiStore()
-const suppliersStore = useSuppliersStore()
-const productsStore = useProductsStore()
-
-const props = withDefaults(
-  defineProps<{
-    modelValue: boolean
-    mode: Mode
-    model?: any
-    saving?: boolean
-  }>(),
-  {
-    model: null,
-    saving: false,
-  }
-)
+const props = defineProps<{
+  modelValue: boolean
+  model?: SupplierProduct | null
+  mode: 'create' | 'edit'
+  suppliers: SupplierRef[]
+  products: ProductRef[]
+  onSubmit: (payload: {
+    supplierId: string
+    productId: string
+    currentPrice: number
+    currency: string
+    leadTimeDays?: number
+    supplierSku?: string
+    notes?: string
+    preferred: boolean
+    active: boolean
+  }) => Promise<void>
+}>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (
-    e: 'submit',
-    payload: {
-      supplierId: string
-      productId: string
-      supplierSku?: string
-      currentPrice: number
-      currency: Currency
-      leadTimeDays: number
-      moq: number
-      packSize: number
-      preferred: boolean
-      notes?: string
-      active: boolean
-    }
-  ): void
+  (e: 'update:modelValue', value: boolean): void
 }>()
+
+const ui = useUiStore()
+const saving = ref(false)
 
 const open = computed({
   get: () => props.modelValue,
-  set: v => emit('update:modelValue', v),
+  set: (value: boolean) => emit('update:modelValue', value),
 })
-
-const loadingCatalogs = ref(false)
-
-const suppliers = computed(() => suppliersStore.items ?? [])
-const products = computed(() => productsStore.items ?? [])
-
-const supplierOptions = computed(() =>
-  suppliers.value.map((s: any) => ({
-    label: resolveSupplierName(s),
-    value: s.id,
-  }))
-)
-
-const productOptions = computed(() =>
-  products.value.map((p: any) => ({
-    label: resolveProductName(p),
-    value: p.id,
-  }))
-)
-
-const supplierIdSet = computed(() => new Set(supplierOptions.value.map(option => option.value)))
-const productIdSet = computed(() => new Set(productOptions.value.map(option => option.value)))
 
 const currencyOptions = [
-  { label: 'MXN – Peso mexicano', value: 'MXN' },
-  { label: 'USD – Dólar americano', value: 'USD' },
+  { label: 'MXN', value: 'MXN' },
+  { label: 'USD', value: 'USD' },
+  { label: 'EUR', value: 'EUR' },
 ]
 
-const lockSupplier = computed(() => !!props.model?.supplierId && props.mode === 'create')
-const lockProduct = computed(() => !!props.model?.productId && props.mode === 'create')
-
-function resolveSupplierName(supplier: any) {
-  return (
-    String(supplier?.name ?? '').trim() ||
-    String(supplier?.legalName ?? '').trim() ||
-    String(supplier?.razonSocial ?? '').trim() ||
-    'Proveedor'
-  )
-}
-
-function resolveProductName(product: any) {
-  return (
-    String(product?.name ?? '').trim() ||
-    String(product?.description ?? '').trim() ||
-    String(product?.partNumber ?? '').trim() ||
-    'Producto'
-  )
-}
-
-const selectedSupplier = computed(
-  () => suppliers.value.find((supplier: any) => supplier.id === form.supplierId) ?? null
-)
-
-const selectedProduct = computed(
-  () => products.value.find((product: any) => product.id === form.productId) ?? null
-)
-
-const selectedSupplierName = computed(() =>
-  selectedSupplier.value ? resolveSupplierName(selectedSupplier.value) : ''
-)
-
-const selectedSupplierMeta = computed(() => {
-  const supplier = selectedSupplier.value
-  if (!supplier) return ''
-
-  return (
-    String(supplier?.code ?? '').trim() ||
-    String(supplier?.rfc ?? '').trim() ||
-    String(supplier?.email ?? '').trim() ||
-    ''
-  )
+const form = reactive<SupplierProductForm>({
+  supplierId: '',
+  productId: '',
+  currentPrice: '',
+  currency: 'MXN',
+  leadTimeDays: '',
+  supplierSku: '',
+  notes: '',
+  preferred: false,
+  active: true,
 })
 
-const selectedProductName = computed(() =>
-  selectedProduct.value ? resolveProductName(selectedProduct.value) : ''
-)
-
-const selectedProductMeta = computed(() => {
-  const product = selectedProduct.value
-  if (!product) return ''
-
-  return (
-    String(product?.partNumber ?? '').trim() ||
-    String(product?.internalCode ?? '').trim() ||
-    String(product?.brand ?? '').trim() ||
-    ''
-  )
-})
-
-function getDefaultForm(): SupplierProductForm {
-  return {
-    supplierId: '',
-    productId: '',
-    supplierSku: '',
-    currentPrice: '0',
-    currency: 'MXN',
-    leadTimeDays: '0',
-    moq: '0',
-    packSize: '0',
-    preferred: false,
-    notes: '',
-    active: true,
-  }
-}
-
-const form = reactive<SupplierProductForm>(getDefaultForm())
 const errors = reactive<Record<string, string>>({})
 
 const fieldLabels: Record<string, string> = {
   supplierId: 'Proveedor',
   productId: 'Producto',
-  supplierSku: 'SKU del proveedor',
-  currentPrice: 'Precio',
+  currentPrice: 'Precio actual',
   currency: 'Moneda',
   leadTimeDays: 'Lead time',
-  moq: 'MOQ',
-  packSize: 'Piezas por empaque',
+  supplierSku: 'SKU del proveedor',
   notes: 'Notas',
 }
 
@@ -465,178 +405,184 @@ const errorSummary = computed(() =>
     }))
 )
 
+const supplierOptions = computed(() =>
+  props.suppliers.map(item => ({
+    value: item.id,
+    label: `${item.code ? `${item.code} · ` : ''}${item.name || item.legalName || 'Proveedor'}${item.active === false ? ' · INACTIVO' : ''}`,
+  }))
+)
+
+const productOptions = computed(() =>
+  props.products.map(item => ({
+    value: item.id,
+    label: `${item.internalCode ? `${item.internalCode} · ` : ''}${item.partNumber ? `${item.partNumber} · ` : ''}${item.name || 'Producto'}${item.active === false ? ' · INACTIVO' : ''}`,
+  }))
+)
+
+const selectedSupplier = computed(
+  () => props.suppliers.find(item => item.id === form.supplierId) || props.model?.supplier || null
+)
+
+const selectedProduct = computed(
+  () => props.products.find(item => item.id === form.productId) || props.model?.product || null
+)
+
+const hasInactiveSelection = computed(() => {
+  return selectedSupplier.value?.active === false || selectedProduct.value?.active === false
+})
+
+const operationalStatusText = computed(() => {
+  if (form.active === false) return 'Relación inactiva'
+  if (selectedSupplier.value?.active === false && selectedProduct.value?.active === false)
+    return 'Proveedor y producto inactivos'
+  if (selectedSupplier.value?.active === false) return 'Proveedor inactivo'
+  if (selectedProduct.value?.active === false) return 'Producto inactivo'
+  return 'Operativa'
+})
+
+const operationalBadgeClass = computed(() => {
+  if (form.active === false) return 'border-error bg-error text-error-content'
+  if (selectedSupplier.value?.active === false || selectedProduct.value?.active === false) {
+    return 'border-warning bg-warning text-warning-content'
+  }
+  return 'border-success bg-success text-success-content'
+})
+
 function clearErrors() {
   Object.keys(errors).forEach(key => delete errors[key])
 }
 
-function optionalString(value?: string | null) {
-  const clean = String(value ?? '').trim()
-  return clean ? clean : undefined
+function resetForm() {
+  form.supplierId = ''
+  form.productId = ''
+  form.currentPrice = ''
+  form.currency = 'MXN'
+  form.leadTimeDays = ''
+  form.supplierSku = ''
+  form.notes = ''
+  form.preferred = false
+  form.active = true
+  clearErrors()
 }
 
-function hydrateForm(model?: any) {
+function hydrateForm() {
   clearErrors()
 
-  if (!model) {
-    Object.assign(form, {
-      ...getDefaultForm(),
-      supplierId: props.model?.supplierId ?? '',
-      productId: props.model?.productId ?? '',
-    })
+  if (!props.model) {
+    resetForm()
     return
   }
 
-  Object.assign(form, {
-    ...getDefaultForm(),
-    supplierId: model.supplierId ?? '',
-    productId: model.productId ?? '',
-    supplierSku: model.supplierSku ?? '',
-    currentPrice: String(model.currentPrice ?? 0),
-    currency: model.currency ?? 'MXN',
-    leadTimeDays: String(model.leadTimeDays ?? 0),
-    moq: String(model.moq ?? 0),
-    packSize: String(model.packSize ?? 0),
-    preferred: !!model.preferred,
-    notes: model.notes ?? '',
-    active: model.active ?? true,
-  })
-}
-
-async function ensureCatalogsLoaded() {
-  loadingCatalogs.value = true
-
-  try {
-    await Promise.all([
-      suppliersStore.items?.length ? Promise.resolve() : suppliersStore.fetch(100),
-      productsStore.items?.length ? Promise.resolve() : productsStore.fetch(100),
-    ])
-  } catch (error: any) {
-    ui.showToast(
-      'error',
-      error?.data?.message || error?.message || 'No se pudieron cargar proveedores y productos'
-    )
-  } finally {
-    loadingCatalogs.value = false
-  }
-}
-
-async function focusFirstErrorField() {
-  const firstKey = Object.keys(errors).find(key => errors[key])
-  if (!firstKey) return
-
-  await nextTick()
-
-  const wrapper = document.querySelector(`[data-error-field="${firstKey}"]`)
-  const target = wrapper?.querySelector('input, textarea, select, button') as HTMLElement | null
-
-  if (wrapper) {
-    wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
-  target?.focus?.()
+  form.supplierId = props.model.supplierId || ''
+  form.productId = props.model.productId || ''
+  form.currentPrice = props.model.currentPrice ?? ''
+  form.currency = props.model.currency || 'MXN'
+  form.leadTimeDays = props.model.leadTimeDays ?? ''
+  form.supplierSku = props.model.supplierSku || ''
+  form.notes = props.model.notes || ''
+  form.preferred = props.model.preferred ?? false
+  form.active = props.model.active ?? true
 }
 
 watch(
   () => props.modelValue,
-  async isOpen => {
-    if (isOpen) {
-      await ensureCatalogsLoaded()
-      hydrateForm(props.model)
-    } else {
-      clearErrors()
+  value => {
+    if (value) {
+      hydrateForm()
+      return
     }
+
+    clearErrors()
   },
   { immediate: true }
 )
 
 watch(
   () => props.model,
-  value => {
-    if (!props.modelValue) return
-    hydrateForm(value)
-  },
-  { deep: true }
+  () => {
+    if (props.modelValue) hydrateForm()
+  }
 )
 
-async function submit() {
+function normalizeOptionalText(value: string) {
+  const clean = String(value || '').trim()
+  return clean || undefined
+}
+
+function validate() {
   clearErrors()
 
-  const supplierId = form.supplierId.trim()
-  const productId = form.productId.trim()
-  const supplierSku = form.supplierSku.trim()
-  const currentPrice = Number(form.currentPrice)
-  const currency = form.currency
-  const leadTimeDays = Number(form.leadTimeDays)
-  const moq = Number(form.moq)
-  const packSize = Number(form.packSize)
-  const notes = form.notes.trim()
-
-  if (!supplierId) {
+  if (!form.supplierId) {
     errors.supplierId = 'Debes seleccionar un proveedor'
-  } else if (supplierOptions.value.length && !supplierIdSet.value.has(supplierId)) {
-    errors.supplierId = 'Debes seleccionar un proveedor válido'
   }
 
-  if (!productId) {
+  if (!form.productId) {
     errors.productId = 'Debes seleccionar un producto'
-  } else if (productOptions.value.length && !productIdSet.value.has(productId)) {
-    errors.productId = 'Debes seleccionar un producto válido'
   }
 
-  if (supplierSku.length > 80) {
-    errors.supplierSku = 'No puede exceder 80 caracteres'
+  const price = Number(form.currentPrice)
+  if (Number.isNaN(price) || price < 0) {
+    errors.currentPrice = 'Debes capturar un precio válido mayor o igual a 0'
   }
 
-  if (Number.isNaN(currentPrice) || currentPrice < 0) {
-    errors.currentPrice = 'Debe ser un número mayor o igual a 0'
+  if (!form.currency) {
+    errors.currency = 'Debes seleccionar una moneda'
   }
 
-  if (!['MXN', 'USD'].includes(currency)) {
-    errors.currency = 'Debes seleccionar una moneda válida'
+  if (String(form.leadTimeDays).trim() !== '') {
+    const lead = Number(form.leadTimeDays)
+    if (Number.isNaN(lead) || lead < 0) {
+      errors.leadTimeDays = 'Debes capturar un lead time válido mayor o igual a 0'
+    }
   }
 
-  if (
-    Number.isNaN(leadTimeDays) ||
-    !Number.isInteger(leadTimeDays) ||
-    leadTimeDays < 0 ||
-    leadTimeDays > 3650
-  ) {
-    errors.leadTimeDays = 'Debe ser un entero entre 0 y 3650'
+  if (form.notes.length > 1000) {
+    errors.notes = 'Las notas no pueden exceder 1000 caracteres'
   }
 
-  if (Number.isNaN(moq) || !Number.isInteger(moq) || moq < 0 || moq > 1000000) {
-    errors.moq = 'Debe ser un entero entre 0 y 1,000,000'
+  if (selectedSupplier.value?.active === false) {
+    errors.supplierId = 'No puedes guardar una relación con un proveedor inactivo'
   }
 
-  if (Number.isNaN(packSize) || !Number.isInteger(packSize) || packSize < 0 || packSize > 1000000) {
-    errors.packSize = 'Debe ser un entero entre 0 y 1,000,000'
+  if (selectedProduct.value?.active === false) {
+    errors.productId = 'No puedes guardar una relación con un producto inactivo'
   }
 
-  if (notes.length > 2000) {
-    errors.notes = 'No puede exceder 2000 caracteres'
-  }
+  return Object.keys(errors).length === 0
+}
 
-  const firstError = Object.entries(errors).find(([, value]) => !!value)
-
-  if (firstError) {
-    const [key, message] = firstError
-    ui.showToast('warning', `${fieldLabels[key] || key}: ${message}`)
-    await focusFirstErrorField()
+async function submit() {
+  if (!validate()) {
+    const first = errorSummary.value[0]
+    if (first) {
+      ui.showToast('warning', `${first.label}: ${first.message}`)
+    }
     return
   }
 
-  emit('submit', {
-    supplierId,
-    productId,
-    supplierSku: optionalString(supplierSku),
-    currentPrice,
-    currency,
-    leadTimeDays,
-    moq,
-    packSize,
-    preferred: !!form.preferred,
-    notes: optionalString(notes),
-    active: !!form.active,
-  })
+  saving.value = true
+
+  try {
+    await props.onSubmit({
+      supplierId: form.supplierId,
+      productId: form.productId,
+      currentPrice: Number(form.currentPrice),
+      currency: form.currency,
+      leadTimeDays: String(form.leadTimeDays).trim() !== '' ? Number(form.leadTimeDays) : undefined,
+      supplierSku: normalizeOptionalText(form.supplierSku),
+      notes: normalizeOptionalText(form.notes),
+      preferred: form.preferred,
+      active: form.active,
+    })
+
+    open.value = false
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo guardar la relación proveedor-producto'
+    )
+  } finally {
+    saving.value = false
+  }
 }
 </script>

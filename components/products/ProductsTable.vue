@@ -1,310 +1,232 @@
 <template>
-  <div class="w-full animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
-    <div class="hidden overflow-x-auto rounded-2xl border border-base-300 md:block">
-      <table class="table w-full text-sm">
-        <thead class="bg-base-200 text-xs uppercase tracking-wider">
-          <tr>
-            <th class="min-w-[380px]">Producto</th>
-            <th class="min-w-[170px]">SKU</th>
-            <th class="min-w-[120px]">Unidad</th>
-            <th class="w-[120px] text-center">Acciones</th>
-          </tr>
-        </thead>
-
-        <tbody v-if="loading">
-          <tr>
-            <td colspan="4" class="p-10 text-center opacity-70">
-              <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
-              Cargando productos…
-            </td>
-          </tr>
-        </tbody>
-
-        <tbody v-else-if="items.length">
-          <tr v-for="p in items" :key="p.id" class="transition hover:bg-base-200/40">
-            <td>
-              <div class="flex items-start gap-4">
-                <div class="shrink-0">
-                  <div
-                    class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-sm"
-                  >
-                    <img
-                      v-if="productImage(p)"
-                      :src="productImage(p)!"
-                      :alt="p.name || 'Producto'"
-                      class="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-
-                    <div
-                      v-else
-                      class="flex h-full w-full items-center justify-center bg-gradient-to-br from-base-200 to-base-300/60"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        class="h-8 w-8 text-base-content/40"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-                        <circle cx="9" cy="10" r="1.5"></circle>
-                        <path d="M21 16l-5.2-5.2a1 1 0 0 0-1.4 0L8 17"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="min-w-0 flex-1">
-                  <div
-                    class="truncate text-sm font-semibold text-base-content md:text-[15px]"
-                    :title="p.name"
-                  >
-                    {{ p.name }}
-                  </div>
-
-                  <div class="mt-1 truncate text-xs text-base-content/60">
-                    {{ p.brand || 'Sin marca' }}
-                  </div>
-
-                  <div class="mt-3 flex flex-wrap items-center gap-2">
-                    <span
-                      v-if="familyName(p)"
-                      class="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary shadow-sm"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-                      Familia: {{ familyName(p) }}
-                    </span>
-
-                    <span
-                      v-else
-                      class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
-                      Sin familia
-                    </span>
-
-                    <span
-                      v-if="categoryName(p)"
-                      class="inline-flex items-center gap-1 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-[11px] font-medium text-secondary shadow-sm"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-secondary"></span>
-                      Categoría: {{ categoryName(p) }}
-                    </span>
-
-                    <span
-                      v-else
-                      class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
-                      Sin categoría
-                    </span>
-
-                    <span
-                      v-if="!productImage(p)"
-                      class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
-                      Sin imagen
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </td>
-
-            <td>
-              <div
-                class="inline-flex max-w-[240px] items-center rounded-xl border border-base-300 bg-base-200/60 px-3 py-2 font-mono text-xs"
-                :title="p.partNumber"
-              >
-                <span class="truncate">{{ p.partNumber || '—' }}</span>
-              </div>
-            </td>
-
-            <td>
-              <span
-                class="inline-flex items-center rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent"
-              >
-                {{ p.unit }}
-              </span>
-            </td>
-
-            <td class="text-center">
-              <div class="flex items-center justify-center gap-1">
-                <div class="tooltip" data-tip="Editar">
-                  <button
-                    class="btn btn-circle btn-sm btn-ghost text-primary"
-                    @click="$emit('edit', p)"
-                  >
-                    <Icon name="edit" size="sm" />
-                  </button>
-                </div>
-
-                <div class="tooltip" data-tip="Eliminar">
-                  <button
-                    class="btn btn-circle btn-sm btn-ghost text-error"
-                    @click="$emit('delete', p)"
-                  >
-                    <Icon name="trash" size="sm" />
-                  </button>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-
-        <tbody v-else>
-          <tr>
-            <td colspan="4" class="p-10 text-center opacity-70">No hay productos registrados</td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="animate-fadeIn rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg">
+    <div
+      v-if="loading && !items.length"
+      class="flex items-center justify-center rounded-2xl border border-base-300 bg-base-100 p-10"
+    >
+      <span class="loading loading-spinner loading-md mr-3" />
+      <span class="text-sm opacity-70">Cargando productos...</span>
     </div>
 
-    <div class="space-y-3 md:hidden">
-      <div
-        v-if="loading"
-        class="flex items-center justify-center gap-2 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
-      >
-        <span class="loading loading-spinner loading-sm"></span>
-        <span class="text-sm opacity-70">Cargando productos…</span>
+    <template v-else>
+      <!-- DESKTOP -->
+      <div class="hidden overflow-x-auto rounded-2xl border border-base-300 md:block">
+        <table class="table w-full">
+          <thead class="bg-base-200 text-xs uppercase tracking-wider text-base-content/70">
+            <tr>
+              <th>Imagen</th>
+              <th>Producto</th>
+              <th>Núm. parte</th>
+              <th>Marca</th>
+              <th>Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody v-if="items.length">
+            <tr v-for="item in items" :key="item.id" class="transition hover:bg-base-200/40">
+              <td class="align-top">
+                <div
+                  class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-base-300 bg-base-200/40"
+                >
+                  <img
+                    v-if="firstImage(item)"
+                    :src="firstImage(item)"
+                    alt="Producto"
+                    class="h-full w-full object-cover"
+                  />
+                  <Icon v-else name="box" size="sm" class="text-base-content/40" />
+                </div>
+              </td>
+
+              <td class="align-top">
+                <div class="flex min-w-0 flex-col">
+                  <span class="truncate font-semibold text-base-content" :title="item.name">
+                    {{ item.name }}
+                  </span>
+
+                  <span
+                    v-if="item.internalCode"
+                    class="truncate text-xs text-base-content/60"
+                    :title="item.internalCode"
+                  >
+                    {{ item.internalCode }}
+                  </span>
+                </div>
+              </td>
+
+              <td class="align-top">
+                <span class="font-mono text-sm">
+                  {{ item.partNumber || '—' }}
+                </span>
+              </td>
+
+              <td class="align-top">
+                <span class="text-sm">
+                  {{ item.brand || '—' }}
+                </span>
+              </td>
+
+              <td class="align-top">
+                <span
+                  class="badge badge-sm border font-semibold"
+                  :class="
+                    item.active
+                      ? 'border-success bg-success text-success-content'
+                      : 'border-error bg-error text-error-content'
+                  "
+                >
+                  {{ item.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+
+              <td class="align-top">
+                <div class="flex items-center justify-center gap-2">
+                  <div class="tooltip" data-tip="Editar">
+                    <button
+                      type="button"
+                      class="btn btn-circle btn-sm btn-ghost text-primary"
+                      @click="$emit('edit', item)"
+                    >
+                      <Icon name="edit" size="sm" />
+                    </button>
+                  </div>
+
+                  <div class="tooltip" :data-tip="item.active ? 'Desactivar' : 'Activar'">
+                    <button
+                      type="button"
+                      class="btn btn-circle btn-sm btn-ghost"
+                      :class="item.active ? 'text-warning' : 'text-success'"
+                      @click="$emit('toggle-active', item)"
+                    >
+                      <Icon :name="item.active ? 'ban' : 'check-circle'" size="sm" />
+                    </button>
+                  </div>
+
+                  <div class="tooltip" data-tip="Eliminar">
+                    <button
+                      type="button"
+                      class="btn btn-circle btn-sm btn-ghost text-error"
+                      @click="$emit('delete', item)"
+                    >
+                      <Icon name="trash" size="sm" />
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else>
+            <tr>
+              <td colspan="6" class="p-10 text-center text-sm opacity-70">
+                No existen productos registrados
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div
-        v-else-if="!items.length"
-        class="rounded-2xl border border-base-300 bg-base-100 p-6 text-center opacity-70 shadow-sm"
-      >
-        No hay productos registrados
-      </div>
-
-      <div
-        v-else
-        v-for="p in items"
-        :key="p.id"
-        class="w-full overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
-      >
-        <div class="flex items-start gap-3">
-          <div class="shrink-0">
+      <!-- MOBILE -->
+      <div class="space-y-3 md:hidden">
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="flex gap-3 px-4 py-4">
             <div
-              class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-sm"
+              class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-base-300 bg-base-200/40"
             >
               <img
-                v-if="productImage(p)"
-                :src="productImage(p)!"
-                :alt="p.name || 'Producto'"
+                v-if="firstImage(item)"
+                :src="firstImage(item)"
+                alt="Producto"
                 class="h-full w-full object-cover"
-                loading="lazy"
               />
+              <Icon v-else name="box" size="sm" class="text-base-content/40" />
+            </div>
 
-              <div
-                v-else
-                class="flex h-full w-full items-center justify-center bg-gradient-to-br from-base-200 to-base-300/60"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  class="h-8 w-8 text-base-content/40"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-                  <circle cx="9" cy="10" r="1.5"></circle>
-                  <path d="M21 16l-5.2-5.2a1 1 0 0 0-1.4 0L8 17"></path>
-                </svg>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-bold text-base-content" :title="item.name">
+                {{ item.name }}
               </div>
+
+              <div class="mt-1 text-xs text-base-content/60">
+                {{ item.internalCode || 'Sin código interno' }}
+              </div>
+
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <span class="badge badge-outline">
+                  {{ item.partNumber || 'Sin número de parte' }}
+                </span>
+
+                <span
+                  class="badge badge-outline"
+                  :class="item.active ? 'badge-success' : 'badge-error'"
+                >
+                  {{ item.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+
+              <div class="mt-2 text-xs text-base-content/60">Marca: {{ item.brand || '—' }}</div>
             </div>
           </div>
 
-          <div class="min-w-0 flex-1">
-            <div class="truncate text-sm font-semibold">{{ p.name }}</div>
+          <div class="border-t border-base-300 px-4 py-3">
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" class="btn btn-sm btn-outline" @click="$emit('edit', item)">
+                <Icon name="edit" size="sm" />
+              </button>
 
-            <div class="mt-1 truncate text-xs text-base-content/60">
-              {{ p.brand || 'Sin marca' }}
-            </div>
-
-            <div class="mt-2">
-              <div
-                class="inline-flex max-w-full items-center rounded-xl border border-base-300 bg-base-200/60 px-3 py-1.5 font-mono text-[11px]"
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                :class="item.active ? 'text-warning' : 'text-success'"
+                @click="$emit('toggle-active', item)"
               >
-                <span class="truncate">{{ p.partNumber || '—' }}</span>
-              </div>
-            </div>
+                <Icon :name="item.active ? 'ban' : 'check-circle'" size="sm" />
+              </button>
 
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span
-                v-if="familyName(p)"
-                class="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary shadow-sm"
+              <button
+                type="button"
+                class="btn btn-sm btn-outline text-error"
+                @click="$emit('delete', item)"
               >
-                <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-                Familia: {{ familyName(p) }}
-              </span>
-
-              <span
-                v-else
-                class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
-                Sin familia
-              </span>
-
-              <span
-                v-if="categoryName(p)"
-                class="inline-flex items-center gap-1 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-[11px] font-medium text-secondary shadow-sm"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-secondary"></span>
-                Categoría: {{ categoryName(p) }}
-              </span>
-
-              <span
-                v-else
-                class="inline-flex items-center gap-1 rounded-full border border-base-300 bg-base-200 px-3 py-1 text-[11px] font-medium text-base-content/60 shadow-sm"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-base-content/40"></span>
-                Sin categoría
-              </span>
-            </div>
-
-            <div class="mt-3">
-              <span
-                class="inline-flex items-center rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent"
-              >
-                {{ p.unit }}
-              </span>
+                <Icon name="trash" size="sm" />
+              </button>
             </div>
           </div>
         </div>
 
-        <div class="mt-4 flex gap-2">
-          <button class="btn btn-sm btn-outline flex-1" @click="$emit('edit', p)">
-            <Icon name="edit" size="sm" />
-            Editar
-          </button>
-
-          <button class="btn btn-sm btn-outline btn-error flex-1" @click="$emit('delete', p)">
-            <Icon name="trash" size="sm" />
-            Eliminar
-          </button>
+        <div
+          v-if="!items.length && !loading"
+          class="rounded-2xl border border-base-300 bg-base-100 p-10 text-center text-sm opacity-70 shadow-sm"
+        >
+          No existen productos registrados
         </div>
       </div>
-    </div>
 
-    <div v-if="hasMore" class="mt-4 flex justify-center">
-      <UiButton size="sm" variant="outline" :loading="loading" @click="$emit('load-more')">
-        Cargar más
-      </UiButton>
-    </div>
+      <!-- LOAD MORE -->
+      <div v-if="hasMore" class="mt-4 flex justify-center">
+        <UiButton
+          variant="outline"
+          size="sm"
+          :loading="loading"
+          :disabled="loading"
+          @click="$emit('load-more')"
+        >
+          Cargar más
+        </UiButton>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useProductFamiliesStore } from '~/stores/productFamilies.store'
-import { useProductCategoriesStore } from '~/stores/productCategories.store'
-import type { Product, ProductImage } from '~/types/product'
+import type { Product } from '~/types/product'
+import Icon from '~/components/ui/Icon.vue'
+import UiButton from '~/components/ui/UiButton.vue'
 
 defineProps<{
   items: Product[]
@@ -312,31 +234,15 @@ defineProps<{
   hasMore: boolean
 }>()
 
-defineEmits(['edit', 'delete', 'load-more'])
+defineEmits<{
+  (e: 'edit', item: Product): void
+  (e: 'delete', item: Product): void
+  (e: 'toggle-active', item: Product): void
+  (e: 'load-more'): void
+}>()
 
-const familiesStore = useProductFamiliesStore()
-const categoriesStore = useProductCategoriesStore()
-
-const familyMap = computed(() => {
-  return new Map((familiesStore.items || []).map(item => [item.id, item.name]))
-})
-
-const categoryMap = computed(() => {
-  return new Map((categoriesStore.items || []).map(item => [item.id, item.name]))
-})
-
-function familyName(product: Product): string | null {
-  return familyMap.value.get(product.familyId) || null
-}
-
-function categoryName(product: Product): string | null {
-  return categoryMap.value.get(product.categoryId) || null
-}
-
-function productImage(product: Product): string | null {
-  if (!Array.isArray(product.images) || !product.images.length) return null
-
-  const main = product.images.find((img: ProductImage) => img.isMain)
-  return main?.url || product.images[0]?.url || null
+function firstImage(item: Product) {
+  const image = Array.isArray(item.images) ? item.images[0] : null
+  return image?.secureUrl || image?.url || ''
 }
 </script>
