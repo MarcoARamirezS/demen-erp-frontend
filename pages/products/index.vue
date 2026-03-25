@@ -23,7 +23,7 @@
       <div
         class="flex flex-col gap-3 rounded-2xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4 lg:flex-row lg:items-end"
       >
-        <div class="w-full lg:w-[40%]">
+        <div class="w-full lg:w-[32%]">
           <label class="mb-1 block text-xs opacity-70">Buscar</label>
 
           <UiInput
@@ -39,7 +39,19 @@
           </UiInput>
         </div>
 
-        <div class="w-full lg:w-[25%]">
+        <div class="w-full lg:w-[20%]">
+          <label class="mb-1 block text-xs opacity-70">Estado</label>
+
+          <UiSelect
+            v-model="activeFilter"
+            size="sm"
+            class="w-full"
+            :options="activeFilterOptions"
+            placeholder="Todos"
+          />
+        </div>
+
+        <div class="w-full lg:w-[20%]">
           <label class="mb-1 block text-xs opacity-70">Familia</label>
 
           <UiSelect
@@ -51,7 +63,7 @@
           />
         </div>
 
-        <div class="w-full lg:w-[25%]">
+        <div class="w-full lg:w-[20%]">
           <label class="mb-1 block text-xs opacity-70">Categoría</label>
 
           <UiSelect
@@ -64,7 +76,7 @@
           />
         </div>
 
-        <div class="flex w-full items-end lg:w-[10%]">
+        <div class="flex w-full items-end lg:w-[8%]">
           <UiButton size="sm" variant="outline" class="w-full" @click="clearFilters">
             Limpiar
           </UiButton>
@@ -78,6 +90,7 @@
       :has-more="store.hasMore"
       @edit="openEdit"
       @delete="confirmDelete"
+      @toggle-active="handleToggleActive"
       @load-more="loadMore"
     />
 
@@ -120,12 +133,48 @@ const categoriesStore = useProductCategoriesStore()
 const relationsLoading = ref(false)
 
 const search = ref('')
+const activeFilter = ref<string>('')
 const selectedFamilyId = ref('')
 const selectedCategoryId = ref('')
 
 const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const selected = ref<Product | null>(null)
+
+const activeFilterOptions = [
+  { label: 'Todos', value: '' },
+  { label: 'Activos', value: 'true' },
+  { label: 'Inactivos', value: 'false' },
+]
+
+async function handleToggleActive(item: Product) {
+  const willActivate = !item.active
+
+  const confirmed = await ui.confirm({
+    title: willActivate ? 'Activar producto' : 'Desactivar producto',
+    message: willActivate
+      ? `¿Deseas activar el producto "${item.name}"?`
+      : `¿Deseas desactivar el producto "${item.name}"?`,
+    confirmText: willActivate ? 'Activar' : 'Desactivar',
+    cancelText: 'Cancelar',
+    variant: willActivate ? 'info' : 'warning',
+  })
+
+  if (!confirmed) return
+
+  try {
+    await store.update(item.id, { active: willActivate })
+    ui.showToast(
+      'success',
+      willActivate ? 'Producto activado correctamente' : 'Producto desactivado correctamente'
+    )
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo actualizar el producto'
+    )
+  }
+}
 
 function normalizeText(value: unknown) {
   return String(value ?? '')
@@ -169,6 +218,25 @@ watch(search, value => {
   runSearch(value)
 })
 
+watch(activeFilter, async value => {
+  try {
+    store.reset()
+
+    await useApi('/products', {
+      query: {
+        limit: 10,
+        search: store.search || undefined,
+        active: value === 'true' ? true : value === 'false' ? false : undefined,
+      },
+    })
+
+    await refreshProductsWithCurrentFilters()
+  } catch (error) {
+    console.error('Error applying product active filter:', error)
+    ui.showToast('error', 'No se pudo aplicar el filtro de estado')
+  }
+})
+
 watch(selectedFamilyId, async id => {
   selectedCategoryId.value = ''
 
@@ -181,6 +249,8 @@ watch(selectedFamilyId, async id => {
 
 const filteredItems = computed(() => {
   return store.items.filter((p: Product) => {
+    if (activeFilter.value === 'true' && p.active !== true) return false
+    if (activeFilter.value === 'false' && p.active !== false) return false
     if (selectedFamilyId.value && p.familyId !== selectedFamilyId.value) return false
     if (selectedCategoryId.value && p.categoryId !== selectedCategoryId.value) return false
     return true
@@ -205,13 +275,32 @@ async function ensureCategoryRelations() {
   }
 }
 
+async function refreshProductsWithCurrentFilters() {
+  store.reset()
+
+  const res = await useApi<any>('/products', {
+    query: {
+      limit: 10,
+      search: store.search || undefined,
+      active:
+        activeFilter.value === 'true' ? true : activeFilter.value === 'false' ? false : undefined,
+    },
+  })
+
+  store.items = res.items ?? []
+  store.cursor = res.nextCursor ?? null
+  store.hasMore = !!res.nextCursor
+  await ensureCategoryRelations()
+}
+
 function clearFilters() {
   search.value = ''
+  activeFilter.value = ''
   selectedFamilyId.value = ''
   selectedCategoryId.value = ''
 
   store.setSearch('')
-  store.fetch().then(() => ensureCategoryRelations())
+  refreshProductsWithCurrentFilters()
 }
 
 function loadMore() {
@@ -230,16 +319,55 @@ function openEdit(item: Product) {
   dialogOpen.value = true
 }
 
+async function suggestDeactivateProduct(item: Product) {
+  const deactivate = await ui.confirm({
+    title: 'Desactivar producto',
+    message:
+      `El producto "${item.name}" tiene relaciones proveedor-producto y no puede eliminarse físicamente.\n\n` +
+      '¿Deseas desactivarlo para ocultarlo del uso operativo sin perder historial?',
+    confirmText: 'Desactivar',
+    cancelText: 'Cancelar',
+    variant: 'warning',
+  })
+
+  if (!deactivate) return
+
+  try {
+    await store.update(item.id, { active: false })
+    ui.showToast('success', 'Producto desactivado correctamente')
+  } catch (error: any) {
+    ui.showToast(
+      'error',
+      error?.data?.message || error?.message || 'No se pudo desactivar el producto'
+    )
+  }
+}
+
 async function confirmDelete(item: Product) {
   const ok = await ui.confirm({
     title: 'Eliminar producto',
     message: `¿Eliminar el producto "${item.name}"?`,
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
   })
 
   if (!ok) return
 
-  await store.remove(item.id)
-  ui.showToast('success', 'Producto eliminado')
+  try {
+    await store.remove(item.id)
+    ui.showToast('success', 'Producto eliminado')
+  } catch (error: any) {
+    const message = error?.data?.message || error?.message || 'No se pudo eliminar el producto'
+
+    if (error?.data?.statusCode === 409 || error?.statusCode === 409) {
+      ui.showToast('warning', message)
+      await suggestDeactivateProduct(item)
+      return
+    }
+
+    ui.showToast('error', message)
+  }
 }
 
 async function handleSubmit() {
