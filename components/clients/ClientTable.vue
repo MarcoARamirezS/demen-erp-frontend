@@ -76,6 +76,27 @@ function getSearchScore(client: Client, term: string) {
   return 0
 }
 
+function getLogoUrl(client: Client) {
+  return (client as any)?.logo?.secureUrl || (client as any)?.logo?.url || ''
+}
+
+function getClientInitial(client: Client) {
+  return (
+    client?.razonSocial?.trim()?.charAt(0)?.toUpperCase() ||
+    client?.nombreComercial?.trim()?.charAt(0)?.toUpperCase() ||
+    '?'
+  )
+}
+
+function getContactText(client: Client) {
+  return client.email || client.telefono || 'Sin contacto'
+}
+
+function getSecondaryContactText(client: Client) {
+  if (client.email && client.telefono) return client.telefono
+  return ''
+}
+
 /* =========================
 SEARCH DEBOUNCE
 ========================= */
@@ -221,10 +242,7 @@ function resetFilters() {
   <div
     class="animate-fadeIn space-y-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-lg"
   >
-    <!-- =========================
-    FILTERS
-    ========================= -->
-
+    <!-- Filters -->
     <div class="rounded-xl border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-4">
       <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_110px_auto] lg:items-end">
         <div>
@@ -261,24 +279,21 @@ function resetFilters() {
 
         <div class="flex items-end">
           <button class="btn btn-sm btn-outline w-full lg:w-auto" @click="resetFilters">
-            <Icon name="x-circle" class="mr-1 h-4 w-4" />
+            <Icon name="xCircle" class="mr-1 h-4 w-4" />
             Limpiar
           </button>
         </div>
       </div>
     </div>
 
-    <!-- =========================
-    TABLE
-    ========================= -->
-
-    <div class="overflow-x-auto rounded-xl border border-base-300">
+    <!-- Desktop -->
+    <div class="hidden overflow-x-auto rounded-xl border border-base-300 md:block">
       <table class="table w-full text-sm">
         <thead class="bg-base-200 text-xs uppercase tracking-wider">
           <tr>
             <th class="cursor-pointer select-none" @click="sortBy('razonSocial')">
               <div class="inline-flex items-center gap-1">
-                Razón Social
+                Cliente
                 <Icon
                   v-if="sortField === 'razonSocial'"
                   :name="sortDirection === 'asc' ? 'chevronUp' : 'chevronDown'"
@@ -298,9 +313,9 @@ function resetFilters() {
               </div>
             </th>
 
-            <th class="hidden md:table-cell cursor-pointer select-none" @click="sortBy('email')">
+            <th class="hidden lg:table-cell cursor-pointer select-none" @click="sortBy('email')">
               <div class="inline-flex items-center gap-1">
-                Email
+                Contacto
                 <Icon
                   v-if="sortField === 'email'"
                   :name="sortDirection === 'asc' ? 'chevronUp' : 'chevronDown'"
@@ -310,14 +325,14 @@ function resetFilters() {
             </th>
 
             <th class="text-center">Estado</th>
-            <th class="text-right w-[140px]">Acciones</th>
+            <th class="text-right w-[160px]">Acciones</th>
           </tr>
         </thead>
 
         <tbody v-if="clientsStore.loading">
           <tr v-for="i in 5" :key="i">
             <td colspan="5">
-              <div class="h-10 w-full animate-pulse rounded bg-base-200"></div>
+              <div class="h-12 w-full animate-pulse rounded bg-base-200"></div>
             </td>
           </tr>
         </tbody>
@@ -331,41 +346,69 @@ function resetFilters() {
             <td>
               <div class="flex items-center gap-3">
                 <div
-                  class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
+                  class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-base-300 bg-primary/10 text-sm font-bold text-primary"
                 >
-                  {{ c.razonSocial?.charAt(0) || '?' }}
+                  <img
+                    v-if="getLogoUrl(c)"
+                    :src="getLogoUrl(c)"
+                    :alt="c.razonSocial"
+                    class="h-full w-full object-cover"
+                  />
+                  <span v-else>{{ getClientInitial(c) }}</span>
                 </div>
 
                 <div class="min-w-0">
-                  <div
-                    class="max-w-[260px] truncate font-semibold md:max-w-[220px] lg:max-w-[360px]"
-                  >
+                  <div class="max-w-[320px] truncate font-semibold text-base-content">
                     {{ c.razonSocial }}
                   </div>
 
                   <div class="mt-0.5 flex flex-wrap items-center gap-2">
-                    <div v-if="c.nombreComercial" class="truncate text-xs opacity-60">
+                    <div
+                      v-if="c.nombreComercial"
+                      class="max-w-[260px] truncate text-xs text-base-content/60"
+                    >
                       {{ c.nombreComercial }}
                     </div>
 
                     <span v-if="c.usuarios?.length" class="badge badge-outline badge-xs">
                       {{ c.usuarios.length }} usuario{{ c.usuarios.length === 1 ? '' : 's' }}
                     </span>
+
+                    <span v-if="getLogoUrl(c)" class="badge badge-outline badge-xs text-primary">
+                      Con logo
+                    </span>
                   </div>
                 </div>
               </div>
             </td>
 
-            <td class="whitespace-nowrap uppercase">
+            <td class="whitespace-nowrap uppercase font-medium">
               {{ c.rfc || '—' }}
             </td>
 
-            <td class="hidden md:table-cell max-w-[200px] truncate uppercase">
-              {{ c.email || '—' }}
+            <td class="hidden lg:table-cell">
+              <div class="max-w-[240px]">
+                <div class="truncate font-medium text-base-content">
+                  {{ getContactText(c) }}
+                </div>
+                <div
+                  v-if="getSecondaryContactText(c)"
+                  class="truncate text-xs text-base-content/60"
+                >
+                  {{ getSecondaryContactText(c) }}
+                </div>
+              </div>
             </td>
 
             <td class="text-center">
-              <span class="badge badge-sm" :class="c.activo ? 'badge-success' : 'badge-outline'">
+              <span
+                class="badge badge-sm border font-semibold"
+                :class="
+                  c.activo
+                    ? 'border-success bg-success text-success-content'
+                    : 'border-base-300 bg-base-200 text-base-content/70'
+                "
+              >
                 {{ c.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
@@ -378,7 +421,7 @@ function resetFilters() {
                   data-tip="Editar cliente"
                 >
                   <button class="btn btn-circle btn-sm btn-ghost text-info" @click="editClient(c)">
-                    <Icon name="pencil" />
+                    <Icon name="edit" />
                   </button>
                 </div>
 
@@ -410,7 +453,7 @@ function resetFilters() {
 
         <tbody v-else>
           <tr>
-            <td colspan="5" class="p-6 text-center opacity-70">
+            <td colspan="5" class="p-8 text-center opacity-70">
               <div class="space-y-1">
                 <p class="font-medium">
                   {{
@@ -430,10 +473,127 @@ function resetFilters() {
       </table>
     </div>
 
-    <!-- =========================
-    PAGINATION
-    ========================= -->
+    <!-- Mobile -->
+    <div class="space-y-3 md:hidden">
+      <div
+        v-if="clientsStore.loading"
+        class="rounded-2xl border border-base-300 bg-base-100 p-6 text-center"
+      >
+        <span class="loading loading-spinner loading-md"></span>
+        <p class="mt-2 text-sm opacity-70">Cargando clientes...</p>
+      </div>
 
+      <template v-else-if="paginated.length">
+        <div
+          v-for="c in paginated"
+          :key="c.id"
+          class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-base-300 bg-primary/10 text-sm font-bold text-primary"
+            >
+              <img
+                v-if="getLogoUrl(c)"
+                :src="getLogoUrl(c)"
+                :alt="c.razonSocial"
+                class="h-full w-full object-cover"
+              />
+              <span v-else>{{ getClientInitial(c) }}</span>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="truncate font-semibold text-base-content">
+                {{ c.razonSocial }}
+              </div>
+
+              <div v-if="c.nombreComercial" class="mt-1 truncate text-sm text-base-content/60">
+                {{ c.nombreComercial }}
+              </div>
+
+              <div class="mt-2 flex flex-wrap gap-2">
+                <span
+                  class="badge badge-sm border font-semibold"
+                  :class="
+                    c.activo
+                      ? 'border-success bg-success text-success-content'
+                      : 'border-base-300 bg-base-200 text-base-content/70'
+                  "
+                >
+                  {{ c.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+
+                <span v-if="c.usuarios?.length" class="badge badge-outline badge-sm">
+                  {{ c.usuarios.length }} usuario{{ c.usuarios.length === 1 ? '' : 's' }}
+                </span>
+
+                <span v-if="getLogoUrl(c)" class="badge badge-outline badge-sm text-primary">
+                  Con logo
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 gap-2 text-sm">
+            <div class="rounded-xl border border-base-300 bg-base-200/40 px-3 py-2">
+              <p class="text-xs uppercase text-base-content/50">RFC</p>
+              <p class="mt-1 font-medium uppercase">{{ c.rfc || '—' }}</p>
+            </div>
+
+            <div class="rounded-xl border border-base-300 bg-base-200/40 px-3 py-2">
+              <p class="text-xs uppercase text-base-content/50">Contacto</p>
+              <p class="mt-1 font-medium">{{ getContactText(c) }}</p>
+              <p v-if="getSecondaryContactText(c)" class="mt-1 text-xs text-base-content/60">
+                {{ getSecondaryContactText(c) }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-end gap-2">
+            <button
+              v-if="auth.hasPermission('clients:update')"
+              class="btn btn-circle btn-sm btn-ghost text-info"
+              @click="editClient(c)"
+            >
+              <Icon name="edit" />
+            </button>
+
+            <button class="btn btn-circle btn-sm btn-ghost text-primary" @click="goToClient(c.id)">
+              <Icon name="eye" />
+            </button>
+
+            <button
+              class="btn btn-circle btn-sm btn-ghost"
+              :class="c.activo ? 'text-warning' : 'text-success'"
+              @click="toggleClient(c)"
+            >
+              <Icon :name="c.activo ? 'power' : 'checkCircle'" />
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <div
+        v-else
+        class="rounded-2xl border border-base-300 bg-base-100 p-8 text-center opacity-70 shadow-sm"
+      >
+        <div class="space-y-1">
+          <p class="font-medium">
+            {{
+              searchDebounced
+                ? 'No se encontraron clientes con ese criterio'
+                : 'No hay clientes registrados'
+            }}
+          </p>
+
+          <p v-if="searchDebounced" class="text-xs opacity-60">
+            Intenta buscar por razón social, nombre comercial, RFC o email.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
     <div class="mt-4 flex flex-col items-center justify-between gap-3 lg:flex-row">
       <p class="text-xs opacity-70">
         Mostrando
