@@ -3,9 +3,6 @@
     <div
       class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl"
     >
-      <!-- =====================================================
-           HEADER
-      ====================================================== -->
       <header
         class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
       >
@@ -15,16 +12,16 @@
           </div>
 
           <div class="min-w-0">
-            <h2 class="flex items-center gap-2 text-lg font-semibold text-base-content">
+            <h2 class="flex flex-wrap items-center gap-2 text-lg font-semibold text-base-content">
               <span
                 class="badge badge-outline badge-sm font-mono"
                 :class="actionTone(model?.action)"
               >
-                {{ model?.action || 'sin acción' }}
+                {{ model?.actionLabel || model?.action || 'Sin acción' }}
               </span>
 
               <span class="truncate text-base-content/70">
-                {{ model?.resource || 'recurso no disponible' }}
+                {{ model?.resourceLabel || model?.resource || 'Recurso no disponible' }}
               </span>
             </h2>
 
@@ -40,19 +37,13 @@
         </button>
       </header>
 
-      <!-- =====================================================
-           CONTENT
-      ====================================================== -->
       <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-        <!-- LOADING -->
         <div v-if="loading" class="py-10 text-center text-base-content/70">
           <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
           Cargando detalle…
         </div>
 
-        <!-- DATA -->
         <div v-else-if="model" class="space-y-6">
-          <!-- ALERTA RESUMEN -->
           <div
             v-if="missingFields.length"
             class="rounded-2xl border border-warning/25 bg-warning/10 p-4 text-sm"
@@ -73,11 +64,42 @@
             </div>
           </div>
 
-          <!-- =========================
-               CARDS INFO
-          ========================== -->
+          <section class="space-y-3">
+            <h3 class="flex items-center gap-2 font-semibold text-primary">
+              <Icon name="info" size="sm" />
+              Qué ocurrió
+            </h3>
+
+            <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+              <p class="text-base font-semibold text-base-content">
+                {{ mainDescription }}
+              </p>
+
+              <div
+                v-if="model.entityLabel || showDistinctResourceId"
+                class="mt-3 flex flex-wrap gap-2"
+              >
+                <span v-if="model.entityLabel" class="badge badge-outline">
+                  {{ model.entityLabel }}
+                </span>
+
+                <span v-if="showDistinctResourceId" class="badge badge-outline font-mono">
+                  ID: {{ model.resourceId }}
+                </span>
+              </div>
+
+              <ul
+                v-if="model.highlights?.length"
+                class="mt-4 list-disc space-y-1 pl-5 text-sm text-base-content/75"
+              >
+                <li v-for="(item, index) in model.highlights" :key="`${index}-${item}`">
+                  {{ item }}
+                </li>
+              </ul>
+            </div>
+          </section>
+
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <!-- ACTOR -->
             <div
               class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
               :class="actorCardClass"
@@ -105,19 +127,35 @@
               </div>
             </div>
 
-            <!-- RESOURCE -->
             <div
               class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
               :class="resourceCardClass"
             >
-              <div class="text-xs uppercase tracking-wide text-base-content/60">Recurso ID</div>
+              <div class="text-xs uppercase tracking-wide text-base-content/60">Recurso</div>
 
-              <div v-if="model.resourceId" class="break-all font-medium text-base-content">
+              <div
+                v-if="model.resourceLabel || model.resource"
+                class="font-medium text-base-content"
+              >
+                {{ model.resourceLabel || model.resource }}
+              </div>
+
+              <div
+                v-if="model.entityLabel"
+                class="rounded-lg border border-base-300 bg-base-200/40 px-3 py-2 text-sm text-base-content/85"
+              >
+                {{ model.entityLabel }}
+              </div>
+
+              <div
+                v-if="showDistinctResourceId"
+                class="break-all rounded-lg border border-base-300 bg-base-200/40 px-3 py-2 text-sm font-mono text-base-content/75"
+              >
                 {{ model.resourceId }}
               </div>
 
               <div
-                v-else
+                v-if="!model.resourceId"
                 class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-base-content/75"
               >
                 Este registro no incluye un identificador del recurso.
@@ -125,12 +163,9 @@
             </div>
           </div>
 
-          <!-- =========================
-               INFO GENERAL
-          ========================== -->
           <section class="space-y-3">
             <h3 class="flex items-center gap-2 font-semibold text-primary">
-              <Icon name="info" size="sm" />
+              <Icon name="clipboard" size="sm" />
               Resumen del evento
             </h3>
 
@@ -141,7 +176,7 @@
               >
                 <div class="text-xs uppercase tracking-wide text-base-content/60">Acción</div>
                 <div v-if="model.action" class="break-words font-medium text-base-content">
-                  {{ model.action }}
+                  {{ model.actionLabel || model.action }}
                 </div>
                 <div
                   v-else
@@ -157,7 +192,7 @@
               >
                 <div class="text-xs uppercase tracking-wide text-base-content/60">Recurso</div>
                 <div v-if="model.resource" class="break-words font-medium text-base-content">
-                  {{ model.resource }}
+                  {{ model.resourceLabel || model.resource }}
                 </div>
                 <div
                   v-else
@@ -185,9 +220,47 @@
             </div>
           </section>
 
-          <!-- =========================
-               META JSON
-          ========================== -->
+          <section v-if="computedChanges.length" class="space-y-3">
+            <h3 class="flex items-center gap-2 font-semibold text-primary">
+              <Icon name="edit" size="sm" />
+              Cambios detectados
+            </h3>
+
+            <div class="space-y-3">
+              <div
+                v-for="change in computedChanges"
+                :key="change.field"
+                class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
+              >
+                <div class="mb-3 text-sm font-semibold text-base-content">
+                  {{ change.label || change.field }}
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div class="rounded-lg border border-base-300 bg-base-200/40 p-3">
+                    <div class="mb-1 text-xs uppercase tracking-wide text-base-content/50">
+                      Antes
+                    </div>
+                    <div class="whitespace-pre-wrap break-words text-sm text-base-content/80">
+                      {{ formatValue(change.before) }}
+                    </div>
+                  </div>
+
+                  <div class="rounded-lg border border-base-300 bg-base-200/40 p-3">
+                    <div class="mb-1 text-xs uppercase tracking-wide text-base-content/50">
+                      Después
+                    </div>
+                    <div
+                      class="whitespace-pre-wrap break-words text-sm font-medium text-base-content"
+                    >
+                      {{ formatValue(change.after) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="space-y-3">
             <h3 class="flex items-center gap-2 font-semibold text-primary">
               <Icon name="code" size="sm" />
@@ -213,15 +286,11 @@
           </section>
         </div>
 
-        <!-- EMPTY -->
         <div v-else class="py-10 text-center text-base-content/70">
           No hay información para mostrar.
         </div>
       </section>
 
-      <!-- =====================================================
-           FOOTER
-      ====================================================== -->
       <footer
         class="sticky bottom-0 z-10 flex justify-end gap-3 border-t border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-5"
       >
@@ -238,7 +307,7 @@ import UiDialog from '~/components/ui/UiDialog.vue'
 import UiButton from '~/components/ui/UiButton.vue'
 import { formatDateTime } from '~/utils/dates'
 import { useUiStore } from '~/stores/ui.store'
-import type { AuditLog } from '~/types/audit'
+import type { AuditLog, AuditChange } from '~/types/audit'
 
 const ui = useUiStore()
 
@@ -275,6 +344,24 @@ const prettyMeta = computed(() => {
   } catch {
     return String(props.model?.meta ?? '')
   }
+})
+
+const mainDescription = computed(() => {
+  return props.model?.description || 'No hay una descripción enriquecida para este evento.'
+})
+
+const computedChanges = computed<AuditChange[]>(() => {
+  return Array.isArray(props.model?.changes) ? props.model!.changes! : []
+})
+
+const showDistinctResourceId = computed(() => {
+  const entity = String(props.model?.entityLabel || '').trim()
+  const resourceId = String(props.model?.resourceId || '').trim()
+
+  if (!resourceId) return false
+  if (!entity) return true
+
+  return entity !== resourceId
 })
 
 const missingFields = computed(() => {
@@ -351,12 +438,32 @@ function simpleFieldClass(hasValue: boolean) {
   return hasValue ? 'border-base-300' : 'border-warning/25 bg-warning/5'
 }
 
+function formatValue(value: any) {
+  if (value === undefined) return 'No registrado'
+  if (value === null) return 'Vacío'
+  if (value === '') return 'Vacío'
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'string') return value
+
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
 const actionTone = (action?: string) => {
-  if (!action) return 'badge-ghost'
-  if (action.includes('delete')) return 'border-error/30 bg-error/10 text-error'
-  if (action.includes('update')) return 'border-warning/30 bg-warning/10 text-warning'
-  if (action.includes('create')) return 'border-success/30 bg-success/10 text-success'
-  if (action.includes('login')) return 'border-info/30 bg-info/10 text-info'
+  const value = String(action || '').toLowerCase()
+
+  if (!value) return 'badge-ghost'
+  if (value.includes('delete') || value.includes('remove'))
+    return 'border-error/30 bg-error/10 text-error'
+  if (value.includes('update')) return 'border-warning/30 bg-warning/10 text-warning'
+  if (value.includes('create')) return 'border-success/30 bg-success/10 text-success'
+  if (value.includes('login') || value.includes('refresh') || value.includes('logout')) {
+    return 'border-info/30 bg-info/10 text-info'
+  }
   return 'bg-base-200 text-base-content/80'
 }
 
