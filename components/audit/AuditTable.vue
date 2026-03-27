@@ -88,10 +88,10 @@
         <thead class="bg-base-200 text-xs uppercase">
           <tr>
             <th class="min-w-[190px]">Fecha</th>
-            <th class="min-w-[170px]">Operación</th>
+            <th class="min-w-[220px]">Operación</th>
             <th class="min-w-[170px]">Recurso</th>
             <th class="min-w-[220px]">Actor</th>
-            <th class="min-w-[360px]">Descripción</th>
+            <th class="min-w-[420px]">Descripción</th>
             <th class="w-[90px] text-center">Acciones</th>
           </tr>
         </thead>
@@ -107,56 +107,66 @@
 
         <tbody v-else-if="paginated.length">
           <tr v-for="a in paginated" :key="a.id" class="hover:bg-base-200/40">
-            <td>
+            <td class="align-top">
               <div class="font-medium whitespace-nowrap">{{ formatDateTime(a.createdAt) }}</div>
               <div class="max-w-[260px] truncate font-mono text-xs opacity-60" :title="a.id">
                 {{ a.id }}
               </div>
             </td>
 
-            <td>
-              <span class="badge badge-outline" :class="actionTone(a.action)">
-                {{ a.actionLabel || prettyAction(a.action) }}
-              </span>
+            <td class="align-top">
+              <div
+                class="inline-flex max-w-[190px] rounded-full border px-3 py-1 text-xs font-semibold leading-tight"
+                :class="operationPillClass(a.action)"
+                :title="a.actionLabel || prettyAction(a.action)"
+              >
+                <span class="break-words whitespace-normal">
+                  {{ a.actionLabel || prettyAction(a.action) }}
+                </span>
+              </div>
             </td>
 
             <td
-              class="truncate max-w-[260px]"
+              class="align-top truncate max-w-[260px]"
               :title="a.resourceLabel || prettyResource(a.resource)"
             >
               {{ a.resourceLabel || prettyResource(a.resource) }}
             </td>
 
-            <td class="max-w-[280px] truncate" :title="actorText(a)">
+            <td class="align-top max-w-[280px] truncate" :title="actorText(a)">
               {{ actorText(a) }}
             </td>
 
-            <td>
-              <div class="space-y-1">
+            <td class="align-top">
+              <div class="space-y-2">
                 <div
-                  class="max-w-[420px] truncate font-medium text-base-content"
+                  class="max-w-[460px] truncate font-medium text-base-content"
                   :title="a.description || '—'"
                 >
                   {{ a.description || 'Sin descripción enriquecida' }}
                 </div>
 
                 <div v-if="a.entityLabel || a.resourceId" class="flex flex-wrap gap-2">
-                  <span v-if="a.entityLabel" class="badge badge-outline badge-sm">
+                  <span
+                    v-if="a.entityLabel"
+                    class="inline-flex max-w-[230px] truncate rounded-full border border-base-300 bg-base-100 px-3 py-1 text-xs"
+                    :title="a.entityLabel"
+                  >
                     {{ a.entityLabel }}
                   </span>
 
                   <span
-                    v-if="a.resourceId"
-                    class="badge badge-outline badge-sm font-mono"
+                    v-if="a.resourceId && a.resourceId !== a.entityLabel"
+                    class="inline-flex max-w-[190px] truncate rounded-full border border-base-300 bg-base-100 px-3 py-1 font-mono text-xs"
                     :title="a.resourceId"
                   >
-                    {{ truncateText(a.resourceId, 18) }}
+                    {{ truncateText(a.resourceId, 20) }}
                   </span>
                 </div>
               </div>
             </td>
 
-            <td class="text-center">
+            <td class="align-top text-center">
               <div class="tooltip tooltip-left" data-tip="Ver detalle">
                 <button
                   class="btn btn-circle btn-sm btn-ghost"
@@ -203,9 +213,13 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="badge badge-outline" :class="actionTone(a.action)">
+              <span
+                class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold leading-tight"
+                :class="operationPillClass(a.action)"
+              >
                 {{ a.actionLabel || prettyAction(a.action) }}
               </span>
+
               <span class="text-xs opacity-60">
                 {{ formatDateTime(a.createdAt) }}
               </span>
@@ -240,11 +254,19 @@
           </div>
 
           <div v-if="a.entityLabel || a.resourceId" class="mt-3 flex flex-wrap gap-2">
-            <span v-if="a.entityLabel" class="badge badge-outline badge-sm">
+            <span
+              v-if="a.entityLabel"
+              class="inline-flex max-w-[220px] truncate rounded-full border border-base-300 bg-base-100 px-3 py-1 text-xs"
+              :title="a.entityLabel"
+            >
               {{ a.entityLabel }}
             </span>
 
-            <span v-if="a.resourceId" class="badge badge-outline badge-sm font-mono">
+            <span
+              v-if="a.resourceId && a.resourceId !== a.entityLabel"
+              class="inline-flex max-w-[180px] truncate rounded-full border border-base-300 bg-base-100 px-3 py-1 font-mono text-xs"
+              :title="a.resourceId"
+            >
               {{ truncateText(a.resourceId, 18) }}
             </span>
           </div>
@@ -383,12 +405,30 @@ watch([search, resourceFilter, actionFilter], () => {
 const resourceOptions = computed(() =>
   Array.from(new Set((props.items || []).map(i => i.resource).filter(Boolean)))
 )
+
 const actionOptions = computed(() =>
   Array.from(new Set((props.items || []).map(i => i.action).filter(Boolean)))
 )
 
-const prettyAction = (a: string) => String(a || '').toUpperCase()
-const prettyResource = (r: string) => String(r || '').toUpperCase()
+function prettyAction(action: string) {
+  const value = String(action || '').toLowerCase()
+
+  if (value === 'login_success') return 'Inicio de sesión exitoso'
+  if (value === 'refresh_success') return 'Refresh de sesión exitoso'
+  if (value === 'logout' || value === 'logout_success') return 'Cierre de sesión'
+  if (value.includes('create')) return 'Creación'
+  if (value.includes('update')) return 'Actualización'
+  if (value.includes('delete') || value.includes('remove')) return 'Eliminación'
+  if (value.includes('toggle')) return 'Cambio de estado'
+  if (value.includes('upload')) return 'Carga de archivo'
+  if (value.includes('assign')) return 'Asignación'
+  if (value.includes('submit')) return 'Envío'
+  return String(action || '').replace(/[_-]+/g, ' ')
+}
+
+function prettyResource(r: string) {
+  return String(r || '').toUpperCase()
+}
 
 function actorText(a: AuditLog) {
   return a.actor?.nombre || a.actor?.usuario || a.actorUserId || 'Sistema'
@@ -399,16 +439,25 @@ function truncateText(value: string, max = 18) {
   return value.length > max ? `${value.slice(0, max)}…` : value
 }
 
-const actionTone = (action?: string) => {
+function operationPillClass(action?: string) {
   const value = String(action || '').toLowerCase()
 
-  if (value.includes('delete') || value.includes('remove')) return 'bg-error/15 text-error'
-  if (value.includes('update')) return 'bg-warning/15 text-warning'
-  if (value.includes('create')) return 'bg-success/15 text-success'
-  if (value.includes('login') || value.includes('refresh') || value.includes('logout')) {
-    return 'bg-info/15 text-info'
+  if (value.includes('delete') || value.includes('remove')) {
+    return 'border-error/40 bg-error/10 text-error'
   }
 
-  return 'bg-base-200'
+  if (value.includes('update')) {
+    return 'border-warning/40 bg-warning/10 text-warning'
+  }
+
+  if (value.includes('create')) {
+    return 'border-success/40 bg-success/10 text-success'
+  }
+
+  if (value.includes('login') || value.includes('refresh') || value.includes('logout')) {
+    return 'border-info/40 bg-info/10 text-info'
+  }
+
+  return 'border-base-300 bg-base-200 text-base-content/80'
 }
 </script>
