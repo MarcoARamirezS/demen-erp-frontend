@@ -19,10 +19,15 @@ export default {
       borderRadius: {
         danam: '0.75rem',
       },
+      boxShadow: {
+        soft: '0 8px 30px rgba(15, 23, 42, 0.06)',
+        card: '0 10px 35px rgba(22, 33, 27, 0.08)',
+      },
     },
   },
   plugins: [daisyui],
   daisyui: {
+    darkTheme: 'danam',
     themes: [
       {
         danam: {
@@ -30,45 +35,45 @@ export default {
              BRAND
           ========================= */
           primary: '#1F7A5A',
-          'primary-content': '#F5FCF8',
+          'primary-content': '#F7FFFB',
 
           secondary: '#8FC8AC',
-          'secondary-content': '#163427',
+          'secondary-content': '#18352A',
 
           accent: '#145C43',
-          'accent-content': '#F3FBF7',
+          'accent-content': '#F4FFFA',
 
           /* =========================
              NEUTRAL
           ========================= */
-          neutral: '#23332C',
-          'neutral-content': '#ECF5F0',
+          neutral: '#24342D',
+          'neutral-content': '#EEF7F2',
 
           /* =========================
              BASE
           ========================= */
           'base-100': '#FFFFFF',
-          'base-200': '#F4F8F5',
-          'base-300': '#DCE8E0',
-          'base-content': '#16211B',
+          'base-200': '#F3F8F5',
+          'base-300': '#D7E4DC',
+          'base-content': '#17231C',
 
           /* =========================
              STATES
           ========================= */
-          info: '#0EA5E9',
-          'info-content': '#F5FBFF',
+          info: '#0284C7',
+          'info-content': '#F3FAFF',
 
           success: '#15803D',
           'success-content': '#F3FFF7',
 
-          warning: '#D97706',
-          'warning-content': '#FFF9F2',
+          warning: '#C56A0A',
+          'warning-content': '#FFF7ED',
 
-          error: '#DC2626',
+          error: '#C62828',
           'error-content': '#FFF5F5',
 
           /* =========================
-             OPTIONAL DAISY TOKENS
+             OPTIONAL TOKENS
           ========================= */
           '--rounded-box': '1rem',
           '--rounded-btn': '0.75rem',
