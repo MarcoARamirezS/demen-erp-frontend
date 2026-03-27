@@ -15,7 +15,7 @@
           </div>
 
           <div class="min-w-0">
-            <h2 class="flex items-center gap-2 text-lg font-semibold">
+            <h2 class="flex items-center gap-2 text-lg font-semibold text-base-content">
               <span
                 class="badge badge-outline badge-sm font-mono"
                 :class="actionTone(model?.action)"
@@ -23,12 +23,12 @@
                 {{ model?.action || 'sin acción' }}
               </span>
 
-              <span class="truncate opacity-70">
+              <span class="truncate text-base-content/70">
                 {{ model?.resource || 'recurso no disponible' }}
               </span>
             </h2>
 
-            <p class="truncate text-xs opacity-60">
+            <p class="truncate text-xs text-base-content/60">
               {{ model?.createdAt ? formatDateTime(model.createdAt) : 'Fecha no disponible' }}
               <span v-if="model?.id" class="font-mono"> · {{ model.id }}</span>
             </p>
@@ -43,9 +43,9 @@
       <!-- =====================================================
            CONTENT
       ====================================================== -->
-      <section class="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+      <section class="flex-1 space-y-6 overflow-y-auto px-6 py-6">
         <!-- LOADING -->
-        <div v-if="loading" class="py-10 text-center opacity-70">
+        <div v-if="loading" class="py-10 text-center text-base-content/70">
           <span class="loading loading-spinner loading-md mr-2 align-middle"></span>
           Cargando detalle…
         </div>
@@ -55,15 +55,13 @@
           <!-- ALERTA RESUMEN -->
           <div
             v-if="missingFields.length"
-            class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm"
+            class="rounded-2xl border border-warning/25 bg-warning/10 p-4 text-sm"
           >
             <div class="flex items-start gap-3">
-              <Icon name="alert-triangle" class="mt-0.5 h-5 w-5 text-warning" />
+              <Icon name="alert-triangle" class="mt-0.5 h-5 w-5 shrink-0 text-warning" />
 
               <div class="flex-1">
-                <p class="font-semibold text-warning-content">
-                  Este registro de auditoría está incompleto
-                </p>
+                <p class="font-semibold text-warning">Este registro de auditoría está incompleto</p>
 
                 <ul class="mt-2 list-disc space-y-1 pl-5 text-base-content/80">
                   <li v-for="item in missingFields" :key="item.key">
@@ -81,22 +79,26 @@
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <!-- ACTOR -->
             <div
-              class="rounded-xl border bg-base-100 p-4 shadow-sm space-y-2"
+              class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
               :class="actorCardClass"
             >
-              <div class="text-xs uppercase tracking-wide opacity-60">Actor</div>
+              <div class="text-xs uppercase tracking-wide text-base-content/60">Actor</div>
 
-              <div v-if="actorNombre" class="font-medium">
+              <div v-if="actorNombre" class="font-medium text-base-content">
                 {{ actorNombre }}
               </div>
 
-              <div v-if="actorUsuario" class="text-sm opacity-70">@{{ actorUsuario }}</div>
+              <div v-if="actorUsuario" class="text-sm text-base-content/70">
+                @{{ actorUsuario }}
+              </div>
 
-              <div v-if="actorId" class="break-all text-xs opacity-50">ID: {{ actorId }}</div>
+              <div v-if="actorId" class="break-all text-xs text-base-content/50">
+                ID: {{ actorId }}
+              </div>
 
               <div
                 v-if="!actorNombre && !actorUsuario && !actorId"
-                class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning-content"
+                class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-base-content/75"
               >
                 No hay información del actor. El evento pudo haber sido generado por el sistema o el
                 dato no fue registrado.
@@ -105,18 +107,18 @@
 
             <!-- RESOURCE -->
             <div
-              class="rounded-xl border bg-base-100 p-4 shadow-sm space-y-2"
+              class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
               :class="resourceCardClass"
             >
-              <div class="text-xs uppercase tracking-wide opacity-60">Recurso ID</div>
+              <div class="text-xs uppercase tracking-wide text-base-content/60">Recurso ID</div>
 
-              <div v-if="model.resourceId" class="break-all font-medium">
+              <div v-if="model.resourceId" class="break-all font-medium text-base-content">
                 {{ model.resourceId }}
               </div>
 
               <div
                 v-else
-                class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning-content"
+                class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-base-content/75"
               >
                 Este registro no incluye un identificador del recurso.
               </div>
@@ -134,46 +136,48 @@
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div
-                class="rounded-xl border bg-base-100 p-4 shadow-sm space-y-2"
+                class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
                 :class="simpleFieldClass(!!model.action)"
               >
-                <div class="text-xs uppercase tracking-wide opacity-60">Acción</div>
-                <div v-if="model.action" class="font-medium break-words">{{ model.action }}</div>
+                <div class="text-xs uppercase tracking-wide text-base-content/60">Acción</div>
+                <div v-if="model.action" class="break-words font-medium text-base-content">
+                  {{ model.action }}
+                </div>
                 <div
                   v-else
-                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning-content"
+                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-base-content/75"
                 >
                   No se registró la acción.
                 </div>
               </div>
 
               <div
-                class="rounded-xl border bg-base-100 p-4 shadow-sm space-y-2"
+                class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
                 :class="simpleFieldClass(!!model.resource)"
               >
-                <div class="text-xs uppercase tracking-wide opacity-60">Recurso</div>
-                <div v-if="model.resource" class="font-medium break-words">
+                <div class="text-xs uppercase tracking-wide text-base-content/60">Recurso</div>
+                <div v-if="model.resource" class="break-words font-medium text-base-content">
                   {{ model.resource }}
                 </div>
                 <div
                   v-else
-                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning-content"
+                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-base-content/75"
                 >
                   No se registró el recurso.
                 </div>
               </div>
 
               <div
-                class="rounded-xl border bg-base-100 p-4 shadow-sm space-y-2"
+                class="space-y-2 rounded-xl border bg-base-100 p-4 shadow-sm"
                 :class="simpleFieldClass(!!model.createdAt)"
               >
-                <div class="text-xs uppercase tracking-wide opacity-60">Fecha</div>
-                <div v-if="model.createdAt" class="font-medium break-words">
+                <div class="text-xs uppercase tracking-wide text-base-content/60">Fecha</div>
+                <div v-if="model.createdAt" class="break-words font-medium text-base-content">
                   {{ formatDateTime(model.createdAt) }}
                 </div>
                 <div
                   v-else
-                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning-content"
+                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-base-content/75"
                 >
                   No se registró la fecha del evento.
                 </div>
@@ -185,22 +189,22 @@
                META JSON
           ========================== -->
           <section class="space-y-3">
-            <h3 class="font-semibold text-primary flex items-center gap-2">
+            <h3 class="flex items-center gap-2 font-semibold text-primary">
               <Icon name="code" size="sm" />
               Meta (JSON)
             </h3>
 
-            <div class="rounded-xl border p-4 overflow-auto max-h-[300px]" :class="metaBoxClass">
+            <div class="max-h-[300px] overflow-auto rounded-xl border p-4" :class="metaBoxClass">
               <template v-if="hasMeta">
                 <pre
-                  class="text-[13px] leading-relaxed font-mono whitespace-pre-wrap break-words"
+                  class="whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-base-content"
                   >{{ prettyMeta }}</pre
                 >
               </template>
 
               <template v-else>
                 <div
-                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-3 text-sm text-warning-content"
+                  class="rounded-lg border border-warning/20 bg-warning/10 px-3 py-3 text-sm text-base-content/75"
                 >
                   Este registro no contiene metadata adicional.
                 </div>
@@ -210,7 +214,9 @@
         </div>
 
         <!-- EMPTY -->
-        <div v-else class="py-10 text-center opacity-70">No hay información para mostrar.</div>
+        <div v-else class="py-10 text-center text-base-content/70">
+          No hay información para mostrar.
+        </div>
       </section>
 
       <!-- =====================================================
@@ -329,29 +335,29 @@ const missingFields = computed(() => {
 
 const actorCardClass = computed(() =>
   !actorNombre.value && !actorUsuario.value && !actorId.value
-    ? 'border-warning/30 bg-warning/5'
+    ? 'border-warning/25 bg-warning/5'
     : 'border-base-300'
 )
 
 const resourceCardClass = computed(() =>
-  !props.model?.resourceId ? 'border-warning/30 bg-warning/5' : 'border-base-300'
+  !props.model?.resourceId ? 'border-warning/25 bg-warning/5' : 'border-base-300'
 )
 
 const metaBoxClass = computed(() =>
-  !hasMeta.value ? 'border-warning/30 bg-warning/5' : 'border-base-300 bg-base-200/40'
+  !hasMeta.value ? 'border-warning/25 bg-warning/5' : 'border-base-300 bg-base-200/40'
 )
 
 function simpleFieldClass(hasValue: boolean) {
-  return hasValue ? 'border-base-300' : 'border-warning/30 bg-warning/5'
+  return hasValue ? 'border-base-300' : 'border-warning/25 bg-warning/5'
 }
 
 const actionTone = (action?: string) => {
   if (!action) return 'badge-ghost'
-  if (action.includes('delete')) return 'bg-error/15 text-error'
-  if (action.includes('update')) return 'bg-warning/15 text-warning'
-  if (action.includes('create')) return 'bg-success/15 text-success'
-  if (action.includes('login')) return 'bg-info/15 text-info'
-  return 'bg-base-200'
+  if (action.includes('delete')) return 'border-error/30 bg-error/10 text-error'
+  if (action.includes('update')) return 'border-warning/30 bg-warning/10 text-warning'
+  if (action.includes('create')) return 'border-success/30 bg-success/10 text-success'
+  if (action.includes('login')) return 'border-info/30 bg-info/10 text-info'
+  return 'bg-base-200 text-base-content/80'
 }
 
 watch(
